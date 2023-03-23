@@ -5,6 +5,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  lib=lib {
   scout-gear.rb
   scout=scout{
+   exceptions.rb
    indiferent_hash.rb
    log.rb
    tmpfile.rb
@@ -16,6 +17,11 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     color.rb
     color_class.rb
     fingerprint.rb
+    progress.rb
+    progress=progress{
+     report.rb
+     util.rb
+    }
    }
   }
  }
@@ -31,3 +37,4 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   }
  }
 }
+

@@ -1,5 +1,6 @@
 require_relative 'log/color'
 require_relative 'log/fingerprint'
+require_relative 'log/progress'
 
 require 'io/console'
 
