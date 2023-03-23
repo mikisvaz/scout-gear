@@ -32,11 +32,11 @@ class TestTmpFile < Test::Unit::TestCase
   end
 
   def test_tmpdir
-    TmpFile.with_file(nil, true, :tmpdir => 'TMPDIR') do |file|
+    TmpFile.with_file(nil, true, :tmpdir => TmpFile.user_tmp("TMPDIR")) do |file|
       assert file =~ /TMPDIR/
     end
 
-    TmpFile.tmpdir = "TMPDIR"
+    TmpFile.tmpdir = TmpFile.user_tmp("TMPDIR")
 
     TmpFile.with_file do |file|
       assert file =~ /TMPDIR/
