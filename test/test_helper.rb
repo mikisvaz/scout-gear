@@ -19,7 +19,9 @@ require 'test/unit'
 
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
-require 'scout-gear'
+#require 'scout/helper/misc/development'
+require 'scout/tmpfile'
+require 'scout/log'
 
 class Test::Unit::TestCase
 end

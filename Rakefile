@@ -9,8 +9,8 @@ Juwelier::Tasks.new do |gem|
   gem.name = "scout-gear"
   gem.homepage = "http://github.com/mikisvaz/scout-gear"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{basic gear for scouts}
+  gem.description = %Q{Temporary files, logs, etc.}
   gem.email = "mikisvaz@gmail.com"
   gem.authors = ["Miguel Vazquez"]
 

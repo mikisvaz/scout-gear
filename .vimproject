@@ -1,0 +1,33 @@
+scout-gear=/$PWD filter="*.rb *.yaml" {
+ Rakefile
+ bin=bin {
+ }
+ lib=lib {
+  scout-gear.rb
+  scout=scout{
+   indiferent_hash.rb
+   log.rb
+   tmpfile.rb
+   indiferent_hash=indiferent_hash{
+    case_insensitive.rb
+    options.rb
+   }
+   log=log{
+    color.rb
+    color_class.rb
+    fingerprint.rb
+   }
+  }
+ }
+ test=test {
+  test_helper.rb
+  scout=scout{
+   test_indiferent_hash.rb
+   indiferent_hash=indiferent_hash{
+    test_options.rb
+   }
+   test_log.rb
+   test_tmpfile.rb
+  }
+ }
+}
