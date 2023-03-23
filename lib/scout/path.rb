@@ -1,0 +1,62 @@
+require_relative 'meta_extension'
+
+module Path
+  extend MetaExtension
+  extension_attr :namespace, :libdir
+
+  def self.caller_lib_dir(file = nil, relative_to = ['lib', 'bin'])
+    
+    if file.nil?
+      caller_dup = caller.dup
+      while file = caller_dup.shift
+        break unless file =~ /scout\/(?:resource\.rb|workflow\.rb)/ or
+          file =~ /scout\/path\.rb/ or
+          file =~ /scout\/persist.rb/
+      end
+      file = file.sub(/\.rb[^\w].*/,'.rb')
+    end
+
+    relative_to = [relative_to] unless Array === relative_to
+    file = File.expand_path(file)
+    return Path.setup(file) if relative_to.select{|d| File.exist? File.join(file, d)}.any?
+
+    while file != '/'
+      dir = File.dirname file
+
+      return dir if relative_to.select{|d| File.exist? File.join(dir, d)}.any?
+
+      file = File.dirname file
+    end
+
+    return nil
+  end
+
+  def self.setup(path, namespace = 'scout', libdir = nil)
+    path.extend Path
+    path.namespace = namespace
+    path.libdir = libdir || Path.caller_lib_dir
+    path
+  end
+
+  def join(subpath, prevpath = nil)
+    subpath = subpath.to_s if Symbol === subpath
+    prevpath = prevpath.to_s if Symbol === prevpath
+
+    subpath = File.join(prevpath.to_s, subpath) if prevpath
+    new = File.join(self, subpath)
+    self.annotate(new)
+    new
+  end
+
+  alias [] join
+  alias / join
+
+  def method_missing(name, prev = nil, *args, &block)
+    if block_given? || name.to_s.start_with?('to_')
+      super name, prev, *args, &block
+    else
+      join(name, prev)
+    end
+  end
+
+end

@@ -6,13 +6,14 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   scout-gear.rb
   scout=scout{
    exceptions.rb
-   indiferent_hash.rb
-   log.rb
+   meta_extension.rb
    tmpfile.rb
+   indiferent_hash.rb
    indiferent_hash=indiferent_hash{
     case_insensitive.rb
     options.rb
    }
+   log.rb
    log=log{
     color.rb
     color_class.rb
@@ -22,6 +23,10 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      report.rb
      util.rb
     }
+   }
+   path.rb
+   path=path{
+    find.rb
    }
   }
  }
