@@ -5,6 +5,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  lib=lib {
   scout-gear.rb
   scout=scout{
+   misc.rb
    exceptions.rb
    meta_extension.rb
    tmpfile.rb
@@ -27,6 +28,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    path.rb
    path=path{
     find.rb
+    util.rb
    }
   }
  }
@@ -42,4 +44,3 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   }
  }
 }
-

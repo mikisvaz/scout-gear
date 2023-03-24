@@ -1,6 +1,8 @@
 require File.expand_path(__FILE__).sub(%r(/test/.*), '/test/test_helper.rb')
 require 'scout/path'
+require 'scout/misc'
 require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
+
 class TestPathFind < Test::Unit::TestCase
   def test_parts
     path = Path.setup("share/data/some_file", 'scout')
@@ -30,5 +32,36 @@ class TestPathFind < Test::Unit::TestCase
       assert_equal File.join(tmpdir,"share/data/some_file"),  path.find(:current)
     end
   end
+
+  def test_current_find
+    path = Path.setup("share/data/some_file", 'scout')
+    TmpFile.in_dir do |tmpdir|
+      FileUtils.mkdir_p(File.dirname(File.join(tmpdir, path)))
+      File.write(File.join(tmpdir, path), 'string')
+      assert_equal File.join(tmpdir,"share/data/some_file"),  path.find
+      assert_equal :current,  path.find.where
+      assert_equal "share/data/some_file",  path.find.original
+    end
+  end
+
+  def test_current_find_all
+    path = Path.setup("share/data/some_file", 'scout')
+    TmpFile.with_dir do |tmpdir|
+      Path.setup tmpdir
+
+      FileUtils.mkdir_p(tmpdir.lib)
+      FileUtils.mkdir_p(tmpdir.share.data)
+      File.write(tmpdir.share.data.some_file, 'string')
+
+      FileUtils.mkdir_p(tmpdir.subdir.share.data)
+      File.write(tmpdir.subdir.share.data.some_file, 'string')
+
+      path.libdir = tmpdir
+      Misc.in_dir tmpdir.subdir do
+        assert_equal 2, path.find_all.length
+      end
+    end
+  end
+
 end
 

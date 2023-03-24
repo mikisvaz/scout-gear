@@ -1,4 +1,6 @@
 require_relative 'meta_extension'
+require_relative 'path/find'
+require_relative 'path/util'
 
 module Path
   extend MetaExtension
@@ -31,11 +33,16 @@ module Path
     return nil
   end
 
-  def self.setup(path, pkgdir = 'scout', libdir = nil)
-    path.extend Path
-    path.pkgdir = pkgdir
-    path.libdir = libdir || Path.caller_lib_dir
-    path
+  def self.default_pkgdir
+    @@default_pkgdir = 'scout'
+  end
+
+  def pkgdir
+    @pkgdir ||= Path.default_pkgdir
+  end
+
+  def libdir
+    @libdir ||= Path.caller_lib_dir
   end
 
   def join(subpath, prevpath = nil)

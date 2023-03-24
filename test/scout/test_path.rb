@@ -32,5 +32,21 @@ class TestPath < Test::Unit::TestCase
     assert_equal 'scout', path.pkgdir
     assert path.libdir.end_with?("scout-gear")
   end
+
+  def test_lib_dir
+    TmpFile.with_file do |tmpdir|
+      Path.setup tmpdir
+      FileUtils.mkdir_p tmpdir.lib
+      File.write tmpdir.lib.file, <<-EOR 
+require '#{File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')}'
+a = "1"
+Path.setup(a)
+print a.libdir
+      EOR
+      Misc.in_dir tmpdir.tmp do
+        assert_equal tmpdir, `ruby #{tmpdir.lib.file}`
+      end
+    end
+  end
 end
 
