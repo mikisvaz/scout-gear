@@ -29,8 +29,8 @@ class TestPath < Test::Unit::TestCase
   def test_setup
     path = 'tmp'
     Path.setup(path)
-    assert_equal 'scout', path.namespace
-    iii path.libdir
+    assert_equal 'scout', path.pkgdir
+    assert path.libdir.end_with?("scout-gear")
   end
 end
 

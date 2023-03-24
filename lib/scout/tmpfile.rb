@@ -80,4 +80,17 @@ module TmpFile
 
     result
   end
+
+  def self.in_dir(*args)
+    with_dir(*args) do |dir|
+      old_pwd = FileUtils.pwd
+      begin
+        FileUtils.mkdir_p dir unless File.exist?(dir)
+        FileUtils.cd dir
+        yield dir
+      ensure
+        FileUtils.cd old_pwd
+      end
+    end
+  end
 end

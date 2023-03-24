@@ -43,5 +43,11 @@ class TestTmpFile < Test::Unit::TestCase
     end
   end
 
+  def test_in_dir
+    TmpFile.in_dir do |dir|
+      assert_equal dir, FileUtils.pwd
+    end
+  end
+
 end
 

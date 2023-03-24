@@ -2,7 +2,7 @@ require_relative 'meta_extension'
 
 module Path
   extend MetaExtension
-  extension_attr :namespace, :libdir
+  extension_attr :pkgdir, :libdir
 
   def self.caller_lib_dir(file = nil, relative_to = ['lib', 'bin'])
     
@@ -31,9 +31,9 @@ module Path
     return nil
   end
 
-  def self.setup(path, namespace = 'scout', libdir = nil)
+  def self.setup(path, pkgdir = 'scout', libdir = nil)
     path.extend Path
-    path.namespace = namespace
+    path.pkgdir = pkgdir
     path.libdir = libdir || Path.caller_lib_dir
     path
   end

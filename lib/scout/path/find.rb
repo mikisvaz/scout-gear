@@ -12,8 +12,7 @@ module Path
   end
 
   def self.follow(path, map)
-    map.sub('{PKGDIR}', path.namespace).
-      sub('{NAMESPACE}', path.namespace).
+    map.sub('{PKGDIR}', path.pkgdir).
       sub('{RESOURCE}', path.to_s).
       sub('{PWD}', FileUtils.pwd).
       sub('{TOPLEVEL}', path._toplevel).

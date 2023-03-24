@@ -23,5 +23,12 @@ class TestPathFind < Test::Unit::TestCase
     path = Path.setup("share/data/some_file", 'scout')
     assert_equal "/usr/share/scout/data/some_file", path.find(:usr)
   end
+
+  def test_current
+    path = Path.setup("share/data/some_file", 'scout')
+    TmpFile.in_dir do |tmpdir|
+      assert_equal File.join(tmpdir,"share/data/some_file"),  path.find(:current)
+    end
+  end
 end
 
