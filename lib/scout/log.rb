@@ -35,7 +35,7 @@ module Log
   def self.last_caller(stack)
     line = nil
     pos ||= 0
-    while line.nil? or line =~ /scout\/helper\/log\.rb/ and stack.any? 
+    while line.nil? or line =~ /scout\/log\.rb/ and stack.any? 
       line = stack.shift 
     end
     line ||= caller.first
