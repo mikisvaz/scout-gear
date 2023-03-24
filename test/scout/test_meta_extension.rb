@@ -5,10 +5,10 @@ class TestMetaExtension < Test::Unit::TestCase
   module ExtensionClass
     extend MetaExtension
 
-    extension_attr :code
+    extension_attr :code, :code2
   end
 
-  def test_setup
+  def test_setup_annotate
     str = "String"
     ExtensionClass.setup(str, :code)
     assert ExtensionClass === str
@@ -17,6 +17,20 @@ class TestMetaExtension < Test::Unit::TestCase
     str2 = "String2"
     str.annotate(str2)
     assert_equal :code, str2.code
+  end
+
+  def test_setup_alternatives
+    str = "String"
+
+    ExtensionClass.setup(str, :code2 => :code)
+    assert_equal :code, str.code2
+
+    ExtensionClass.setup(str, code2: :code)
+    assert_equal :code, str.code2
+
+    ExtensionClass.setup(str, "code2" => :code)
+    assert_equal :code, str.code2
+
   end
 end
 
