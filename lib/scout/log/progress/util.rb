@@ -81,7 +81,6 @@ module Log
 
     def self.with_bar(max, options = {})
       bar = new_bar(max, options)
-      res = nil
       begin
         error = false
         keep = false
