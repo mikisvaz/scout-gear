@@ -1,3 +1,4 @@
+require_relative 'misc/format'
 module Misc
   def self.in_dir(dir)
     old_pwd = FileUtils.pwd

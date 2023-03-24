@@ -5,9 +5,13 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  lib=lib {
   scout-gear.rb
   scout=scout{
-   misc.rb
-   exceptions.rb
    meta_extension.rb
+   exceptions.rb
+
+   misc.rb
+   misc=misc{
+    format.rb
+   }
    tmpfile.rb
    indiferent_hash.rb
    indiferent_hash=indiferent_hash{
@@ -24,6 +28,14 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      report.rb
      util.rb
     }
+   }
+   simple_opt.rb
+   simple_opt=simple_opt{
+    accessor.rb
+    doc.rb
+    parse.rb
+    get.rb
+    setup.rb
    }
    path.rb
    path=path{
