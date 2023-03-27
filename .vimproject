@@ -1,6 +1,7 @@
 scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
  bin=bin {
+  scout
  }
  lib=lib {
   scout-gear.rb
