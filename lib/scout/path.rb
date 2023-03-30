@@ -4,16 +4,17 @@ require_relative 'path/util'
 
 module Path
   extend MetaExtension
-  extension_attr :pkgdir, :libdir
+  extension_attr :pkgdir, :libdir, :path_maps
 
   def self.caller_lib_dir(file = nil, relative_to = ['lib', 'bin'])
     
     if file.nil?
       caller_dup = caller.dup
       while file = caller_dup.shift
-        break unless file =~ /scout\/(?:resource\.rb|workflow\.rb)/ or
-          file =~ /scout\/path\.rb/ or
-          file =~ /scout\/persist.rb/
+        break unless file =~ /(?:scout|rbbt)\/(?:resource\.rb|workflow\.rb)/ or
+          file =~ /(?:scout|rbbt)\/(?:.*\/)?path\.rb/ or
+          file =~ /(?:scout|rbbt)\/(?:.*\/)?path\/(?:find|refactor|util)\.rb/ or
+          file =~ /(?:scout|rbbt)\/persist.rb/
       end
       file = file.sub(/\.rb[^\w].*/,'.rb')
     end
@@ -34,15 +35,20 @@ module Path
   end
 
   def self.default_pkgdir
-    @@default_pkgdir = 'scout'
+    @@default_pkgdir ||= 'scout'
   end
+  
+  def self.default_pkgdir=(pkgdir)
+    @@default_pkgdir = pkgdir
+  end
+
 
   def pkgdir
     @pkgdir ||= Path.default_pkgdir
   end
 
   def libdir
-    @libdir ||= Path.caller_lib_dir
+    @libdir
   end
 
   def join(subpath, prevpath = nil)
@@ -50,7 +56,7 @@ module Path
     prevpath = prevpath.to_s if Symbol === prevpath
 
     subpath = File.join(prevpath.to_s, subpath) if prevpath
-    new = File.join(self, subpath)
+    new = self.empty? ? subpath : File.join(self, subpath)
     self.annotate(new)
     new
   end

@@ -1,25 +1,27 @@
+require_relative '../indiferent_hash'
 module Path
+
   def _parts
     @_parts ||= self.split("/")
   end
 
   def _subpath
-    @subpath ||= _parts.length > 1 ? _parts[1..-1] * "/" : _parts[0]
+    @subpath ||= _parts.length > 1 ? _parts[1..-1] * "/" : _parts[0] || ""
   end
   
   def _toplevel
-    @toplevel ||= _parts.length > 1 ? _parts[0] : nil
+    @toplevel ||= _parts.length > 1 ? _parts[0] : ""
   end
 
   def self.follow(path, map)
-    map.sub('{PKGDIR}', path.pkgdir || Path.default_pkgdir).
-      sub('{RESOURCE}', path.to_s).
+    map.sub('{PKGDIR}', path.pkgdir.respond_to?(:subdir) ? path.pkgdir.pkgdir : path.pkgdir || Path.default_pkgdir).
+      sub('{RESOURCE}', path.pkgdir.to_s).
       sub('{PWD}', FileUtils.pwd).
       sub('{TOPLEVEL}', path._toplevel).
       sub('{SUBPATH}', path._subpath).
       sub('{BASENAME}', File.basename(path)).
       sub('{PATH}', path).
-      sub('{LIBDIR}', path.libdir || Path.caller_lib_dir).
+      sub('{LIBDIR}', path.libdir || (path.pkgdir.respond_to?(:libdir) && path.pkgdir.libdir) || Path.caller_lib_dir).
       sub('{REMOVE}/', '').
       sub('{REMOVE}', '').gsub(/\/+/,'/')
   end
@@ -48,11 +50,16 @@ module Path
     @@search_order ||= (path_maps.keys & map_search) + (path_maps.keys - map_search)
   end
 
+  def self.add_path(name, map)
+    @@path_maps[name] = map
+    @@search_order = nil
+  end
+
   SLASH = "/"[0]
   DOT = "."[0]
   def located?
     # OPEN RESOURCE
-    self.slice(0,1) == SLASH || (self.char(0,1) == DOT && self.char(1,2) == SLASH) # || (resource != Rbbt && (Open.remote?(self) || Open.ssh?(self)))
+    self.slice(0,1) == SLASH || (self.slice(0,1) == DOT && self.slice(1,2) == SLASH) # || (resource != Rbbt && (Open.remote?(self) || Open.ssh?(self)))
   end
 
   def annotate_found_where(found, where)
@@ -85,13 +92,13 @@ module Path
 
   def find(where = nil)
     return self if located?
+    return find_all if where == 'all' || where == :all
     return follow(where) if where
-
 
     Path.search_order.each do |map_name|
       found = follow(map_name, false)
 
-      return annotate_found_where(found, map_name) if File.exist?(found) || File.directory?(real_path)
+      return annotate_found_where(found, map_name) if File.exist?(found) || File.directory?(found)
     end
 
     return follow(:default)
@@ -110,5 +117,4 @@ module Path
       .collect{|where| find(where) }
       .select{|file| file.exist? }.uniq
   end
-
 end

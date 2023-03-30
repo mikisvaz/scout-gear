@@ -10,7 +10,7 @@ class TestPathFind < Test::Unit::TestCase
     assert_equal "data/some_file", path._subpath
 
     path = Path.setup("data", 'scout')
-    assert_equal nil, path._toplevel
+    assert_equal "", path._toplevel
     assert_equal "data", path._subpath
   end
 
@@ -61,6 +61,14 @@ class TestPathFind < Test::Unit::TestCase
         assert_equal 2, path.find_all.length
       end
     end
+  end
+
+  def test_located?
+
+    p = Path.setup("/tmp/foo/bar")
+    assert p.located?
+    assert_equal p, p.find
+    
   end
 
 end

@@ -1,27 +1,28 @@
 #!/usr/bin/env ruby
 
-require 'scout-gear'
+require_relative '../lib/scout-gear'
 
-$0 = "scout #{$previous_commands*" "} #{ File.basename(__FILE__) }" if $previous_commands
+$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 
-options = SOPT.setup <<EOF
-
-Use your scout
-
-$ #{$0} [options] <filename.tsv|->
-
-Use - to read from STDIN
-
--h--help Print this help
-
-EOF
-if options[:help]
-  if defined? scout_usage
-    scout_usage
-  else
-    puts SOPT.doc
-  end
-  exit 0
+case
+when File.exist?(file = File.join(__dir__, '../modules/rbbt-util/bin/rbbt'))
+  $LOAD_PATH.unshift(lib_dir = File.join(file, '../..', 'lib'))
+  require_relative File.join(lib_dir,'rbbt-util')
+  Path.add_path(:rbbt, File.expand_path(File.join(File.dirname(lib_dir), "/{TOPLEVEL}/{SUBPATH}")))
+  Path.default_pkgdir = Rbbt
+  load file
+when File.exist?(file = File.join(ENV["HOME"], 'git/scout-gear/modules/rbbt-util/bin/rbbt'))
+  $LOAD_PATH.unshift(lib_dir = File.join(file, '../..', 'lib'))
+  require_relative File.join(lib_dir,'rbbt-util')
+  Path.add_path(:rbbt, File.expand_path(File.join(File.dirname(lib_dir), "/{TOPLEVEL}/{SUBPATH}")))
+  Path.default_pkgdir = Rbbt
+  load file
+when File.exist?(file = File.join(ENV["HOME"], 'git/rbbt-util/bin/rbbt'))
+  $LOAD_PATH.unshift(lib_dir = File.join(file, '../..', 'lib'))
+  require_relative File.join(lib_dir,'rbbt-util')
+  Path.add_path(:rbbt, File.expand_path(File.join(File.dirname(lib_dir), "/{TOPLEVEL}/{SUBPATH}")))
+  Path.default_pkgdir = Rbbt
+  load file
+else
+  raise "Cant find rbbt"
 end
-
-

@@ -31,12 +31,11 @@ module Path
   end
 
   def glob_all(pattern = nil, caller_lib = nil, search_paths = nil)
-    search_paths ||= Path.search_paths
+    search_paths ||= Path.path_maps
     search_paths = search_paths.dup
 
-    location_paths = {}
     search_paths.keys.collect do |where| 
-      found = find(where, Path.caller_lib_dir, search_paths)
+      found = find(where)
       paths = pattern ? Dir.glob(File.join(found, pattern)) : Dir.glob(found) 
 
       paths = paths.collect{|p| self.annotate p }
@@ -46,7 +45,7 @@ module Path
         p.where = where
       end if found.original and pattern
 
-      location_paths[where] = paths
-    end
+      paths
+    end.flatten.uniq
   end
 end
