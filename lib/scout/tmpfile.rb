@@ -1,7 +1,10 @@
-require 'fileutils'
 require_relative 'misc'
+require_relative 'log'
+require 'fileutils'
 
 module TmpFile
+  MAX_FILE_LENGTH = 150
+
   def self.user_tmp(subdir = nil)
     if subdir
       File.join(ENV["HOME"],"/tmp/scout", subdir)
@@ -88,5 +91,41 @@ module TmpFile
         yield dir
       end
     end
+  end
+
+  def self.tmp_for_file(file, tmp_options = {}, other_options = {})
+    persistence_file = IndiferentHash.process_options tmp_options, :file
+    return persistence_file unless persistence_file.nil?
+
+    prefix = IndiferentHash.process_options tmp_options, :prefix
+
+    if prefix.nil?
+      perfile = file.to_s.gsub(/\//, '>') 
+    else
+      perfile = prefix.to_s + ":" + file.to_s.gsub(/\//, '>') 
+    end
+
+    perfile.sub!(/\.b?gz$/,'')
+
+    if other_options.include? :filters
+      other_options[:filters].each do |match,value|
+        perfile = perfile + "&F[#{match}=#{Misc.digest(value)}]"
+      end
+    end
+
+    persistence_dir = IndiferentHash.process_options(tmp_options, :dir) || Persist.cachedir 
+    Path.setup(persistence_dir) unless Path === persistence_dir
+
+    filename = perfile.gsub(/\s/,'_').gsub(/\//,'>')
+    clean_options = other_options.dup
+    clean_options.delete :unnamed
+    clean_options.delete "unnamed"
+
+    filename = filename[0..MAX_FILE_LENGTH] << Misc.digest(filename[MAX_FILE_LENGTH+1..-1]) if filename.length > MAX_FILE_LENGTH + 10
+
+    options_md5 = Misc.digest(clean_options)
+    filename  << ":" << options_md5 unless options_md5.empty?
+
+    persistence_dir[filename]
   end
 end

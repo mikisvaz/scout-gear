@@ -33,6 +33,14 @@ module MetaExtension
       obj
     end
 
+    base.define_method(:extension_attr_hash) do 
+      attr_hash = {}
+      meta.class_variable_get("@@extension_attrs").each do |name|
+        attr_hash[name] = self.instance_variable_get("@#{name}")
+      end
+      attr_hash
+    end
+
     base.define_method(:annotate) do |other|
       attr_values = meta.class_variable_get("@@extension_attrs").collect do |a|
         self.instance_variable_get("@#{a}")

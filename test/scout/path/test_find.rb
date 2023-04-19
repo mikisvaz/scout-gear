@@ -71,5 +71,26 @@ class TestPathFind < Test::Unit::TestCase
     
   end
 
+  def test_custom
+    path = Path.setup("share/data/some_file", 'scout')
+    TmpFile.with_file do |tmpdir|
+      path.path_maps[:custom] = [tmpdir, '{PATH}'] * "/"
+      assert_equal File.join(tmpdir,"share/data/some_file"),  path.find(:custom)
+
+      path.path_maps[:custom] = [tmpdir, '{TOPLEVEL}/{PKGDIR}/{SUBPATH}'] * "/"
+      assert_equal File.join(tmpdir,"share/scout/data/some_file"),  path.find(:custom)
+    end
+  end
+
+  def test_pkgdir
+    path = Path.setup("share/data/some_file", 'scout')
+    TmpFile.with_file do |tmpdir|
+      path.pkgdir = 'scout_alt'
+      path.path_maps[:custom] = [tmpdir, '{TOPLEVEL}/{PKGDIR}/{SUBPATH}'] * "/"
+      assert_equal File.join(tmpdir,"share/scout_alt/data/some_file"),  path.find(:custom)
+    end
+  end
+
+
 end
 

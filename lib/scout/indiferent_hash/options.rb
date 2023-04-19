@@ -1,32 +1,24 @@
 module IndiferentHash
   def self.add_defaults(options, defaults = {})
-    options ||= {}
+    options = string2hash options if String === options
     IndiferentHash.setup(options)
-    case
-    when Hash === options
-      new_options = options.dup
-    when String === options
-      new_options = string2hash options
-    else
-      raise "Format of '#{options.inspect}' not understood. It should be a hash"
-    end
+
+    defaults = string2hash defaults if String === defaults
 
     defaults.each do |key, value|
       next if options.include? key
 
-      new_options[key] = value 
+      options[key] = value 
     end
 
-    new_options
-
-    options.replace new_options
+    options
   end
 
   def self.process_options(hash, *keys)
     IndiferentHash.setup(hash)
 
     defaults = keys.pop if Hash === keys.last
-    hahs = IndiferentHash.add_defaults hash, defaults if defaults
+    hash = IndiferentHash.add_defaults hash, defaults if defaults
 
     if keys.length == 1
       hash.include?(keys.first.to_sym) ? hash.delete(keys.first.to_sym) : hash.delete(keys.first.to_s) 
@@ -102,7 +94,7 @@ module IndiferentHash
     options = {}
 
     string.split('#').each do |str|
-      key, sep, value = str.partition "="
+      key, _, value = str.partition "="
 
       key = key[1..-1].to_sym if key[0] == ":"
 
@@ -114,17 +106,7 @@ module IndiferentHash
       options[key] = value.to_f and next if value =~ /^\d*\.\d+$/
       options[key] = true and next if value == "true"
       options[key] = false and next if value == "false"
-      options[key] = value and next 
-
-      options[key] = begin
-                       saved_safe = $SAFE
-                       $SAFE = 0
-                       eval(value)
-                     rescue Exception
-                       value
-                     ensure
-                       $SAFE = saved_safe
-                     end
+      options[key] = value
     end
 
     IndiferentHash.setup(options)

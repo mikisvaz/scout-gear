@@ -37,8 +37,10 @@ class TestPath < Test::Unit::TestCase
     TmpFile.with_file do |tmpdir|
       Path.setup tmpdir
       FileUtils.mkdir_p tmpdir.lib
+      lib_path = File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
+      lib_path = File.join(Path.caller_lib_dir, 'lib', lib_path)
       File.write tmpdir.lib.file, <<-EOR 
-require '#{File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')}'
+require '#{lib_path}'
 a = "1"
 Path.setup(a)
 print a.libdir

@@ -44,23 +44,24 @@ module SOPT
   end
 
   def self.parse(opt_str)
-    info = {}
-
     inputs = []
+
     if opt_str.include? "\n"
       re = /\n+/
     else
       re = /:/
     end
+
     opt_str.split(re).each do |entry|
       entry.strip!
       next if entry.empty?
-      names, _sep, description = entry.partition /\s+/
+      names, _sep, description = entry.partition(/\s+/)
       short, long, asterisk = names.match(/\s*(?:-(.+))?(?:--(.+?))([*])?$/).values_at 1,2,3 
 
       inputs << long
       register short, long, asterisk, description
     end
+
     inputs
   end
 end

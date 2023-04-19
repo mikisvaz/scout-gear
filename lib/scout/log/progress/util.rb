@@ -91,7 +91,7 @@ module Log
         error = true
         raise $!
       ensure
-        remove_bar(bar, error) if bar
+        remove_bar(bar, error) if bar && ! keep
       end
     end
   end

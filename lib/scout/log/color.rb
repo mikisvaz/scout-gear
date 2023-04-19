@@ -63,7 +63,7 @@ module Colorize
     if percent
       array = array.collect{|v| n = v.to_f; n = n > 100 ? 100 : n; n < 0.001 ? 0.001 : n}
     else
-      array = array.collect{|v| n = v.to_f; } 
+      array = array.collect{|v| v.to_f } 
     end
     max = array.max
     min = array.min
@@ -103,7 +103,7 @@ module Colorize
 
     value_color = Hash[*array.uniq.zip(all_colors).flatten]
 
-    value_color.values_at *array
+    value_color.values_at(*array)
   end
 
   def self.tsv(tsv, options = {})

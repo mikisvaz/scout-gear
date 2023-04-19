@@ -17,12 +17,12 @@ module Log
       attr_accessor :default_file
     end
 
-    attr_accessor :max, :ticks, :frequency, :depth, :desc, :file, :bytes, :process, :callback
+    attr_accessor :max, :ticks, :frequency, :depth, :desc, :file, :bytes, :process, :callback, :severity
 
     def initialize(max = nil, options = {})
-      depth, num_reports, desc, io, severity, file, bytes, frequency, process, callback = 
-        IndiferentHash.process_options options, :depth, :num_reports, :desc, :io, :severity, :file, :bytes, :frequency, :process, :callback,
-        :depth => 0, :num_reports => 100, :io => STDERR, :severity => Log.severity, :frequency => 2
+      depth, desc, file, bytes, frequency, process, callback = 
+        IndiferentHash.process_options options, :depth, :desc, :file, :bytes, :frequency, :process, :callback,
+        :depth => 0, :frequency => 2
 
       @max = max
       @ticks = 0

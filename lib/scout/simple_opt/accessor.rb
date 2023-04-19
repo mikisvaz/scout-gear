@@ -1,6 +1,6 @@
 module SOPT
   class << self
-    attr_accessor :inputs, :input_shortcuts, :input_types, :input_descriptions, :input_defaults
+    attr_writer :inputs, :input_shortcuts, :input_types, :input_descriptions, :input_defaults
   end
 
   def self.all

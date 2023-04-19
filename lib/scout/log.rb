@@ -14,8 +14,8 @@ module Log
                      end
 
   class << self
-    attr_accessor :logfile, :severity
-    attr_writer :tty_size
+    attr_accessor :severity
+    attr_writer :tty_size, :logfile
   end
 
 

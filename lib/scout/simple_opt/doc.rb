@@ -2,7 +2,7 @@ require_relative '../log'
 module SOPT
 
   class << self
-    attr_accessor :command, :summary, :synopsys, :description
+    attr_writer :command, :summary, :synopsys, :description
   end
 
   def self.command
@@ -73,32 +73,12 @@ module SOPT
       register(shortcut, name, type, description) unless self.inputs.include? name
 
       name  = SOPT.input_format(name, type.to_sym, default, shortcut) 
-      description 
       Misc.format_definition_list_item(name, description, 80, 31, nil)
     end * "\n"
   end
 
   def self.doc
-    doc = <<-EOF
-#{Log.color :magenta}#{command}(1) -- #{summary}
-#{"=" * (command.length + summary.length + 7)}#{Log.color :reset}
-
-#{ Log.color :magenta, "## SYNOPSYS"}
-
-#{Log.color :blue, synopsys}
-
-#{ Log.color :magenta, "## DESCRIPTION"}
-
-#{Misc.format_paragraph description}
-
-#{ Log.color :magenta, "## OPTIONS"}
-
-#{input_doc(inputs, input_types, input_descriptions, input_defaults, input_shortcuts)}
-    EOF
-  end
-
-  def self.doc
-    doc = <<-EOF
+    doc =<<-EOF
 #{Log.color :magenta}#{command}(1) -- #{summary}
 #{"=" * (command.length + summary.length + 7)}#{Log.color :reset}
 
@@ -116,5 +96,7 @@ module SOPT
 
     doc << Log.color(:magenta, "## OPTIONS") << "\n\n"
     doc << input_doc(inputs, input_types, input_descriptions, input_defaults, input_shortcuts)
+
+    doc
   end
 end

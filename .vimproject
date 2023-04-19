@@ -12,8 +12,10 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    misc.rb
    misc=misc{
     format.rb
+    insist.rb
+    digest.rb
+    filesystem.rb
    }
-   tmpfile.rb
    indiferent_hash.rb
    indiferent_hash=indiferent_hash{
     case_insensitive.rb
@@ -30,6 +32,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      util.rb
     }
    }
+   tmpfile.rb
    simple_opt.rb
    simple_opt=simple_opt{
     accessor.rb
@@ -42,6 +45,22 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    path=path{
     find.rb
     util.rb
+   }
+   concurrent_stream.rb
+   cmd.rb
+   open.rb
+   open=open{
+    stream.rb
+    util.rb
+    remote.rb
+    lock.rb
+   }
+   resource.rb
+   resource=resource{
+    produce.rb
+    path.rb
+    software.rb
+    rake.rb
    }
   }
  }

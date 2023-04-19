@@ -101,7 +101,7 @@ module Misc
     string.
       gsub(/([A-Z]{2,})([A-Z][a-z])/,'\1_\2').
       gsub(/([a-z])([A-Z])/,'\1_\2').
-      gsub(/\s/,'_').gsub(/[^\w_]/, '').
+      gsub(/\s/,'_').gsub(/[^\w]/, '').
       split("_").collect{|p| p.match(/[A-Z]{2,}/) ? p : p.downcase } * "_"
   end
 
@@ -223,5 +223,4 @@ module Misc
     end
     values
   end
-
 end

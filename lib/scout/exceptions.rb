@@ -41,7 +41,13 @@ end
 
 class OpenURLError < StandardError; end
 
-class DontClose < Exception; end
+class DontClose < Exception
+  attr_accessor :payload
+  def initialize(payload = nil)
+    @payload = payload
+  end
+end
+
 
 class KeepLocked < Exception
   attr_accessor :payload

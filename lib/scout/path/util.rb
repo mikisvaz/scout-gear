@@ -1,4 +1,12 @@
 module Path
+
+  def self.is_filename?(string, need_to_exists = true)
+    return false if string.nil?
+    return true if Path === string
+    return true if String === string and ! string.include?("\n") and string.split("/").select{|p| p.length > 265 }.empty? and (! need_to_exists || File.exist?(string))
+    return false
+  end
+
   def directory?
     return nil unless self.exist?
     File.directory?(self.find)
@@ -11,7 +19,6 @@ module Path
   def basename
     self.annotate(File.basename(self))
   end
-
 
   def glob(pattern = '*')
     if self.include? "*"

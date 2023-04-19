@@ -169,7 +169,6 @@ module Log
           bar = bars.sort_by{|b| b.depth }.first
           print(io, Log.color(:magenta ,bar.report_msg) << "\n") 
         else
-          length = Log::ProgressBar.cleanup_bars
           print(io, Log.color(:magenta, "···Progress\n"))
           bars.sort_by{|b| b.depth }.reverse.each do |bar|
             if SILENCED.include? bar

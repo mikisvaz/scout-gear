@@ -1,14 +1,7 @@
 require_relative 'misc/format'
-module Misc
-  def self.in_dir(dir)
-    old_pwd = FileUtils.pwd
-    begin
-      FileUtils.mkdir_p dir unless File.exist?(dir)
-      FileUtils.cd dir
-      yield
-    ensure
-      FileUtils.cd old_pwd
-    end
-  end
+require_relative 'misc/insist'
+require_relative 'misc/digest'
+require_relative 'misc/filesystem'
 
+module Misc
 end
