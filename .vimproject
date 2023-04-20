@@ -62,6 +62,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      rake.rb
     }
     path.rb
+    scout.rb
    }
    persist.rb
    persist=persist{
