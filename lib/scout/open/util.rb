@@ -90,5 +90,82 @@ module Open
     end
   end
 
+  def self.broken_link?(path)
+    File.symlink?(path) && ! File.exist?(File.readlink(path))
+  end
+
+  def self.exists?(file)
+    file = file.find if Path === file
+    File.exist?(file)
+  end
+  class << self; alias exist? exists? end
+
+  def self.mv(source, target, options = {})
+    target = target.find if Path === target
+    source = source.find if Path === source
+    FileUtils.mkdir_p File.dirname(target) unless File.exist?(File.dirname(target))
+    tmp_target = File.join(File.dirname(target), '.tmp_mv.' + File.basename(target))
+    FileUtils.mv source, tmp_target
+    FileUtils.mv tmp_target, target
+    return nil
+  end
+
+  def self.rm(file)
+    FileUtils.rm(file) if File.exist?(file) or Open.broken_link?(file)
+  end
+
+  def self.rm_rf(file)
+    FileUtils.rm_rf(file)
+  end
+
+  def self.touch(file)
+    FileUtils.touch(file)
+  end
+
+  def self.mkdir(target)
+    target = target.find if Path === target
+    if ! File.exist?(target)
+      FileUtils.mkdir_p target
+    end
+  end
+
+  def self.writable?(path)
+    path = path.find if Path === path
+    if File.symlink?(path)
+      File.writable?(File.dirname(path))
+    elsif File.exist?(path)
+      File.writable?(path)
+    else
+      File.writable?(File.dirname(File.expand_path(path)))
+    end
+  end
+
+  def self.ctime(file)
+    file = file.find if Path === file
+    File.ctime(file)
+  end
+
+  def self.realpath(file)
+    file = file.find if Path === file
+    Pathname.new(File.expand_path(file)).realpath.to_s 
+  end
+
+  def self.mtime(file)
+    file = file.find if Path === file
+    begin
+      if File.symlink?(file) || File.stat(file).nlink > 1
+        if File.exist?(file + '.info') && defined?(Step)
+          done = Step::INFO_SERIALIZER.load(Open.open(file + '.info'))[:done]
+          return done if done
+        end
+
+        file = Pathname.new(file).realpath.to_s 
+      end
+      return nil unless File.exist?(file)
+      File.mtime(file)
+    rescue
+      nil
+    end
+  end
 
 end

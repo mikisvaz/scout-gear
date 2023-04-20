@@ -139,7 +139,7 @@ module Open
       begin
         File.open(file, mode) do |f| 
           f.flock(File::LOCK_EX)
-          while block = content.read(Misc::BLOCK_SIZE)
+          while block = content.read(Open::BLOCK_SIZE)
             f.write block
           end
           f.flock(File::LOCK_UN)
@@ -155,34 +155,6 @@ module Open
     end
 
     notify_write(file) 
-  end
-
-  def self.broken_link?(path)
-    File.symlink?(path) && ! File.exist?(File.readlink(path))
-  end
-
-  def self.exists?(file)
-    file = file.find if Path === file
-    File.exist?(file)
-  end
-  class << self; alias exist? exists? end
-
-  def self.mv(source, target, options = {})
-    target = target.find if Path === target
-    source = source.find if Path === source
-    FileUtils.mkdir_p File.dirname(target) unless File.exist?(File.dirname(target))
-    tmp_target = File.join(File.dirname(target), '.tmp_mv.' + File.basename(target))
-    FileUtils.mv source, tmp_target
-    FileUtils.mv tmp_target, target
-    return nil
-  end
-
-  def self.rm(file)
-    FileUtils.rm(file) if File.exist?(file) or Open.broken_link?(file)
-  end
-
-  def self.touch(file)
-    FileUtils.touch(file)
   end
 
 end

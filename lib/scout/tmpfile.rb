@@ -94,8 +94,8 @@ module TmpFile
   end
 
   def self.tmp_for_file(file, tmp_options = {}, other_options = {})
-    persistence_file = IndiferentHash.process_options tmp_options, :file
-    return persistence_file unless persistence_file.nil?
+    tmp_for_file = IndiferentHash.process_options tmp_options, :file
+    return tmp_for_file unless tmp_for_file.nil?
 
     prefix = IndiferentHash.process_options tmp_options, :prefix
 
@@ -113,7 +113,7 @@ module TmpFile
       end
     end
 
-    persistence_dir = IndiferentHash.process_options(tmp_options, :dir) || Persist.cachedir 
+    persistence_dir = IndiferentHash.process_options(tmp_options, :dir) || TmpFile.tmpdir 
     Path.setup(persistence_dir) unless Path === persistence_dir
 
     filename = perfile.gsub(/\s/,'_').gsub(/\//,'>')
@@ -123,8 +123,7 @@ module TmpFile
 
     filename = filename[0..MAX_FILE_LENGTH] << Misc.digest(filename[MAX_FILE_LENGTH+1..-1]) if filename.length > MAX_FILE_LENGTH + 10
 
-    options_md5 = Misc.digest(clean_options)
-    filename  << ":" << options_md5 unless options_md5.empty?
+    filename  += ":" << Misc.digest(clean_options) unless clean_options.empty?
 
     persistence_dir[filename]
   end

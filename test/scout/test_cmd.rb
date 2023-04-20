@@ -30,17 +30,19 @@ class TestCmd < Test::Unit::TestCase
   end
 
   def test_error
-    assert_raise ProcessFailed do CMD.cmd('fake-command') end
-    assert_raise ProcessFailed do CMD.cmd('ls -fake_option') end
+    Log.with_severity 6 do
+      assert_raise ProcessFailed do CMD.cmd('fake-command') end
+      assert_raise ProcessFailed do CMD.cmd('ls -fake_option') end
 
-    assert_raise ProcessFailed do CMD.cmd('fake-command', :stderr => true) end
-    assert_raise ProcessFailed do CMD.cmd('ls -fake_option', :stderr => true) end
- 
-    assert_nothing_raised ProcessFailed do CMD.cmd('fake-command', :no_fail => true, :pipe => true) end
-    assert_nothing_raised ProcessFailed do CMD.cmd('ls -fake_option', :no_fail => true, :pipe => true) end
- 
-    assert_raise ProcessFailed do CMD.cmd('fake-command', :stderr => true, :pipe => true).join end
-    assert_raise ConcurrentStreamProcessFailed do CMD.cmd('ls -fake_option', :stderr => true, :pipe => true).join end
+      assert_raise ProcessFailed do CMD.cmd('fake-command', :stderr => true) end
+      assert_raise ProcessFailed do CMD.cmd('ls -fake_option', :stderr => true) end
+
+      assert_nothing_raised ProcessFailed do CMD.cmd('fake-command', :no_fail => true, :pipe => true) end
+      assert_nothing_raised ProcessFailed do CMD.cmd('ls -fake_option', :no_fail => true, :pipe => true) end
+
+      assert_raise ProcessFailed do CMD.cmd('fake-command', :stderr => true, :pipe => true).join end
+      assert_raise ConcurrentStreamProcessFailed do CMD.cmd('ls -fake_option', :stderr => true, :pipe => true).join end
+    end
   end
 
   def test_pipes
@@ -77,6 +79,7 @@ line33
   end
 
   def test_bash
-    puts CMD.bash("awk 'test'")
+    assert_equal "TEST", CMD.bash("echo TEST").read.strip
+    assert_equal ENV["HOME"], CMD.bash("echo $HOME").read.strip
   end
 end

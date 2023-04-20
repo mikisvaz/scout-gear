@@ -1,5 +1,5 @@
-require_relative '../misc'
-require_relative '../path'
+require_relative '../../misc'
+require_relative '../../path'
 require 'rake'
 
 module Rake

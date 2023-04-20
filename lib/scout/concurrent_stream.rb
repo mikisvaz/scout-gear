@@ -51,7 +51,7 @@ module ConcurrentStream
       end
     end
 
-    stream.filename = filename unless filename.nil?
+    stream.filename = filename.nil? ? stream.inspect.split(":").last[0..-2] : filename
 
     stream.lockfile = lockfile unless lockfile.nil?
 
@@ -78,7 +78,7 @@ module ConcurrentStream
   end
 
   def join_threads
-    if @threads and @threads.any?
+    if @threads
       @threads.each do |t| 
         next if t == Thread.current
         begin
@@ -97,9 +97,9 @@ module ConcurrentStream
           end
         rescue Exception
           if no_fail
-            Log.low "Not failing on exception joining thread in ConcurrenStream: #{filename}"
+            Log.low "Not failing on exception joining thread in ConcurrenStream - #{filename} - #{$!.message}"
           else
-            Log.low "Exception joining thread in ConcurrenStream: #{filename}"
+            Log.low "Exception joining thread in ConcurrenStream #{Log.fingerprint self} - #{Log.fingerprint t} - #{$!.message}"
             stream_raise_exception $! 
           end
         end
@@ -146,23 +146,18 @@ module ConcurrentStream
 
   def abort_threads(exception = nil)
     return unless @threads and @threads.any?
-    name = Thread.current.inspect
-    name = filename if filename
-    Log.low "Aborting threads (#{name}) #{@threads.collect{|t| t.inspect } * ", "}"
+    name = Log.fingerprint(Thread.current)
+    name += " - file:#{filename}" if filename
+    Log.low "Aborting threads (#{name}) - #{@threads.collect{|t| Log.fingerprint(t) } * ", "}"
 
     @threads.each do |t| 
       next if t == Thread.current
-      Log.debug "Aborting thread (#{name}) #{t.inspect} with exception: #{exception}"
+      Log.debug "Aborting thread #{Log.fingerprint(t)} with exception: #{exception}"
       t.raise((exception.nil? ? Aborted.new : exception))
     end 
 
     @threads.each do |t|
       next if t == Thread.current
-      if t.alive? 
-        sleep 1
-        Log.low "Kill thread (#{name}) #{t.inspect}"
-        t.kill
-      end
       begin
         t.join unless t == Thread.current
       rescue Aborted
@@ -184,6 +179,7 @@ module ConcurrentStream
   end
 
   def abort(exception = nil)
+    self.stream_exception ||= exception
     if @aborted
       Log.medium "Already aborted stream #{Log.fingerprint self} [#{@aborted}]"
       return
@@ -193,8 +189,6 @@ module ConcurrentStream
     AbortedStream.setup(self, exception)
     @aborted = true 
     begin
-      close unless closed?
-
       @abort_callback.call exception if @abort_callback
 
       abort_threads(exception)
@@ -203,8 +197,13 @@ module ConcurrentStream
       @callback = nil
       @abort_callback = nil
 
-      @pair.abort exception if @pair
+      if @pair && @pair.respond_to?(:abort) && ! @pair.aborted?
+        Log.medium "Aborting pair stream #{Log.fingerprint self}: #{Log.fingerprint @pair }"
+        @pair.abort exception
+      end
     ensure
+      close unless closed?
+
       if lockfile and lockfile.locked?
         lockfile.unlock 
       end
@@ -233,7 +232,7 @@ module ConcurrentStream
       super(*args)
     ensure
       begin
-        close
+        close unless closed?
       rescue Exception
         raise $! if ConcurrentStreamProcessFailed === $!
       end if autojoin && ! closed? && eof?

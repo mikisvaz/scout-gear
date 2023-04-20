@@ -50,17 +50,23 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    cmd.rb
    open.rb
    open=open{
-    stream.rb
-    util.rb
-    remote.rb
     lock.rb
+    stream.rb
+    remote.rb
+    util.rb
    }
    resource.rb
    resource=resource{
     produce.rb
+    produce=produce{
+     rake.rb
+    }
     path.rb
-    software.rb
-    rake.rb
+   }
+   persist.rb
+   persist=persist{
+    serialize.rb
+    open.rb
    }
   }
  }

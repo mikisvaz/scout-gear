@@ -1,6 +1,6 @@
 require_relative '../open'
 require_relative '../tmpfile'
-require_relative 'rake'
+require_relative 'produce/rake'
 
 module Resource
   def claim(path, type, content = nil, &block)

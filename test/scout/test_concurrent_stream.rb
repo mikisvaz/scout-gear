@@ -5,6 +5,12 @@ require 'scout/exceptions'
 require 'scout/cmd'
 
 class TestClass < Test::Unit::TestCase
+  def test_concurrent_stream_pipe
+    io = CMD.cmd("ls", :pipe => true, :autojoin => true)
+    io.read
+    io.close 
+  end
+
   def test_concurrent_stream_process_failed
     assert_raise ConcurrentStreamProcessFailed do 
       io = CMD.cmd("grep . NONEXISTINGFILE", :pipe => true, :autojoin => true)

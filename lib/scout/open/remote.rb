@@ -1,3 +1,4 @@
+require_relative '../misc'
 require_relative '../path'
 require_relative '../cmd'
 
@@ -41,6 +42,7 @@ module Open
     quiet = options.delete(:quiet)
     post  = options.delete(:post)
     cookies = options.delete(:cookies)
+    nocache = options.delete(:nocache)
 
     options["--quiet"]     = quiet if options["--quiet"].nil?
     options["--post-data="] ||= post if post
@@ -67,7 +69,7 @@ module Open
       wget_options[:stderr] = stderr unless stderr.nil?
 
       io = CMD.cmd("wget '#{ url }'", wget_options)
-      if options[:nocache] && options[:nocache].to_s != 'update'
+      if nocache && nocache.to_s != 'update'
         io
       else
         add_cache(url, io, options)

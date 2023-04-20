@@ -8,4 +8,8 @@ module Path
     produce
     Open.read(self)
   end
+
+  def write(*args, &block)
+    Open.write(self.find, *args, &block)
+  end
 end

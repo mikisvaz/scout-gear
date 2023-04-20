@@ -83,7 +83,8 @@ module CMD
   end
 
   def self.bash(cmd)
-    %Q(bash <<EOF\n#{cmd}\nEOF\n)
+    cmd = %Q(bash <<EOF\n#{cmd}\nEOF\n)
+    CMD.cmd(cmd, :autojoin => true)
   end
 
   def self.process_cmd_options(options = {})
@@ -214,6 +215,8 @@ module CMD
 
       if (Integer === stderr and log) || bar
         err_thread = Thread.new do
+          Thread.current["name"] = "Error log: [#{pid}] #{ cmd }"
+          begin
           while line = serr.gets
             bar.process(line) if bar
             sout.log = line
@@ -221,6 +224,10 @@ module CMD
             Log.log "STDERR [#{pid}]: " +  line, stderr if log
           end 
           serr.close
+          rescue
+            Log.exception $!
+            raise $!
+          end
         end
       else
         err_thread = Open.consume_stream(serr, true)

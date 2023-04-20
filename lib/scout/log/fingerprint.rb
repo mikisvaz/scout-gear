@@ -19,8 +19,12 @@ module Log
       else 
         "'" << obj << "'"
       end
+    when ConcurrentStream
+      name = obj.inspect + " " + obj.object_id.to_s
+      name += " #{obj.filename}" if obj.filename
+      name
     when IO
-      (obj.respond_to?(:filename) and obj.filename ) ? "<IO:" + (obj.filename || obj.inspect + rand(100000)) + ">" : obj.inspect
+      (obj.respond_to?(:filename) and obj.filename ) ? "<IO:" + (obj.filename || obj.inspect + rand(100000)) + ">" : obj.inspect + " " + obj.object_id.to_s
     when File
       "<File:" + obj.path + ">"
     when Array
@@ -51,6 +55,12 @@ module Log
         "%.3f" % obj
       else
         "%.6f" % obj
+      end
+    when Thread
+      if obj["name"]
+        obj["name"]
+      else
+        obj.inspect
       end
     else
       obj.to_s

@@ -26,5 +26,15 @@ class TestResourcePath < Test::Unit::TestCase
     end
     assert_include str, "TEST"
   end
+
+  def test_write
+    TmpFile.with_file do |tmpfile|
+      Path.setup(tmpfile)
+      tmpfile.foo.bar.write do |f|
+        f.puts "TEST"
+      end
+      assert_include tmpfile.foo.bar.read, "TEST"
+    end
+  end
 end
 

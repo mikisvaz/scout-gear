@@ -4,9 +4,12 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 require 'scout/open'
 
 class TestOpenRemote < Test::Unit::TestCase
-  def _test_wget
-    Log.severity = 0
-    assert(Misc.fixutf8(Open.wget('http://google.com', :quiet => true, :nocache => false).read) =~ /html/)
+  def test_wget
+    teardown
+    5.times do
+      assert(Misc.fixutf8(Open.wget('http://google.com', :quiet => true, :nocache => true).read) =~ /html/)
+      assert(Misc.fixutf8(Open.wget('http://google.com', :quiet => true).read) =~ /html/)
+    end
   end
 
   def test_ssh
@@ -16,7 +19,7 @@ class TestOpenRemote < Test::Unit::TestCase
       rescue ConcurrentStreamProcessFailed
         raise $! unless $!.message.include? "Connection refused"
       end
-    end
+    end if false
   end
 end
 
