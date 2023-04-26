@@ -1,12 +1,16 @@
 module Misc
   def self.digest_str(obj)
     if obj.respond_to?(:digest_str)
-      str = obj.digest_str
+      obj.digest_str
     else
       case obj
       when String
         #'\'' << obj << '\''
-        '\'' << obj << '\''
+        if Path === obj || ! Open.exists?(obj)
+          '\'' << obj << '\''
+        else
+          Misc.file_md5(obj)
+        end
       when Integer, Symbol
         obj.to_s
       when Array
@@ -25,6 +29,10 @@ module Misc
         else
           "%.6f" % obj
         end
+      when TrueClass
+        "true"
+      when FalseClass
+        "false"
       else
         obj.inspect
       end
@@ -33,6 +41,16 @@ module Misc
 
   def self.digest(obj)
     str = Misc.digest_str(obj)
-    Digest::MD5.hexdigest(str)
+    hash = Digest::MD5.hexdigest(str)
+    Log.debug "Digest #{hash} - #{str}"
+    hash
+  end
+
+  def self.file_md5(file)
+    file = file.find if Path === file
+    md5file = file + '.md5'
+    Persist.persist("MD5:#{file}", :string) do
+      Digest::MD5.file(file).hexdigest
+    end
   end
 end

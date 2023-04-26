@@ -8,6 +8,18 @@ require_relative 'open/remote'
 require_relative 'open/lock'
 
 module Open
+  module NamedStream
+    attr_accessor :filename
+
+    def digest_str
+      if Path === filename && ! filename.located?
+        filename
+      else
+        Misc.file_md5(filename)
+      end
+    end
+  end
+
   def self.get_stream(file, mode = 'r')
     file = file.find if Path === file
 
@@ -64,10 +76,7 @@ module Open
     io = gunzip(io)  if ((String === file and gzip?(file))  and not options[:noz]) or options[:gzip]
     io = bgunzip(io) if ((String === file and bgzip?(file)) and not options[:noz]) or options[:bgzip]
 
-    class << io;
-      attr_accessor :filename
-    end
-
+    io.extend NamedStream
     io.filename = file
 
     if block_given?

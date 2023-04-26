@@ -55,4 +55,10 @@ module Path
       paths
     end.flatten.uniq
   end
+
+  def no_method_missing
+    class << self
+      undef_method :method_missing
+    end
+  end
 end

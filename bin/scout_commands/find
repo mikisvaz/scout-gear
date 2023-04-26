@@ -1,0 +1,83 @@
+#!/usr/bin/env ruby
+
+require 'scout-gear'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Find files
+
+$ #{$0} [<options>] (<resource> <path>|<path>)
+
+-h--help Print this help
+-r--requires* Files to require; 'all' for all in Scout.etc.requires
+-lw--load_workflow* Files to require; 'all' for all in Scout.etc.requires
+-w--where* Where to look for the path
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+resource, path = ARGV
+path, resource = resource, nil if path.nil?
+
+raise MissingParameterException.new(:path) if path.nil?
+
+case options[:workflows]
+when nil, false, "false", "none"
+when "all"
+  Scout.etc.workflows.list.each do |workflow|
+    Workflow.require_workflow file
+  end if Scout.etc.workflows.exists?
+else
+  options[:workflows].split(/[ ,;|]/).each do |workflow|
+    Workflow.require_workflow workflow
+  end
+end
+
+case options[:requires]
+when nil, false, "false", "none"
+when "all"
+  Scout.etc.requires.list.each do |file|
+    require file
+  end if Scout.etc.requires.exists?
+else
+  options[:requires].split(/[ ,;|]/).each do |file|
+    require file
+  end
+end
+
+location = nil
+where = options[:where]
+all = options[:all]
+
+begin
+  resource = Workflow.require_workflow resource
+rescue
+  begin
+    resource = Kernel.const_get(resource)
+  rescue
+    raise "Resource not found: #{ resource }"
+  end
+end if resource
+
+path = (resource || Scout)[path.dup]
+
+if where.nil? || where == 'all' || path.search_paths.include?(where.to_sym)
+  location = path.find(where)
+
+  if Array === location
+    puts location * "\n"
+  else
+    location = nil if ! Open.exists?(location)
+    puts location
+  end
+else
+  puts SSHLine.command(where, $0, ARGV, options.merge("where" => :all))
+end

@@ -13,6 +13,12 @@ end
 
 class Aborted < StandardError; end
 
+class ParameterException < ScoutException; end
+class MissingParameterException < ParameterException
+  def initialize(parameter)
+    super("Missing parameter '#{parameter}'")
+  end
+end
 class ProcessFailed < StandardError; 
   attr_accessor :pid, :msg
   def initialize(pid = Process.pid, msg = nil)
@@ -63,13 +69,9 @@ class KeepBar < Exception
   end
 end
 
-#class ParameterException < ScoutException; end
+class LockInterrupted < TryAgain; end
+
 #
-#class MissingParameterException < ParameterException
-#  def initialize(parameter)
-#    super("Missing parameter '#{parameter}'")
-#  end
-#end
 #class ClosedStream < StandardError; end
 #class OpenGzipError < StandardError; end
 #
@@ -82,7 +84,6 @@ end
 #end
 #
 #class SemaphoreInterrupted < TryAgain; end
-#class LockInterrupted < TryAgain; end
 #
 #class RemoteServerError < StandardError; end
 #

@@ -168,4 +168,58 @@ module Open
     end
   end
 
+  def self.cp(source, target, options = {})
+    source = source.find if Path === source
+    target = target.find if Path === target
+
+    FileUtils.mkdir_p File.dirname(target) unless File.exist?(File.dirname(target))
+    FileUtils.rm target if File.exist?(target)
+    FileUtils.cp_r source, target
+  end
+
+
+  def self.ln_s(source, target, options = {})
+    source = source.find if Path === source
+    target = target.find if Path === target
+
+    target = File.join(target, File.basename(source)) if File.directory? target
+    FileUtils.mkdir_p File.dirname(target) unless File.exist?(File.dirname(target))
+    FileUtils.rm target if File.exist?(target)
+    FileUtils.rm target if File.symlink?(target)
+    FileUtils.ln_s source, target
+  end
+
+  def self.ln(source, target, options = {})
+    source = source.find if Path === source
+    target = target.find if Path === target
+    source = File.realpath(source) if File.symlink?(source)
+
+    FileUtils.mkdir_p File.dirname(target) unless File.exist?(File.dirname(target))
+    FileUtils.rm target if File.exist?(target)
+    FileUtils.rm target if File.symlink?(target)
+    FileUtils.ln source, target
+  end
+
+  def self.ln_h(source, target, options = {})
+    source = source.find if Path === source
+    target = target.find if Path === target
+
+    FileUtils.mkdir_p File.dirname(target) unless File.exist?(File.dirname(target))
+    FileUtils.rm target if File.exist?(target)
+    begin
+      CMD.cmd("ln -L '#{ source }' '#{ target }'")
+    rescue ProcessFailed
+      Log.debug "Could not hard link #{source} and #{target}: #{$!.message.gsub("\n", '. ')}"
+      CMD.cmd("cp -L '#{ source }' '#{ target }'")
+    end
+  end
+
+  def self.link(source, target, options = {})
+    begin
+      Open.ln(source, target, options)
+    rescue
+      Open.ln_s(source, target, options)
+    end
+    nil
+  end
 end

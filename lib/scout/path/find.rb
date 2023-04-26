@@ -29,8 +29,8 @@ module Path
     return nil
   end
 
-  def self.follow(path, map)
-    map.sub('{PKGDIR}', path.pkgdir.respond_to?(:pkgdir) ? path.pkgdir.pkgdir || Path.default_pkgdir : path.pkgdir || Path.default_pkgdir).
+  def self.follow(path, map, map_name = nil)
+    file = map.sub('{PKGDIR}', path.pkgdir.respond_to?(:pkgdir) ? path.pkgdir.pkgdir || Path.default_pkgdir : path.pkgdir || Path.default_pkgdir).
       sub('{RESOURCE}', path.pkgdir.to_s).
       sub('{PWD}', FileUtils.pwd).
       sub('{TOPLEVEL}', path._toplevel).
@@ -38,8 +38,20 @@ module Path
       sub('{BASENAME}', File.basename(path)).
       sub('{PATH}', path).
       sub('{LIBDIR}', path.libdir || (path.pkgdir.respond_to?(:libdir) && path.pkgdir.libdir) || Path.caller_lib_dir).
+      sub('{MAPNAME}', map_name.to_s).
       sub('{REMOVE}/', '').
       sub('{REMOVE}', '').gsub(/\/+/,'/')
+
+    while true
+      file.gsub!(/\{(.*)\/(.*)\/(.*)\}/) do |m|
+        key, orig, replace = m.split "/"
+        key_text = follow(path, "#{key}}", map_name)
+        key_text[orig] = replace[0..-2] if key_text.include?(orig)
+        key_text
+      end || break
+    end
+
+    file
   end
 
   def self.path_maps
@@ -110,13 +122,14 @@ module Path
   end
 
   def follow(map_name = :default, annotate = true)
+    IndiferentHash.setup(path_maps)
     map = path_maps[map_name]
     raise "Map not found #{Log.fingerprint map_name} not in #{Log.fingerprint path_maps.keys}" if map.nil?
     while Symbol === map
       map_name = map
       map = path_maps[map_name]
     end
-    found = Path.follow(self, map)
+    found = Path.follow(self, map, map_name)
 
     annotate_found_where(found, map_name)  if annotate
 
@@ -146,7 +159,7 @@ module Path
   alias exists? exist?
 
   def find_all(caller_lib = nil, search_paths = nil)
-    Path.map_order
+    map_order
       .collect{|where| find(where) }
       .select{|file| file.exist? }.uniq
   end

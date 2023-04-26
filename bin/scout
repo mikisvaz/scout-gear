@@ -1,9 +1,17 @@
 #!/usr/bin/env ruby
 
-require_relative '../lib/scout-gear'
+$LOAD_PATH.unshift File.join(__dir__, '../lib')
 
-$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
+require 'scout-gear'
 
+class CmdStop < Exception
+  attr_accessor :exit_status
+  def initialize(exit_status = 0)
+    @exit_status = exit_status
+  end
+end
+
+# Add paths to scout repos under --dev to LOAD_PATHS
 dev_dir = nil
 if _i = ARGV.index("--dev")
   dev_dir = ARGV[_i+1]
@@ -24,30 +32,205 @@ if dev_dir.nil?
 end
 
 if dev_dir
-  Dir.glob(File.join(File.expand_path(dev_dir),'rbbt-*/lib')).each do |f|
-    $LOAD_PATH.unshift f
+  ['scout-*/lib'].each do |pattern|
+    Dir.glob(File.join(File.expand_path(dev_dir), pattern)).each do |f|
+      $LOAD_PATH.unshift f
+    end
   end
 end
 
-case
-when File.exist?(file = File.join(__dir__, '../modules/rbbt-util/bin/rbbt'))
-  $LOAD_PATH.unshift(lib_dir = File.join(file, '../..', 'lib'))
-  require_relative File.join(lib_dir,'rbbt-util')
-  Path.add_path(:rbbt, File.expand_path(File.join(File.dirname(lib_dir), "/{TOPLEVEL}/{SUBPATH}")))
-  Path.default_pkgdir = Rbbt
-  load file
-when File.exist?(file = File.join(ENV["HOME"], 'git/scout-gear/modules/rbbt-util/bin/rbbt'))
-  $LOAD_PATH.unshift(lib_dir = File.join(file, '../..', 'lib'))
-  require_relative File.join(lib_dir,'rbbt-util')
-  Path.add_path(:rbbt, File.expand_path(File.join(File.dirname(lib_dir), "/{TOPLEVEL}/{SUBPATH}")))
-  Path.default_pkgdir = Rbbt
-  load file
-when File.exist?(file = File.join(ENV["HOME"], 'git/rbbt-util/bin/rbbt'))
-  $LOAD_PATH.unshift(lib_dir = File.join(file, '../..', 'lib'))
-  require_relative File.join(lib_dir,'rbbt-util')
-  Path.add_path(:rbbt, File.expand_path(File.join(File.dirname(lib_dir), "/{TOPLEVEL}/{SUBPATH}")))
-  Path.default_pkgdir = Rbbt
-  load file
-else
-  raise "Cant find rbbt"
+require 'scout/simple_opt'
+
+options = SOPT.setup <<EOF
+Ruby bioinformatics toolkit
+
+$ #{$0} <command> <subcommand> ... -a --arg1 --arg2='value' --arg3 'another-value'
+
+
+--log*                  #{Log.color :yellow, "Log level from 0 (debug) 6 (errors)"}
+--dev*                  #{Log.color :yellow, "Find development libraries in the directory specified"}
+--nocolor               #{Log.color :yellow, "Disable colored output"}
+--nobar                 #{Log.color :yellow, "Disable progress report"}
+--locate_file           #{Log.color :yellow, "Report the location of the script instead of executing it"}
+EOF
+
+Log.nocolor = true if options[:nocolor]
+
+locate = options.delete :locate_file
+
+if options[:log_file]
+  Log.logfile(options[:log_file])
 end
+
+if options[:log]
+  Log.severity = options[:log].to_i
+else
+  global_severity = Log.get_level(Scout.etc.log_severity.read.strip) if Scout.etc.log_severity.exists?
+  if ENV["SCOUT_LOG"]
+    Log.severity = ENV["SCOUT_LOG"].to_i 
+  else
+    global_severity = Log.get_level(Scout.etc.log_severity.read.strip) if Scout.etc.log_severity.exists?
+    Log.severity = global_severity.to_i if global_severity
+  end
+end
+
+$scout_command_dir = Scout.bin.scout
+$scout_command_dir.path_maps[:scout_commands] = File.join(File.dirname(__dir__), "{PATH/scout/scout_commands}")
+$scout_command_dir.path_maps[:scout_commands]
+
+SOPT.description =<<EOF
+This command controls many aspects of the Scout framework, from configuration tasks to running applications. 
+
+Commands are implemented in separate files under the Scout path '#{$scout_command_dir}'. 
+Known locations are: #{([$scout_command_dir] + $scout_command_dir.find_all) * ", " }. 
+You can place your own commads at #{$scout_command_dir.find(:user)}.
+EOF
+
+if options[:profile]
+  require 'ruby-prof'
+  RubyProf.start
+end
+
+
+def prev_dir(prev)
+    scout_command_dir = $scout_command_dir
+
+    prev.each do |previous_command|
+        scout_command_dir = scout_command_dir[previous_command]
+    end
+
+    scout_command_dir
+end
+
+def commands(prev)
+    scout_command_dir = prev_dir(prev)
+
+    command_file_dirs = scout_command_dir.find_all
+    command_files = command_file_dirs.collect{|d| d.glob('*') }.flatten
+    command_files.collect{|p| File.basename(p) }.uniq.reject{|p| p =~ /\.desc$/}.sort
+end
+
+def scout_usage(prev = nil)
+  puts
+  puts SOPT.doc
+
+  if prev
+    puts
+    puts Log.color :magenta, "## COMMANDS"
+    puts
+    puts Log.color :magenta, "Command:"
+    puts 
+    puts "  #{File.basename($0)} #{prev * " "}"
+    puts 
+    puts Log.color :magenta, "Subcommands:"
+    puts 
+    prev_dir = prev_dir(prev)
+    commands(prev).each do |command|
+      directory = File.directory? prev_dir[command].find
+      if directory
+        puts "  " << Log.color(:blue, command)
+      else
+        puts "  " << command
+      end
+    end
+  end
+  puts
+  true
+end
+
+alias usage scout_usage 
+
+def print_error(error, backtrace = nil)
+  puts Log.color :magenta, "## ERROR"
+  puts
+  if backtrace
+    puts Log.color :red, "Backtrace: "
+    puts
+    puts Log.color_stack(backtrace.reverse) * "\n"
+    puts
+  end
+  puts Log.color :red, error
+  puts
+end
+
+def aliases
+  @aliases ||= Scout.etc.cmd_alias.exists? ? Scout.etc.cmd_alias.yaml : {}
+end
+
+def tokenize_cmd_params(str)
+ return str if Array === str
+ str.scan(/
+          (?:["']([^"']*?)["']) |
+          ([^"'\s]+)
+          /x).flatten.compact
+end
+
+def cmd_alias
+  while ARGV[0] && aliases.include?(ARGV[0])
+    ARGV.replace tokenize_cmd_params(aliases[ARGV[0]]) + ARGV[1..-1]
+  end
+end
+    
+dir = $scout_command_dir
+$previous_commands = []
+
+cmd_alias
+
+exit_status = 0
+begin
+  while ARGV.any?
+    $command = ARGV.shift
+    case
+    when File.directory?(dir[$command].find)
+      $previous_commands << $command
+      dir = dir[$command]
+    when dir[$command].exists?
+      if locate
+        puts dir[$command].find
+        exit_status = 0
+        exit exit_status
+      else
+        load dir[$command].find
+        exit_status = 0
+        exit exit_status
+      end
+    when File.exist?($command)
+      load $command
+      exit_status = 0
+      exit exit_status
+    else
+      error = "Command '#{$command }' not understood"
+      scout_usage($previous_commands)
+      print_error(error)
+      exit_status = -1
+      exit exit_status
+    end
+  end
+
+  scout_usage($previous_commands)
+  exit_status = 0
+  exit exit_status
+
+rescue ParameterException
+  puts
+  scout_usage
+  print_error($!.message, $!.backtrace)
+  puts
+  exit_status = -1
+  exit exit_status
+rescue SystemExit,CmdStop
+  exit_status = $!.status
+  exit exit_status
+rescue Exception
+  Log.exception $!
+  exit_status = -1
+  exit exit_status
+ensure
+  if options[:profile]
+    result = RubyProf.stop
+    printer = RubyProf::FlatPrinter.new(result)
+    printer.print(STDOUT, :min_percent => 10)
+  end
+end
+
+exit exit_status

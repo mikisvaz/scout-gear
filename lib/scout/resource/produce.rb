@@ -95,9 +95,10 @@ module Resource
             when :string
               Open.sensible_write(final_path, content)
             when :csv
-              require 'rbbt/tsv/csv'
-              tsv = TSV.csv Open.open(content)
-              Open.sensible_write(final_path, tsv.to_s)
+              raise "TSV/CSV Not implemented yet"
+              #require 'rbbt/tsv/csv'
+              #tsv = TSV.csv Open.open(content)
+              #Open.sensible_write(final_path, tsv.to_s)
             when :url
               options = {}
               options[:noz] = true if Open.gzip?(final_path) || Open.bgzip?(final_path) || Open.zip?(final_path)

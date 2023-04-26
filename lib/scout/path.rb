@@ -1,6 +1,7 @@
 require_relative 'meta_extension'
 require_relative 'path/find'
 require_relative 'path/util'
+require_relative 'path/tmpfile'
 
 module Path
   extend MetaExtension

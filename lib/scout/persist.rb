@@ -1,4 +1,6 @@
 require_relative 'persist/serialize'
+require_relative 'persist/open'
+require_relative 'persist/path'
 
 module Persist
   class << self
@@ -24,26 +26,29 @@ module Persist
 
   def self.persist(name, type = :serializer, options = {}, &block)
     persist_options = IndiferentHash.pull_keys options, :persist 
-    file = persistence_path(name, options)
+    file = persist_options[:path] || options[:path] || persistence_path(name, options)
 
-    if Open.exist?(file) && ! options[:update] && ! persist_options[:update]
+    update = options[:update] || persist_options[:update]
+    update = Open.mtime(update) if Path === update
+    update = Open.mtime(file) >= update ? false : true if Time === update
+
+    if Open.exist?(file) && ! update
       Persist.load(file, type)
     else
       res = yield
-
-      if type === :stream
-        main, copy = Open.tee_stream_thread res
-        t = Thread.new do
-          Thread.current["name"] = "file saver: " + file
-          Persist.save(main, file, :string)
-        end
-        res = ConcurrentStream.setup copy, :threads => t, :filename => file, :autojoin => true
-      else
-        Persist.save(res, file, type)
+      begin
+        Open.rm(file)
+        res = Persist.save(res, file, type)
+      rescue
+        raise $! unless options[:canfail]
+        Log.debug "Could not persist #{type} on #{file}"
       end
-
       res
     end
+  end
+
+  def self.memory(name, *args, &block)
+    self.persist(name, :memory, *args, &block)
   end
 
 end

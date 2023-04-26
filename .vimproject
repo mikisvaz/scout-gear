@@ -2,9 +2,20 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
  bin=bin {
   scout
+  scout_commands=scout_commands{
+   find
+   glob
+   workflow=workflow{
+    task
+   }
+   alias
+  }
+  scout_rbbt
  }
  lib=lib {
   scout-gear.rb
+  workflow-scout.rb
+  scout.rb
   scout=scout{
    meta_extension.rb
    exceptions.rb
@@ -45,6 +56,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    path=path{
     find.rb
     util.rb
+    tmpfile.rb
    }
    concurrent_stream.rb
    cmd.rb
@@ -68,6 +80,22 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    persist=persist{
     serialize.rb
     open.rb
+    path.rb
+   }
+   workflow.rb
+   workflow=workflow{
+    definition.rb
+    step.rb
+    step=step{
+     info.rb
+    }
+    task.rb
+    task=task{
+     inputs.rb
+    }
+    documentation.rb
+    usage.rb
+    util.rb
    }
   }
  }
@@ -111,6 +139,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      util=util{
       misc.rb
       misc=misc{
+       refactor.rb
+
        serialize.rb
        exceptions.rb
        concurrent_stream.rb
@@ -318,6 +348,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
 
    persist.rb
    persist=persist{
+    refactor.rb
     tsv.rb
     tsv=tsv{
      adapter.rb

@@ -77,43 +77,64 @@ module Persist
     type = MEMORY if type == :memory
     type = :serializer if type.nil?
 
-    if save_drivers[type]
-      Open.write(file, save_drivers[type].call(content))
-      return
-    end
-
     if Hash === type
       type[file] = content
       return
     end
 
-    serialized = serialize(content, type)
-    Open.sensible_write(file, serialized)
-  end
-
-  def self.load(file, type = :serializer)
-    file = file.find if Path === file
-    type = MEMORY if type == :memory
-    return unless Hash === type || Open.exist?(file) 
-    type = :serializer if type.nil?
-
-    if load_drivers[type]
-      return load_drivers[type].call(file)
+    Log.debug "Save #{Log.fingerprint type} on #{file}"
+    if save_drivers[type]
+      Open.write(file, save_drivers[type].call(content))
+      return
     end
 
-    case type
-    when :yaml
-      Open.yaml(file)
-    when :json
-      Open.json(file)
-    when :marshal, :serializer
-      Open.marshal(file)
-    when :stream
-      Open.open(file)
-    when Hash
-      type[file]
+    if IO === content || StringIO === content
+      main, copy = Open.tee_stream_thread content
+      t = Thread.new do
+        Thread.current["name"] = "file saver: " + file
+        Open.sensible_write(file, main)
+      end
+      ConcurrentStream.setup copy, :threads => t, :filename => file, :autojoin => true
     else
-      deserialize(Open.read(file), type)
+      serialized = serialize(content, type)
+      Open.sensible_write(file, serialized)
+      content
     end
   end
-end
+
+    def self.load(file, type = :serializer)
+      file = file.find if Path === file
+      type = MEMORY if type == :memory
+      return unless Hash === type || Open.exist?(file) 
+      type = :serializer if type.nil?
+
+      Log.debug "Load #{Log.fingerprint type} on #{file}"
+      if load_drivers[type]
+        return load_drivers[type].call(file)
+      end
+
+      case type
+      when :yaml
+        Open.yaml(file)
+      when :json
+        Open.json(file)
+      when :marshal, :serializer
+        Open.marshal(file)
+      when :stream
+        Open.open(file)
+      when :file
+        value = Open.read(file)
+        value.sub!(/^\./, File.dirname(file)) if value.start_with?("./")
+        value
+      when :file_array
+        Open.read(file).split("\n").collect do |f|
+          f.sub!(/^\./, File.dirname(file)) if f.start_with?("./")
+          f
+        end
+      when Hash
+        type[file]
+      else
+        deserialize(Open.read(file), type)
+      end
+    end
+  end

@@ -11,7 +11,13 @@ module MetaExtension
       end
     end
 
-    meta.define_method(:setup) do |obj,*rest|
+    meta.define_method(:setup) do |*args,&block|
+      if block_given?
+        obj, rest = block, args
+      else
+        obj, *rest = args
+      end
+      obj = block if obj.nil?
       obj.extend base
       attrs = self.class_variable_get("@@extension_attrs")
 

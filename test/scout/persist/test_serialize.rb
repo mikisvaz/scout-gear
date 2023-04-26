@@ -12,9 +12,10 @@ class TestPersistSerialize < Test::Unit::TestCase
 
   def test_string_io
     TmpFile.with_file do |tmpfile|
-      obj = "TEST"
-      Persist.save(StringIO.new(obj), tmpfile, :string)
-      assert_equal obj, Persist.load(tmpfile, :string)
+      obj = StringIO.new("TEST")
+      obj.rewind
+      Persist.save("TEST", tmpfile, :string)
+      assert_equal "TEST", Persist.load(tmpfile, :string)
     end
   end
 
@@ -84,6 +85,29 @@ class TestPersistSerialize < Test::Unit::TestCase
       Persist.save(obj, tmpfile, hash)
       assert_equal obj, Persist.load(tmpfile, hash)
       assert_equal dir.foo.find, obj.first.find
+    end
+  end
+
+  def test_relative_path
+    TmpFile.with_file do |dir|
+      Path.setup(dir)
+      file = dir.subdir.file
+      Open.write(file, "TEST")
+      Persist.save('./subdir/file', dir.file, :file)
+      assert_equal 'TEST', Open.read(Persist.load(dir.file, :file))
+    end
+  end
+
+  def test_relative_file_array
+    TmpFile.with_file do |dir|
+      Path.setup(dir)
+      file1 = dir.subdir1.file
+      Open.write(file1, "TEST1")
+      file2 = dir.subdir2.file
+      Open.write(file2, "TEST2")
+      Persist.save(["./subdir1/file", "./subdir2/file"], dir.file, :file_array)
+      assert_equal 'TEST1', Open.read(Persist.load(dir.file, :file_array)[0])
+      assert_equal 'TEST2', Open.read(Persist.load(dir.file, :file_array)[1])
     end
   end
 end

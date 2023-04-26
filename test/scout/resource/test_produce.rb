@@ -15,11 +15,11 @@ class TestResourceUnit < Test::Unit::TestCase
     end
 
     claim self.tmp.test.rakefiles.Rakefile , :string , <<-EOF
-file 'foo' do |t|
+file('foo') do |t|
   Open.write(t.name, "FOO")
 end
 
-rule /.*/ do |t|
+rule(/.*/) do |t|
   Open.write(t.name, "OTHER")
 end
     EOF

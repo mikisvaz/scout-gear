@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+
+require 'scout-gear'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Creates a one work comman alias.
+
+$ #{$0} <alias> [<options>] [<othercmd>]*
+
+The other commands might include options. But beware the some might reach the alias if they where consumed
+earlier, like --dev or --log. Edit #{Scout.ect.cmd_alias.find} to fine tune.
+
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+cmd, *rest = ARGV
+
+aliases ||= Scout.etc.cmd_alias.exists? ? Scout.etc.cmd_alias.yaml : {}
+
+if cmd.nil?
+  aliases.each do |name, parts|
+    parts = parts.collect{|p|
+      p =~ /^[\w:_\/-]*$/ ? p : "'" << p << "'"
+    }
+    puts [Log.color(:magenta, name), parts * " "] * ": "
+  end
+  exit 0
+end
+
+if rest.empty?
+  aliases.delete cmd
+else
+  aliases[cmd] = rest
+end
+
+Open.write(Scout.etc.cmd_alias.find,(aliases.to_yaml))
+

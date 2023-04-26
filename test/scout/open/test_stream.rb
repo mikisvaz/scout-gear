@@ -50,8 +50,19 @@ class TestOpenStream < Test::Unit::TestCase
     end
   end
 
+  def test_open_pipe_and_close
+
+    10000.times do
+      sout = Open.open_pipe do |sin|
+        sin.puts "hola"
+      end
+      sout.read
+      sout.close
+    end
+  end
+
+
   def test_open_pipe_error
-    Log.severity = 0
     sout = Open.open_pipe do |sin|
       10.times do |i|
         sin.puts "line #{i}"
@@ -127,28 +138,39 @@ class TestOpenStream < Test::Unit::TestCase
   end
 
   def test_tee_stream_save_error
-    5.times do |i|
-      TmpFile.with_file do |tmp|
-        Path.setup tmp
-        assert_raise ScoutException do
+    Log.with_severity 6 do
+      5.times do |i|
+        TmpFile.with_file do |tmp|
+          Path.setup tmp
+          assert_raise ScoutException do
+            num = 2000
+            begin
+              sout = Open.open_pipe do |sin|
+                num.times do |i|
+                  sin.puts "line #{i} - #{rand(100000).to_s * 100}"
+                end
+              end
 
-          Log.severity = 0
-          num = 2000
-          sout = Open.open_pipe do |sin|
-            num.times do |i|
-              sin.puts "line #{i} - #{rand(100000).to_s * 100}"
+              begin
+                s1, s2 = Open.tee_stream_thread sout
+
+                s2.abort ScoutException.new
+                t = Open.consume_stream(s1, true, tmp.file)
+
+                t.join
+              ensure
+                s1.close if s1.respond_to?(:close) && ! s1.closed?
+                s1.join if s1.respond_to?(:join) && ! s1.joined?
+                s2.close if s2.respond_to?(:close) && ! s2.closed?
+                s2.join if s2.respond_to?(:join) && ! s2.joined?
+              end
+            ensure
+              sout.close if sout.respond_to?(:close) && ! sout.closed?
+              sout.join if sout.respond_to?(:join) && ! sout.joined?
             end
           end
-
-          s1, s2 = Open.tee_stream_thread sout
-
-          t = Open.consume_stream(s2, true, tmp.file)
-          s1.abort ScoutException.new
-
-          t.join
-
+          refute Open.exist?(tmp.file)
         end
-        refute Open.exist?(tmp.file)
       end
     end
   end

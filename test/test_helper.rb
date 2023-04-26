@@ -23,13 +23,18 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'scout/tmpfile'
 require 'scout/log'
 require 'scout/persist'
+require 'scout/workflow'
 
 class Test::Unit::TestCase
 
   def tmpdir
     @tmpdir = Path.setup('tmp/test_tmpdir').find
-    Persist.cache_dir = @tmpdir.var.cache
-    Open.remote_cache_dir = @tmpdir.var.cache
+  end
+
+  def setup
+    Persist.cache_dir = tmpdir.var.cache
+    Open.remote_cache_dir = tmpdir.var.cache
+    Workflow.directory = tmpdir.var.jobs
   end
   
   def teardown

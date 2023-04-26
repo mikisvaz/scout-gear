@@ -10,6 +10,10 @@ module Resource
     Path.setup('tmp/produce_locks').find
   end
 
+  def subdir
+    @subdir ||= ""
+  end
+
   def lock_dir
     @lock_dir ||= Resource.default_lock_dir
   end
@@ -19,7 +23,7 @@ module Resource
   end
 
   def root
-    Path.setup(@subdir, self, self.libdir, @path_maps)
+    Path.setup(subdir, self, self.libdir, @path_maps)
   end
 
   def method_missing(name, prev = nil, *args)

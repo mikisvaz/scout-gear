@@ -154,7 +154,6 @@ module Open
           Open.rm path if File.exist? path
           raise exception
         rescue
-          Log.exception $!
           raise $!
         ensure
           FileUtils.rm_f tmp_path if File.exist? tmp_path
@@ -286,9 +285,9 @@ module Open
     filename = stream.filename if stream.respond_to? :filename
 
     splitter_thread = Thread.new(Thread.current) do |parent|
-      Thread.current["name"] = "Splitter #{Log.fingerprint stream}"
-      Thread.current.report_on_exception = false
       begin
+        Thread.current["name"] = "Splitter #{Log.fingerprint stream}"
+        Thread.current.report_on_exception = false
 
         skip = [false] * num
         begin
@@ -298,10 +297,10 @@ module Open
               begin 
                 sin.write block
               rescue IOError
-                Log.error("Tee stream #{i} #{Log.fingerprint stream} IOError: #{$!.message} (#{Log.fingerprint sin})");
+                Log.warn("Tee stream #{i} #{Log.fingerprint stream} IOError: #{$!.message} (#{Log.fingerprint sin})");
                 skip[i] = true
               rescue
-                Log.error("Tee stream #{i} #{Log.fingerprint stream} Exception: #{$!.message} (#{Log.fingerprint sin})");
+                Log.warn("Tee stream #{i} #{Log.fingerprint stream} Exception: #{$!.message} (#{Log.fingerprint sin})");
                 raise $!
               end unless skip[i] 
             end
@@ -312,7 +311,6 @@ module Open
         stream.join if stream.respond_to? :join
         stream.close unless stream.closed?
         in_pipes.first.close unless in_pipes.first.closed?
-        #Log.medium "Tee done #{Log.fingerprint stream}"
       rescue Aborted, Interrupt
         stream.abort if stream.respond_to? :abort
         out_pipes.each do |sout|
@@ -330,18 +328,26 @@ module Open
             rescue
             end
           end
+          in_pipes.each do |sin|
+            sin.close unless sin.closed?
+          end
           Log.medium "Tee exception #{Log.fingerprint stream}"
         rescue
           Log.exception $!
         ensure
+          in_pipes.each do |sin|
+            sin.close unless sin.closed?
+          end
           raise $!
         end
       end
     end
 
+
     out_pipes.each do |sout|
       ConcurrentStream.setup sout, :threads => splitter_thread, :filename => filename, :pair => stream
     end
+    splitter_thread.wakeup until splitter_thread["name"]
 
     main_pipe = out_pipes.first
     main_pipe.autojoin = true

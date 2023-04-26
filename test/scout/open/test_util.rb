@@ -43,5 +43,31 @@ class TestOpenUtil < Test::Unit::TestCase
       assert_equal(1 + 3, sum)
     end
   end
+
+  def test_ln_s
+    TmpFile.with_file do |directory|
+      Path.setup(directory)
+      file1 = directory.subdir1.file
+      file2 = directory.subdir2.file
+      Open.write(file1, "TEST")
+      Open.ln_s file1, file2
+      assert_equal "TEST", Open.read(file2)
+      Open.write(file1, "TEST2")
+      assert_equal "TEST2", Open.read(file2)
+    end
+  end
+
+  def test_ln_h
+    TmpFile.with_file do |directory|
+      Path.setup(directory)
+      file1 = directory.subdir1.file
+      file2 = directory.subdir2.file
+      Open.write(file1, "TEST")
+      Open.ln_s file1, file2
+      assert_equal "TEST", Open.read(file2)
+      Open.write(file1, "TEST2")
+      assert_equal "TEST2", Open.read(file2)
+    end
+  end
 end
 
