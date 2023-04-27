@@ -1,10 +1,10 @@
 scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
- bin=bin {
+ bin=bin  filter="*"{
   scout
   scout_rbbt
  }
- scout_commands=scout_commands{
+ scout_commands=scout_commands filter="*"{
   find
   glob
   workflow=workflow{
