@@ -2,15 +2,15 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
  bin=bin {
   scout
-  scout_commands=scout_commands{
-   find
-   glob
-   workflow=workflow{
-    task
-   }
-   alias
-  }
   scout_rbbt
+ }
+ scout_commands=scout_commands{
+  find
+  glob
+  workflow=workflow{
+   task
+  }
+  alias
  }
  lib=lib {
   scout-gear.rb

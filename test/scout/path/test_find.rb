@@ -95,6 +95,7 @@ class TestPathFind < Test::Unit::TestCase
     path = Path.setup("bin/scout/find")
 
     assert_equal "/some_dir/bin/scout_commands/find",  Path.follow(path, "/some_dir/{PATH/scout/scout_commands}")
+    assert_equal "/some_dir/scout_commands/find",  Path.follow(path, '/some_dir/{PATH/bin\/scout/scout_commands}')
   end
 
 

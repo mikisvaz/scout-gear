@@ -43,8 +43,8 @@ module Path
       sub('{REMOVE}', '').gsub(/\/+/,'/')
 
     while true
-      file.gsub!(/\{(.*)\/(.*)\/(.*)\}/) do |m|
-        key, orig, replace = m.split "/"
+      file.gsub!(/\{(.+)(?<!\\)\/(.+)(?<!\\)\/(.+)\}/) do |m|
+        key, orig, replace = m.split(/(?<!\\)\//).collect{|p| p.gsub('\/','/') }
         key_text = follow(path, "#{key}}", map_name)
         key_text[orig] = replace[0..-2] if key_text.include?(orig)
         key_text
