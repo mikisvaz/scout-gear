@@ -34,6 +34,6 @@ module Workflow
 
   def job(name, *args)
     task = tasks[name]
-    inputs = task.job(*args)
+    task.job(*args)
   end
 end

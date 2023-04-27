@@ -63,8 +63,7 @@ class TestWorkflow < Test::Unit::TestCase
     end
   end
 
-
-  def setup
+  setup do
     Baking.directory = tmpdir.var.jobs.baking.find
   end
 
@@ -79,13 +78,10 @@ class TestWorkflow < Test::Unit::TestCase
   end
 
   def test_baking
-    Log.severity = 0
     assert_equal "Baking batter (Mixing base (Mixing base (Whisking eggs from share/pantry/eggs) with mixer (share/pantry/flour)) with mixer (share/pantry/blueberries))",
       Baking.job(:bake_muffin_tray, :add_bluberries => true).run
 
     assert_equal "Baking batter (Mixing base (Whisking eggs from share/pantry/eggs) with mixer (share/pantry/flour))",
       Baking.job(:bake_muffin_tray).run
-
   end
-
 end

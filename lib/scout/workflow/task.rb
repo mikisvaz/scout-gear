@@ -21,7 +21,7 @@ module Task
   end
 
   def exec_on(binding = self, *inputs)
-    binding.instance_exec *inputs, &self
+    binding.instance_exec(*inputs, &self)
   end
 
   def dependencies(id, provided_inputs, non_default_inputs = [])
@@ -30,7 +30,7 @@ module Task
     
     provided_inputs ||= {}
 
-    load_dep = proc do |id, workflow, task, inputs, hash_options|
+    load_dep = proc do |id, workflow, task, inputs, hash_options, dependencies|
       task = hash_options[:task] if hash_options.include?(:task)
       workflow = hash_options[:workflow] if hash_options.include?(:workflow)
       id = hash_options[:id] if hash_options.include? :id
@@ -38,13 +38,23 @@ module Task
       hash_inputs = hash_options.include?(:inputs)? hash_options[:inputs] : hash_options
       inputs = IndiferentHash.add_defaults hash_inputs, inputs
 
-      workflow.job(task, id, inputs)
+      resolved_inputs = {}
+      inputs.each do |k,v|
+        if Symbol === v
+          input_dep = dependencies.select{|d| d.task_name == v}.first
+          resolved_inputs[k] = input_dep || inputs[v] || k
+        else
+          resolved_inputs[k] = v
+        end
+      end
+      workflow.job(task, id, resolved_inputs)
     end
 
     deps.each do |workflow,task,options,block=nil|
       if provided_inputs.include?(overriden = [workflow.name, task] * "#")
         dep = provided_inputs[overriden]
         dep = Step.new dep unless Step === dep
+        dep.type = workflow.tasks[task].type
         dependencies << dep
         non_default_inputs << overriden
         next
@@ -64,7 +74,7 @@ module Task
           non_default_inputs.concat(dep_non_default_inputs - options.keys)
         when Hash
           new_options = res
-          dep = load_dep.call(id, workflow, task, inputs, new_options)
+          dep = load_dep.call(id, workflow, task, inputs, new_options, dependencies)
           dependencies << dep
           dep_non_default_inputs = dep.task.assign_inputs(dep.inputs).last
           dep_non_default_inputs -= options.keys 
@@ -78,7 +88,7 @@ module Task
           res.each do |_res|
             if Hash === _res
               new_options = _res
-              dep = load_dep.call(id, workflow, task, inputs, new_options)
+              dep = load_dep.call(id, workflow, task, inputs, new_options, dependencies)
               dependencies << dep
               dep_non_default_inputs = dep.task.assign_inputs(dep.inputs).last
               dep_non_default_inputs -= options.keys 
@@ -98,7 +108,7 @@ module Task
         end
       else
         inputs = IndiferentHash.add_defaults options.dup, provided_inputs
-        dep = workflow.job(task, id, inputs) 
+        dep = load_dep.call(id, workflow, task, inputs, {}, dependencies)
         dependencies << dep
         dep_non_default_inputs = dep.task.assign_inputs(dep.inputs).last
         non_default_inputs.concat(dep_non_default_inputs - options.keys)
@@ -115,6 +125,8 @@ module Task
     inputs, non_default_inputs, input_hash = process_inputs provided_inputs
 
     dependencies = dependencies(id, provided_inputs, non_default_inputs)
+
+    non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
 
     if non_default_inputs.any?
       hash = Misc.digest(:inputs => input_hash, :non_default_inputs => non_default_inputs, :dependencies => dependencies)

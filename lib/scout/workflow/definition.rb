@@ -69,9 +69,4 @@ module Workflow
   def desc(description)
     annotate_next_task(:desc, description)
   end
-
-  def directory
-    Path.setup("var/jobs")[self.name]
-  end
-
 end

@@ -121,8 +121,8 @@ module CMD
     options    = IndiferentHash.add_defaults options, :stderr => Log::DEBUG
     in_content = options.delete(:in)
     stderr     = options.delete(:stderr)
-    pipe       = options.delete(:pipe)
     post       = options.delete(:post)
+    pipe       = options.delete(:pipe)
     log        = options.delete(:log)
     no_fail    = options.delete(:no_fail)
     no_fail    = options.delete(:nofail) if no_fail.nil?
@@ -213,6 +213,8 @@ module CMD
 
       ConcurrentStream.setup sout, :pids => pids, :autojoin => autojoin, :no_fail => no_fail 
 
+      sout.callback = post if post
+
       if (Integer === stderr and log) || bar
         err_thread = Thread.new do
           Thread.current["name"] = "Error log: [#{pid}] #{ cmd }"
@@ -265,21 +267,24 @@ module CMD
 
       ConcurrentStream.setup sout, :pids => pids, :threads => [in_thread, err_thread].compact, :autojoin => autojoin, :no_fail => no_fail 
 
-      out = StringIO.new sout.read
-      sout.close unless sout.closed?
+      begin
+        out = StringIO.new sout.read
+        sout.close unless sout.closed?
 
-      status = wait_thr.value
-      if not status.success? and not no_fail
-        if !err.empty?
-          raise ProcessFailed.new pid, "#{cmd} failed with error status #{status.exitstatus}.\n#{err}"
+        status = wait_thr.value
+        if not status.success? and not no_fail
+          if !err.empty?
+            raise ProcessFailed.new pid, "#{cmd} failed with error status #{status.exitstatus}.\n#{err}"
+          else
+            raise ProcessFailed.new pid, "#{cmd} failed with error status #{status.exitstatus}"
+          end
         else
-          raise ProcessFailed.new pid, "#{cmd} failed with error status #{status.exitstatus}"
+          Log.log err, stderr if Integer === stderr and log
         end
-      else
-        Log.log err, stderr if Integer === stderr and log
+        out
+      ensure
+        post.call if post
       end
-
-      out
     end
   end
 

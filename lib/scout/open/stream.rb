@@ -228,7 +228,7 @@ module Open
         rescue Exception
           Log.exception $!
           #Process.kill :INT, parent_pid
-          Kernel.exit! -1
+          Kernel.exit!(-1)
         end
         Kernel.exit! 0
       }

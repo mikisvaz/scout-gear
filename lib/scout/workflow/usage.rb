@@ -1,4 +1,4 @@
-require 'rbbt/util/simpleopt'
+require 'scout/simple_opt'
 
 module Task
   def doc(workflow = nil, deps = nil)

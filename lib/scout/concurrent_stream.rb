@@ -66,7 +66,7 @@ module ConcurrentStream
   end
 
   def clear
-    threads, pids, callback, abort_callback, joined = nil
+    @threads = @pids = @callback = @abort_callback = @joined = nil
   end
 
   def joined?

@@ -35,9 +35,9 @@ module Resource
 
     begin
       if Proc === rakefile
-        Rake.run(nil, rake_dir, task, &rakefile)
+        ScoutRake.run(nil, rake_dir, task, &rakefile)
       else
-        Rake.run(rakefile, rake_dir, task)
+        ScoutRake.run(rakefile, rake_dir, task)
       end
     rescue Rake::TaskNotFound
       if rake_dir.nil? or rake_dir.empty? or rake_dir == "/" or rake_dir == "./"

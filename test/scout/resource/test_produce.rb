@@ -37,35 +37,26 @@ end
   end
 
   def test_proc
-    Log.with_severity 0 do
-      TestResource.produce TestResource.tmp.test.proc
-      assert_include File.open(TestResource.tmp.test.proc.find).read, "PROC TEST"
-    end
+    TestResource.produce TestResource.tmp.test.proc
+    assert_include File.open(TestResource.tmp.test.proc.find).read, "PROC TEST"
   end
 
   def test_string
-    Log.with_severity 0 do
-      TestResource.produce TestResource.tmp.test.string
-      assert_include File.open(TestResource.tmp.test.string.find).read, "TEST"
-    end
+    TestResource.produce TestResource.tmp.test.string
+    assert_include File.open(TestResource.tmp.test.string.find).read, "TEST"
   end
 
   def test_url
-    Log.with_severity 0 do
-      TestResource.produce TestResource.tmp.test.google
-      assert_include File.open(TestResource.tmp.test.google.find).read, "html"
-    end
+    TestResource.produce TestResource.tmp.test.google
+    assert_include File.open(TestResource.tmp.test.google.find).read, "html"
   end
 
   def test_rake
-    Log.with_severity 0 do
-      TestResource.produce TestResource.tmp.test.work.footest.foo
-      TestResource.produce TestResource.tmp.test.work.footest.bar
-      TestResource.produce TestResource.tmp.test.work.footest.foo_bar
-      assert_include File.open(TestResource.tmp.test.work.footest.foo.find).read, "FOO"
-      assert_include File.open(TestResource.tmp.test.work.footest.bar.find).read, "OTHER"
-      assert_include File.open(TestResource.tmp.test.work.footest.foo_bar.find).read, "OTHER"
-    end
+    TestResource.produce TestResource.tmp.test.work.footest.foo
+    TestResource.produce TestResource.tmp.test.work.footest.bar
+    TestResource.produce TestResource.tmp.test.work.footest.foo_bar
+    assert_include File.open(TestResource.tmp.test.work.footest.foo.find).read, "FOO"
+    assert_include File.open(TestResource.tmp.test.work.footest.bar.find).read, "OTHER"
+    assert_include File.open(TestResource.tmp.test.work.footest.foo_bar.find).read, "OTHER"
   end
-
 end

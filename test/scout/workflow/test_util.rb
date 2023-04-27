@@ -5,7 +5,7 @@ require 'scout/workflow'
 
 class TestWorkflowUtil < Test::Unit::TestCase
   def test_annonymous_workflow
-    wf = Workflow.annonymous_workflow do
+    wf = Workflow.annonymous_workflow "TEST" do
       task :length => :integer do
         self.length
       end

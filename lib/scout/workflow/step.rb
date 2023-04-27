@@ -14,7 +14,7 @@ class Step
 
   attr_accessor :type
   def type
-    @type ||= @task.respond_to?(:type) ? @task.type : :marshal
+    @type ||= @task.respond_to?(:type) ? @task.type : nil
   end
 
   def name
@@ -26,16 +26,19 @@ class Step
   end
 
   def exec
-    self.instance_exec *inputs, &task
+    self.instance_exec(*inputs, &task)
   end
 
   attr_reader :result
   def run
-    res = Persist.persist(name, type, :path => path) do
+    @result = Persist.persist(name, type, :path => path) do
       begin
+        merge_info :status => :start, :start => Time.now,
+          :pid => Process.pid, :pid_hostname => ENV["HOSTNAME"], 
+          :inputs => inputs,
+          :dependencies => dependencies.collect{|d| d.path }
+
         dependencies.each{|dep| dep.run }
-        merge_info :status => :start, :pid => Process.pid, :pid_hostname => ENV["HOSTNAME"], :start => Time.now, :dependencies => dependencies.collect{|d| d.path }
-        log :start
         @result = exec
       ensure
         if streaming?
@@ -48,12 +51,10 @@ class Step
         end
       end
     end
-
-    @result = res
   end
 
   def done?
-    path.exist?
+    Open.exist?(path)
   end
 
   def streaming?
@@ -73,7 +74,7 @@ class Step
   end
 
   def load
-    return @result unless streaming?
+    return @result unless @result.nil? || streaming?
     join
     done? ? Persist.load(path, type) : exec
   end

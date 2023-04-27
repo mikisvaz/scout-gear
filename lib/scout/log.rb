@@ -360,3 +360,11 @@ def eef(obj=nil, file = $stdout)
   Log.log_obj_fingerprint(obj, :error, file)
 end
 
+def sss(level, &block)
+  if block_given?
+    Log.with_severity level, &block
+  else
+    Log.severity = level
+  end
+end
+

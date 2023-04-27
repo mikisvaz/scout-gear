@@ -26,6 +26,7 @@ class Step
   def merge_info(new_info)
     info = self.info
     new_info.each do |key,value|
+      report_status new_info[:status], new_info[:message] if key == :status
       if info.include?(key)
         case info[key]
         when Array
@@ -52,13 +53,20 @@ class Step
     }
   end
 
-  def log(status, message = nil)
+  def report_status(status, message = nil)
     if message.nil?
       Log.info Log.color(:green, status.to_s) + " " + Log.color(:blue, path)
-      set_info :status, status
     else
       Log.info Log.color(:green, status.to_s) + " " + Log.color(:blue, path) + " " + message
+    end
+  end
+
+  def log(status, message = nil)
+    report_status status, message
+    if message
       merge_info :status => status, :messages => [message]
+    else
+      merge_info :status => status
     end
   end
 

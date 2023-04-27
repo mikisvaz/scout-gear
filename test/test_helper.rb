@@ -31,13 +31,14 @@ class Test::Unit::TestCase
     @tmpdir = Path.setup('tmp/test_tmpdir').find
   end
 
-  def setup
+  setup do
     Persist.cache_dir = tmpdir.var.cache
     Open.remote_cache_dir = tmpdir.var.cache
     Workflow.directory = tmpdir.var.jobs
+    Workflow.workflows.each{|wf| wf.directory = Workflow.directory[wf.name] }
   end
   
-  def teardown
+  teardown do
     Open.rm_rf tmpdir
   end
 end
