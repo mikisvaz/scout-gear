@@ -1,6 +1,8 @@
 require_relative 'log'
 require_relative 'path'
 require_relative 'resource/produce'
+require_relative 'resource/path'
+require_relative 'resource/util'
 
 module Resource
   extend MetaExtension

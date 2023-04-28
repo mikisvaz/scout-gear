@@ -1,16 +1,19 @@
 scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
- bin=bin  filter="*"{
+ bin=bin filter="*"{
   scout
-  scout_rbbt
  }
  scout_commands=scout_commands filter="*"{
+  rbbt
+  alias
   find
   glob
   workflow=workflow{
+   task_old
    task
+   list
+   info
   }
-  alias
  }
  lib=lib {
   scout-gear.rb
@@ -26,6 +29,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     insist.rb
     digest.rb
     filesystem.rb
+    monitor.rb
    }
    indiferent_hash.rb
    indiferent_hash=indiferent_hash{
@@ -73,8 +77,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     produce=produce{
      rake.rb
     }
-    path.rb
     scout.rb
+    util.rb
+    path.rb
    }
    persist.rb
    persist=persist{
@@ -88,6 +93,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     step.rb
     step=step{
      info.rb
+     load.rb
     }
     task.rb
     task=task{

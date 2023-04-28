@@ -1,15 +1,14 @@
 require File.expand_path(__FILE__).sub(%r(/test/.*), '/test/test_helper.rb')
 require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
 
-require 'scout/workflow'
-class TestWorkflowUsage < Test::Unit::TestCase
+class TestWorkflowDocumentation < Test::Unit::TestCase
   module UsageWorkflow
     extend Workflow
     
     self.name = "UsageWorkflow"
 
     self.title = "Workflow to test documentation"
-    self.description = "Use this workflow to test if the documentation is correctly presented."
+    self.description = "Use this workflow to test if the documentation is correctly presented"
 
     desc "Desc"
     input :array, :array, "Array"
@@ -23,13 +22,9 @@ class TestWorkflowUsage < Test::Unit::TestCase
     end
   end
 
-
-  def test_workflow_usage
-    assert_match "test if the documentation", UsageWorkflow.usage
-  end
-
-  def test_task_usage
-    assert_match "Desc2", UsageWorkflow.tasks[:step2].usage
+  def test_usage
+    assert_match 'test', UsageWorkflow.documentation[:title]
+    assert_match 'presented', UsageWorkflow.documentation[:description]
   end
 end
 

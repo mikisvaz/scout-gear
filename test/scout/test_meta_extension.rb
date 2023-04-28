@@ -32,5 +32,14 @@ class TestMetaExtension < Test::Unit::TestCase
     assert_equal :code, str.code2
 
   end
+
+  def test_setup_block
+    o = ExtensionClass.setup nil, :code => :c, :code2 => :c2 do
+      puts 1
+    end
+
+    assert o.extension_attr_hash.include?(:code)
+    assert o.extension_attr_hash.include?(:code2)
+  end
 end
 

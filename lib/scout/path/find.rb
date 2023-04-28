@@ -123,7 +123,7 @@ module Path
 
   def follow(map_name = :default, annotate = true)
     IndiferentHash.setup(path_maps)
-    map = path_maps[map_name]
+    map = path_maps[map_name] || Path.path_maps[map_name]
     raise "Map not found #{Log.fingerprint map_name} not in #{Log.fingerprint path_maps.keys}" if map.nil?
     while Symbol === map
       map_name = map
@@ -163,4 +163,5 @@ module Path
       .collect{|where| find(where) }
       .select{|file| file.exist? }.uniq
   end
+
 end

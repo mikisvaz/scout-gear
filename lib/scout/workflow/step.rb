@@ -1,20 +1,43 @@
 require_relative '../path'
 require_relative '../persist'
 require_relative 'step/info'
+require_relative 'step/load'
 
 class Step 
 
   attr_accessor :path, :inputs, :dependencies, :task
-  def initialize(path, inputs = nil, dependencies = [], &task) 
+  def initialize(path, inputs = nil, dependencies = nil, &task) 
     @path = path
     @inputs = inputs
     @dependencies = dependencies
     @task = task
   end
 
+  def inputs
+    @inputs ||= begin
+                  if Open.exists?(info_file)
+                    info[:inputs]
+                  else
+                    []
+                  end
+                end
+  end
+
+  def dependencies
+    @dependencies ||= begin
+                        if Open.exists?(info_file)
+                          info[:dependencies].collect do |path|
+                            Step.load(path)
+                          end
+                        else
+                          []
+                        end
+                      end
+  end
+
   attr_accessor :type
   def type
-    @type ||= @task.respond_to?(:type) ? @task.type : nil
+    @type ||= @task.respond_to?(:type) ? @task.type : info[:type]
   end
 
   def name
@@ -31,14 +54,15 @@ class Step
 
   attr_reader :result
   def run
+    return @result || self.load if done?
+    dependencies.each{|dep| dep.run }
     @result = Persist.persist(name, type, :path => path) do
       begin
         merge_info :status => :start, :start => Time.now,
           :pid => Process.pid, :pid_hostname => ENV["HOSTNAME"], 
-          :inputs => inputs,
+          :inputs => inputs, :type => type,
           :dependencies => dependencies.collect{|d| d.path }
 
-        dependencies.each{|dep| dep.run }
         @result = exec
       ensure
         if streaming?
@@ -61,6 +85,11 @@ class Step
     IO === @result || StringIO === @result
   end
 
+  def stream
+    join
+    streaming? ? @result : Open.open(path)
+  end
+
   def join
     if streaming?
       Open.consume_stream(@result, false) 
@@ -81,6 +110,13 @@ class Step
 
   def clean
     FileUtils.rm path.find if path.exist?
+  end
+
+  def recursive_clean
+    dependencies.each do |dep|
+      dep.recursive_clean
+    end
+    clean
   end
 
   def step(task_name)

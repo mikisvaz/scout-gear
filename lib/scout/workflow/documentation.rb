@@ -1,4 +1,5 @@
 module Workflow
+  attr_accessor :title, :description
 
   def self.doc_parse_first_line(str)
     if str.match(/^([^\n]*)\n\n(.*)/sm)
@@ -45,33 +46,38 @@ module Workflow
     end
   end
 
-  def load_documentation
-    return if @documentation
-    @documentation ||= Workflow.parse_workflow_doc documentation_markdown
-    @documentation[:tasks].each do |task, description|
-      if task.include? "#"
-        workflow, task = task.split("#")
-        workflow = begin
-                     Kernel.const_get workflow
-                   rescue
-                     next
-                   end
-      else
-        workflow = self
-      end
-
-      task = task.to_sym
-      if workflow.tasks.include? task
-        workflow.tasks[task].description = description
-      else
-        Log.low "Documentation for #{ task }, but not a #{ workflow.to_s } task" 
-      end
-    end
-  end
-
   attr_accessor :documentation
   def documentation
-    load_documentation if @documentation.nil?
-    @documentation 
+    @documentation ||= begin
+                         documentation = Workflow.parse_workflow_doc documentation_markdown
+
+                         if @description && (documentation[:description].nil? || documentation[:description].empty?)
+                           documentation[:description] = @description 
+                         end
+
+                         if @title && (documentation[:title].nil? || documentation[:title].empty?)
+                           documentation[:title] = @title 
+                         end
+                         documentation[:tasks].each do |task, description|
+                           if task.include? "#"
+                             workflow, task = task.split("#")
+                             workflow = begin
+                                          Kernel.const_get workflow
+                                        rescue
+                                          next
+                                        end
+                           else
+                             workflow = self
+                           end
+
+                           task = task.to_sym
+                           if workflow.tasks.include? task
+                             workflow.tasks[task].description = description
+                           else
+                             Log.low "Documentation for #{ task }, but not a #{ workflow.to_s } task" 
+                           end
+                         end
+                         documentation
+                       end
   end
 end

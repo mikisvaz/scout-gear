@@ -24,8 +24,10 @@ module MetaExtension
       return if attrs.nil? || attrs.empty?
 
       if rest.length == 1 && Hash === (rlast = rest.last) && 
-          ! (rlkey = rlast.keys.first).nil? &&
-          attrs.include?(rlkey.to_sym)
+          ((! (rlkey = rlast.keys.first).nil? && attrs.include?(rlkey.to_sym)) ||
+           (! attrs.length != 1 ))
+
+          
 
         pairs = rlast
       else

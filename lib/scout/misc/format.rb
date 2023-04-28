@@ -25,7 +25,14 @@ module Misc
     str
   end
 
-  def self.format_paragraph(text, size = 80, indent = 0, offset = 0)
+  
+  MAX_WIDTH = 100
+  def self.format_paragraph(text, size = nil, indent = nil, offset = nil)
+    size ||= Log.tty_size || MAX_WIDTH
+    size = MAX_WIDTH if size > MAX_WIDTH
+    indent ||= 0
+    offset ||= 0
+
     i = 0
     size = size + offset + indent
     re = /((?:\n\s*\n\s*)|(?:\n\s*(?=\*)))/
@@ -55,7 +62,10 @@ module Misc
       end*""
   end
 
-  def self.format_definition_list_item(dt, dd, size = 80, indent = 20, color = :yellow)
+  def self.format_definition_list_item(dt, dd,  indent = nil, size = nil, color = :yellow)
+    size ||= Log.tty_size || MAX_WIDTH
+    size = MAX_WIDTH if size > MAX_WIDTH
+    indent ||= size / 3
     dd = "" if dd.nil?
     dt = Log.color color, dt if color
     dt = dt.to_s  unless dd.empty?
@@ -73,10 +83,12 @@ module Misc
     text
   end
 
-  def self.format_definition_list(defs, size = 80, indent = 20, color = :yellow, sep = "\n\n")
+  def self.format_definition_list(defs, indent = nil, size = nil, color = :yellow, sep = "\n\n")
+    size ||= Log.tty_size || MAX_WIDTH
+    indent ||= 30
     entries = []
     defs.each do |dt,dd|
-      text = format_definition_list_item(dt,dd,size,indent,color)
+      text = format_definition_list_item(dt,dd,indent, size,color)
       entries << text
     end
     entries * sep 

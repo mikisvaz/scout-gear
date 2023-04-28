@@ -25,6 +25,7 @@ module Workflow
   end
 
   def self.require_workflow(workflow)
+    workflow = Path.setup('workflows')[workflow]["workflow.rb"] unless Open.exists?(workflow)
     if Open.exists?(workflow)
       workflow = workflow.find if Path === workflow
       load workflow

@@ -33,6 +33,11 @@ module Workflow
     @annotate_next_task[type] << obj
   end
 
+  def annotate_next_task_single(type, obj)
+    @annotate_next_task ||= {}
+    @annotate_next_task[type] = obj
+  end
+
   def dep(*args, &block)
     case args.length
     when 3
@@ -60,13 +65,14 @@ module Workflow
     @tasks ||= IndiferentHash.setup({})
     begin
       @annotate_next_task ||= {}
-      @tasks[name] = Task.setup(block, @annotate_next_task.merge(name: name, type: type, directory: directory[name]))
+      task = Task.setup(block, @annotate_next_task.merge(name: name, type: type, directory: directory[name]))
+      @tasks[name] = task
     ensure
       @annotate_next_task = {}
     end
   end
 
   def desc(description)
-    annotate_next_task(:desc, description)
+    annotate_next_task_single(:description, description)
   end
 end

@@ -17,6 +17,7 @@ class TestTask < Test::Unit::TestCase
     end
 
     s = task.job('test', ['12'])
+    s.clean
     assert_equal 2, s.run
   end
 

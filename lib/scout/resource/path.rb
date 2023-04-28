@@ -1,4 +1,9 @@
 module Path
+  def relocate
+    return self if Open.exists?(self)
+    Resource.relocate(self)
+  end
+
   def open(*args, &block)
     produce
     Open.open(self, *args, &block)

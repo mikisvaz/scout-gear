@@ -3,6 +3,7 @@ require_relative 'open'
 
 module Persist
   TRUE_STRINGS = Set.new ["true", "True", "TRUE", "t", "T", "1", "yes", "Yes", "YES", "y", "Y", "ON", "on"] unless defined? TRUE_STRINGS
+  SERIALIZER = :json
 
   class << self
     attr_accessor :save_drivers, :load_drivers
@@ -15,6 +16,8 @@ module Persist
   end
 
   def self.serialize(content, type)
+    type = type.to_sym if String === type
+    type = SERIALIZER if type == :serializer
     case type
     when nil, :string, :integer, :float, :boolean, :file, :path
       if IO === content || StringIO === content
@@ -28,7 +31,7 @@ module Persist
       content.to_yaml
     when :json
       content.to_json
-    when :marshal, :serializer
+    when :marshal
       Marshal.dump(content)
     else
       if m = type.to_s.match(/(.*)_array/)
@@ -41,6 +44,8 @@ module Persist
   end
 
   def self.deserialize(serialized, type)
+    type = type.to_sym if String === type
+    type = SERIALIZER if type == :serializer
     case type
     when nil, :string, :file, :stream
       serialized
@@ -58,7 +63,7 @@ module Persist
       YAML.parse(serialized)
     when :json
       JSON.parse(serialized)
-    when :marshal, :serializer
+    when :marshal
       Marshal.load(serialized)
     else
       if m = type.to_s.match(/(.*)_array/)
@@ -73,6 +78,10 @@ module Persist
 
   MEMORY = {}
   def self.save(content, file, type = :serializer)
+    type = :serializer if type.nil?
+    type = type.to_sym if String === type
+    type = SERIALIZER if type == :serializer
+    type = MEMORY if type == :memory
     return if content.nil?
     type = MEMORY if type == :memory
     type = :serializer if type.nil?
@@ -97,16 +106,18 @@ module Persist
       ConcurrentStream.setup copy, :threads => t, :filename => file, :autojoin => true
     else
       serialized = serialize(content, type)
-      Open.sensible_write(file, serialized)
+      Open.sensible_write(file, serialized, :force => true)
       content
     end
   end
 
   def self.load(file, type = :serializer)
     file = file.find if Path === file
+    type = :serializer if type.nil?
+    type = type.to_sym if String === type
+    type = SERIALIZER if type == :serializer
     type = MEMORY if type == :memory
     return unless Hash === type || Open.exist?(file) 
-    type = :serializer if type.nil?
 
     Log.debug "Load #{Log.fingerprint type} on #{file}"
     if load_drivers[type]

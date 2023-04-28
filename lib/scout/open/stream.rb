@@ -68,6 +68,7 @@ module Open
         block.call if block_given?
 
         Log.high "Done consuming stream #{Log.fingerprint io} into #{into_path || into}"
+        c
       rescue Aborted
         Log.high "Consume stream Aborted #{Log.fingerprint io} into #{into_path || into}"
         io.abort $! if io.respond_to? :abort

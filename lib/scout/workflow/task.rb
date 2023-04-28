@@ -16,6 +16,19 @@ module Task
     end
   end
 
+  def inputs
+    @inputs ||= []
+  end
+
+  def recursive_inputs
+    return inputs if deps.nil?
+    deps.inject(inputs) do |acc,dep|
+      workflow, task = dep
+      next if workflow.nil?
+      acc += workflow.tasks[task].recursive_inputs
+    end
+  end
+
   def directory
     @directory ||= Task.default_directory
   end
@@ -121,6 +134,7 @@ module Task
   def job(id = DEFAULT_NAME, provided_inputs = nil )
     provided_inputs, id = id, DEFAULT_NAME if (provided_inputs.nil? || provided_inputs.empty?) && (Hash === id || Array === id)
     provided_inputs = {} if provided_inputs.nil?
+    id = DEFAULT_NAME if id.nil?
 
     inputs, non_default_inputs, input_hash = process_inputs provided_inputs
 
@@ -136,6 +150,6 @@ module Task
 
     path = directory[id]
 
-    Step.new path, inputs, dependencies, &self
+    Step.new path.find, inputs, dependencies, &self
   end
 end

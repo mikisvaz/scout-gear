@@ -1,24 +1,40 @@
 require 'scout/simple_opt'
 
 module Task
-  def doc(workflow = nil, deps = nil)
-    puts Log.color(:yellow, "## #{ name }") << ":"
-    puts "\n" << Misc.format_paragraph(description.strip)  << "\n" if description and not description.empty?
-    puts
+  def usage(workflow = nil, deps = nil)
+    str = StringIO.new
+    str.puts Log.color(:yellow, name)
+    str.puts Log.color(:yellow, "-" * name.length)
+    str.puts "\n" << Misc.format_paragraph(description.strip)  << "\n" if description and not description.empty?
+    str.puts
 
     selects = []
     if inputs && inputs.any?
-      inputs.zip(input_types.values_at(*inputs)).select{|i,t| t.to_sym == :select && input_options[i] && input_options[i][:select_options] }.each{|i,t| selects << [i, input_options[i][:select_options]]  }
-      puts SOPT.input_doc(inputs, input_types, input_descriptions, input_defaults, true)
-      puts
+      str.puts Log.color(:magenta, "Inputs")
+      str.puts
+      str.puts SOPT.input_array_doc(inputs)
+      str.puts
     end
 
     if deps and deps.any?
-      puts Log.color(:magenta, "Inputs from dependencies:")
-      puts
-      seen = inputs
-      tasks.each do |name,task|
-        task.inputs - seen
+      seen = inputs.collect{|name,_| name }
+      dep_inputs = {}
+      deps.each do |dep_workflow,task_name|
+        task = dep_workflow.tasks[task_name]
+        next if task.inputs.nil?
+        inputs = task.inputs.reject{|name, _| seen.include? name }
+        next unless inputs.any?
+        dep = workflow.nil? || dep_workflow.name != workflow.name ? ["#{dep_workflow.name}", task_name.to_s] *"#" : task_name.to_s
+        dep_inputs[dep] = inputs
+      end
+
+      str.puts Log.color(:magenta, "Inputs from dependencies:") if dep_inputs.any?
+      dep_inputs.each do |dep,inputs|
+        str.puts
+        str.puts Log.color :yellow, dep + ":"
+        str.puts
+        str.puts SOPT.input_array_doc(inputs)
+        str.puts
       end
 
       #task_inputs = dep_inputs deps, workflow
@@ -44,30 +60,49 @@ module Task
     end
 
     case
-    when (input_types.values & [:array]).any?
-      puts Log.color(:green, Misc.format_paragraph("Lists are specified as arguments using ',' or '|'. When specified as files the '\\n'
+    when inputs && inputs.select{|name,type| type == :array }.any?
+      str.puts Log.color(:green, Misc.format_paragraph("Lists are specified as arguments using ',' or '|'. When specified as files the '\\n'
       also works in addition to the others. You may use the '--array_separator' option
       the change this default. Whenever a file is specified it may also accept STDIN using
       the '-' character."))
-      puts
+      str.puts
 
-    when (input_types.values & [:text, :tsv]).any?
-      puts Log.color(:green, Misc.format_paragraph("Whenever a file is specified it may also accept STDIN using the '-' character."))
-      puts
+    when inputs && inputs.select{|name,type| type == :file || type == :tsv }.any?
+      str.puts Log.color(:green, Misc.format_paragraph("Whenever a file is specified it may also accept STDIN using the '-' character."))
+      str.puts
     end
 
-    puts Log.color(:magenta, "Returns: ") << Log.color(:blue, result_type.to_s) << "\n"
-    puts
+    str.puts Log.color(:magenta, "Returns: ") << Log.color(:blue, type.to_s) << "\n"
+    str.puts
 
     if selects.any?
-      puts Log.color(:magenta, "Input select options")
-      puts
+      str.puts Log.color(:magenta, "Input select options")
+      str.puts
       selects.collect{|p| p}.uniq.each do |input,options|
-        puts Log.color(:blue, input.to_s + ": ") << Misc.format_paragraph(options.collect{|o| Array === o ? o.first.to_s : o.to_s} * ", ") << "\n"
-        puts unless Log.compact
+        str.puts Log.color(:blue, input.to_s + ": ") << Misc.format_paragraph(options.collect{|o| Array === o ? o.first.to_s : o.to_s} * ", ") << "\n"
+        str.puts unless Log.compact
       end
-      puts
+      str.puts
     end
+    str.rewind
+    str.read
+  end
+
+  def SOPT_str
+    sopt_options = []
+    self.recursive_inputs.each do |name,type,desc,default,options|
+      shortcut = (options && options[:shortcut]) || name.to_s.slice(0,1)
+      boolean = type == :boolean
+
+      sopt_options << "-#{shortcut}--#{name}#{boolean ? "" : "*"}"
+    end
+
+    sopt_options * ":"
+  end
+
+  def get_SOPT(task)
+    sopt_option_string = self.SOPT_str
+    SOPT.get sopt_option_string
   end
 end
 
@@ -167,29 +202,34 @@ module Workflow
     lines * "\n"
   end
 
-  def doc(task = nil, abridge = false)
+  def usage(task = nil, abridge = false)
+
+    str = StringIO.new
+
+    if self.documentation[:title] and not self.documentation[:title].empty?
+      title = self.name + " - " + self.documentation[:title]
+      str.puts Log.color :magenta, title
+      str.puts Log.color :magenta, "=" * title.length
+    else
+      str.puts Log.color :magenta, self.name 
+      str.puts Log.color :magenta, "=" * self.name.length
+    end
+
+    if self.documentation[:description] and not self.documentation[:description].empty?
+      str.puts
+      str.puts Misc.format_paragraph self.documentation[:description] 
+      str.puts
+    end
+
 
     if task.nil?
-      puts Log.color :magenta, self.to_s 
-      puts Log.color :magenta, "=" * self.to_s.length
 
-      if self.documentation[:title] and not self.documentation[:title].empty?
-        puts
-        puts Misc.format_paragraph self.documentation[:title] 
-      end
-
-      if self.documentation[:description] and not self.documentation[:description].empty?
-        puts
-        puts Misc.format_paragraph self.documentation[:description] 
-      end
-      puts
-
-      puts Log.color :magenta, "## TASKS"
+      str.puts Log.color :magenta, "## TASKS"
       if self.documentation[:task_description] and not self.documentation[:task_description].empty?
-        puts
-        puts Misc.format_paragraph self.documentation[:task_description] 
+        str.puts
+        str.puts Misc.format_paragraph self.documentation[:task_description] 
       end
-      puts
+      str.puts
 
       final = Set.new
       not_final = Set.new
@@ -208,10 +248,10 @@ module Workflow
         description = description.split("\n\n").first
 
         next if abridge && ! final.include?(name)
-        puts Misc.format_definition_list_item(name.to_s, description, Log.tty_size || 80, 30, :yellow)
+        str.puts Misc.format_definition_list_item(name.to_s, description, nil, nil, :yellow)
 
         prov_string = prov_string(dep_tree(name))
-        puts Misc.format_paragraph Log.color(:blue, "->" + prov_string) if prov_string && ! prov_string.empty?
+        str.puts Misc.format_paragraph Log.color(:blue, "->" + prov_string) if prov_string && ! prov_string.empty?
       end
 
     else
@@ -224,56 +264,36 @@ module Workflow
       end
 
       #dependencies = self.rec_dependencies(task_name).collect{|dep_name| Array === dep_name ? dep_name.first.tasks[dep_name[1].to_sym] : self.tasks[dep_name.to_sym]}
-      task.doc(self, self.recursive_deps(task_name))
+      str.puts task.usage(self, self.recursive_deps(task_name))
 
       dep_tree = {[self, task_name] => dep_tree(task_name)}
       prov_tree = prov_tree(dep_tree)
       if prov_tree && ! prov_tree.empty? && prov_tree.split("\n").length > 2
 
-        puts Log.color :magenta, "## DEPENDENCY GRAPH (abridged)"
-        puts
+        str.puts Log.color :magenta, "## DEPENDENCY GRAPH (abridged)"
+        str.puts
         prov_tree.split("\n").each do |line|
           next if line.strip.empty?
           if m = line.match(/^( *)(\w+?)#(\w*)/i)
               offset, workflow, task_name =  m.values_at 1, 2, 3
-            puts [offset, Log.color(:magenta, workflow), "#", Log.color(:yellow, task_name)] * ""
+              str.puts [offset, Log.color(:magenta, workflow), "#", Log.color(:yellow, task_name)] * ""
           else
-            puts Log.color :blue, line 
+            str.puts Log.color :blue, line 
           end
         end
-        puts
-      end
-
-      if self.examples.include? task_name
-        self.examples[task_name].each do |example|
-
-          puts Log.color(:magenta, "Example ") << Log.color(:green, example) + " -- " + Log.color(:blue, example_dir[task_name][example])
-
-          inputs = self.example(task_name, example)
-
-          inputs.each do |input, type, file|
-            case type
-            when :tsv, :array, :text, :file
-              lines = file.read.split("\n")
-              head = lines[0..5].compact * "\n\n"
-              head = head[0..500]
-              puts Misc.format_definition_list_item(input, head, 1000, -1, :blue).gsub(/\n\s*\n/,"\n") 
-              puts '...' if lines.length > 6
-            else
-              puts Misc.format_definition_list_item(input, file.read, Log.tty_size, 20, :blue)
-            end
-          end
-          puts
-        end
+        str.puts
       end
     end
+
+    str.rewind
+    str.read
   end
 
   def SOPT_str(task)
     sopt_options = []
-    self.rec_inputs(task.name).each do |name|
-      short = name.to_s.chars.first
-      boolean = self.rec_input_types(task.name)[name].to_sym == :boolean
+    self.tasks[task].recursive_inputs.each do |name,type,desc,default,options|
+      shortcut = options[:shortcut] || name.to_s.slice(0,1)
+      boolean = type == :boolean
 
       sopt_options << "-#{short}--#{name}#{boolean ? "" : "*"}"
     end

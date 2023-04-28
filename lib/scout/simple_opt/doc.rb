@@ -42,8 +42,31 @@ module SOPT
       "=<#{ type }>"
     end
     #extra << " (default: #{Array === default ? (default.length > 3 ? default[0..2]*", " + ', ...' : default*", " ): default})" if default != nil
-    extra << " (default: #{Misc.fingerprint(default)})" if default != nil
+    extra << " (default: #{Log.fingerprint(default)})" if default != nil
     input_str << Log.color(:green, extra)
+  end
+
+  def self.input_array_doc(input_array)
+    input_array.collect do |name,type,description,default,options|
+      type = :string if type.nil?
+
+      name = name.to_s
+      shortcut, options = options, nil if String === options || Symbol === options
+
+      case options && options[:shortcut]
+      when FalseClass
+        shortcut = nil
+      when TrueClass, nil
+        shortcut = fix_shortcut(name[0], name)
+      else
+        shortcut = options[:shortcut]
+      end unless shortcut
+
+      shortcut = fix_shortcut(shortcut, name)
+      register(shortcut, name, type, description) unless self.inputs.include? name
+      name  = SOPT.input_format(name, type.to_sym, default, shortcut ) 
+      Misc.format_definition_list_item(name, description)
+    end * "\n"
   end
 
   def self.input_doc(inputs, input_types = nil, input_descriptions = nil, input_defaults = nil, input_shortcuts = nil)
@@ -73,9 +96,10 @@ module SOPT
       register(shortcut, name, type, description) unless self.inputs.include? name
 
       name  = SOPT.input_format(name, type.to_sym, default, shortcut) 
-      Misc.format_definition_list_item(name, description, 80, 31, nil)
+      Misc.format_definition_list_item(name, description)
     end * "\n"
   end
+
 
   def self.doc
     doc =<<-EOF

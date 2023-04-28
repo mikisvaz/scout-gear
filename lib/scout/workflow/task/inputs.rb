@@ -22,7 +22,7 @@ module Task
   end
 
   def assign_inputs(provided_inputs = {})
-    if self.inputs.nil?
+    if self.inputs.nil? || (self.inputs.empty? && Array === provided_inputs)
       case provided_inputs
       when Array
         return [provided_inputs, provided_inputs]
@@ -30,6 +30,8 @@ module Task
         return [[], []]
       end
     end
+
+    IndiferentHash.setup(provided_inputs) if Hash === provided_inputs
 
     input_array = []
     non_default_inputs = []
@@ -58,7 +60,7 @@ module Task
   end
   
   def process_inputs(provided_inputs = {})
-    input_array, non_default_inputs = assign_inputs(provided_inputs)
+    input_array, non_default_inputs = assign_inputs provided_inputs
     digest = Misc.digest(input_array)
     [input_array, non_default_inputs, digest]
   end

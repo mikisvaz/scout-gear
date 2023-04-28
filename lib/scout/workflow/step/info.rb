@@ -1,15 +1,21 @@
 class Step
+  SERIALIZER = :json
   def info_file
-    @info_file ||= @path + ".info"
+    @info_file ||= begin
+                     info_file = @path + ".info"
+                     @path.annotate info_file if Path === @path
+                     info_file
+                   end
   end
 
   def load_info
-    @info = Persist.load(info_file, :marshal) || {}
+    @info = Persist.load(info_file, SERIALIZER) || {}
+    IndiferentHash.setup(@info)
     @info_load_time = Time.now
   end
 
-  def save_info
-    Persist.save(@info, info_file, :marshal)
+  def save_info(info = nil)
+    Persist.save(info, info_file, SERIALIZER)
     @info_load_time = Time.now
   end
 
@@ -40,19 +46,13 @@ class Step
         info[key] = value
       end
     end
-    save_info
+    save_info(info)
   end
 
   def set_info(key, value)
     merge_info(key => value)
   end
   
-  def init_info
-    @info = {
-      :status => :waiting
-    }
-  end
-
   def report_status(status, message = nil)
     if message.nil?
       Log.info Log.color(:green, status.to_s) + " " + Log.color(:blue, path)

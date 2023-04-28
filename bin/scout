@@ -39,6 +39,8 @@ if dev_dir
   end
 end
 
+Log.nocolor = true if ARGV.include? "--nocolor"
+
 require 'scout/simple_opt'
 
 options = SOPT.setup <<EOF

@@ -24,7 +24,7 @@ module Path
   end
 
   def path_maps
-    @path_maps ||= Path.path_maps
+    @path_maps ||= Path.path_maps.dup
   end
 
   def join(subpath, prevpath = nil)
