@@ -109,7 +109,8 @@ class Step
   end
 
   def clean
-    FileUtils.rm path.find if path.exist?
+    Open.rm path if Open.exist?(path)
+    Open.rm info_file if Open.exist?(info_file)
   end
 
   def recursive_clean

@@ -24,6 +24,8 @@ module Log
         IndiferentHash.process_options options, :depth, :desc, :file, :bytes, :frequency, :process, :callback,
         :depth => 0, :frequency => 2
 
+      max = nil if TrueClass === max
+
       @max = max
       @ticks = 0
       @frequency = frequency

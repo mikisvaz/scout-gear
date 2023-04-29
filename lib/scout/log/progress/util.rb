@@ -28,6 +28,8 @@ module Log
     end
 
     def self.new_bar(max, options = {})
+      options, max = max, nil if Hash === max
+      max = options[:max] if max.nil?
       cleanup_bars
       BAR_MUTEX.synchronize do
         Log::LAST.replace "new_bar" if Log::LAST == "progress"

@@ -143,8 +143,8 @@ module Task
     non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
 
     if non_default_inputs.any?
-      hash = Misc.digest(:inputs => input_hash, :non_default_inputs => non_default_inputs, :dependencies => dependencies)
-      Log.debug "Hash #{name} - #{hash}: #{Misc.digest_str(:inputs => inputs, :dependencies => dependencies)}"
+      hash = Misc.digest(:inputs => input_hash, :dependencies => dependencies)
+      Log.debug "Hash #{name} - #{hash}: #{Misc.digest_str(:inputs => inputs, :non_default_inputs => non_default_inputs, :dependencies => dependencies)}"
       id = [id, hash] * "_"
     end
 

@@ -41,9 +41,7 @@ module Misc
 
   def self.digest(obj)
     str = Misc.digest_str(obj)
-    hash = Digest::MD5.hexdigest(str)
-    Log.debug "Digest #{hash} - #{str}"
-    hash
+    Digest::MD5.hexdigest(str)
   end
 
   def self.file_md5(file)

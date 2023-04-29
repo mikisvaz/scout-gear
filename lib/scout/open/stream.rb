@@ -35,9 +35,9 @@ module Open
       consumer_thread
     else
       if into
-        Log.medium "Consuming stream #{Log.fingerprint io} -> #{Log.fingerprint into}"
+        Log.low "Consuming stream #{Log.fingerprint io} -> #{Log.fingerprint into}"
       else
-        Log.medium "Consuming stream #{Log.fingerprint io}"
+        Log.low "Consuming stream #{Log.fingerprint io}"
       end
 
       begin
@@ -53,7 +53,6 @@ module Open
         into_close = false unless into.respond_to? :close
         io.sync = true
 
-        Log.high "started consuming stream #{Log.fingerprint io}"
         begin
           while c = io.readpartial(BLOCK_SIZE)
             into << c if into
@@ -67,15 +66,14 @@ module Open
         into.close if into and into_close and not into.closed?
         block.call if block_given?
 
-        Log.high "Done consuming stream #{Log.fingerprint io} into #{into_path || into}"
         c
       rescue Aborted
-        Log.high "Consume stream Aborted #{Log.fingerprint io} into #{into_path || into}"
+        Log.low "Consume stream Aborted #{Log.fingerprint io} into #{into_path || into}"
         io.abort $! if io.respond_to? :abort
         into.close if into.respond_to?(:closed?) && ! into.closed?
         FileUtils.rm into_path if into_path and File.exist?(into_path)
       rescue Exception
-        Log.high "Consume stream Exception reading #{Log.fingerprint io} into #{into_path || into} - #{$!.message}"
+        Log.low "Consume stream Exception reading #{Log.fingerprint io} into #{into_path || into} - #{$!.message}"
         exception = io.stream_exception || $!
         io.abort exception if io.respond_to? :abort
         into.close if into.respond_to?(:closed?) && ! into.closed?
@@ -145,12 +143,12 @@ module Open
 
           Open.notify_write(path) 
         rescue Aborted
-          Log.medium "Aborted sensible_write -- #{ Log.reset << Log.color(:blue, path) }"
+          Log.low "Aborted sensible_write -- #{ Log.reset << Log.color(:blue, path) }"
           content.abort if content.respond_to? :abort
           Open.rm path if File.exist? path
         rescue Exception
           exception = (AbortedStream === content and content.exception) ? content.exception : $!
-          Log.medium "Exception in sensible_write: [#{Process.pid}] #{exception.message} -- #{ Log.color :blue, path }"
+          Log.low "Exception in sensible_write: [#{Process.pid}] #{exception.message} -- #{ Log.color :blue, path }"
           content.abort if content.respond_to? :abort
           Open.rm path if File.exist? path
           raise exception
@@ -250,10 +248,10 @@ module Open
 
           sin.close if close and not sin.closed? and not sin.aborted?
         rescue Aborted
-          Log.medium "Aborted open_pipe: #{$!.message}"
+          Log.low "Aborted open_pipe: #{$!.message}"
           raise $!
         rescue Exception
-          Log.medium "Exception in open_pipe: #{$!.message}"
+          Log.low "Exception in open_pipe: #{$!.message}"
           begin
             sout.threads.delete(Thread.current)
             sout.pair = []
@@ -317,7 +315,7 @@ module Open
         out_pipes.each do |sout|
           sout.abort if sout.respond_to? :abort
         end
-        Log.medium "Tee aborting #{Log.fingerprint stream}"
+        Log.low "Tee aborting #{Log.fingerprint stream}"
         raise $!
       rescue Exception
         begin
@@ -332,7 +330,7 @@ module Open
           in_pipes.each do |sin|
             sin.close unless sin.closed?
           end
-          Log.medium "Tee exception #{Log.fingerprint stream}"
+          Log.low "Tee exception #{Log.fingerprint stream}"
         rescue
           Log.exception $!
         ensure
