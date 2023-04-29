@@ -20,4 +20,22 @@ module Misc
     end
     res
   end
+
+  def self.profile(options = {})
+    require 'ruby-prof'
+    profiler = RubyProf::Profile.new
+    profiler.start
+    begin
+      res = yield
+    rescue Exception
+      puts "Profiling aborted"
+      raise $!
+    ensure
+      result = profiler.stop
+      printer = RubyProf::FlatPrinter.new(result)
+      printer.print(STDOUT, options)
+    end
+
+    res
+  end
 end

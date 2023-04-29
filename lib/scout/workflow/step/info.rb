@@ -55,9 +55,9 @@ class Step
   
   def report_status(status, message = nil)
     if message.nil?
-      Log.info Log.color(:green, status.to_s) + " " + Log.color(:blue, path)
+      Log.info Log.color(status, status.to_s) + " " + Log.color(:path, path)
     else
-      Log.info Log.color(:green, status.to_s) + " " + Log.color(:blue, path) + " " + message
+      Log.info Log.color(status, status.to_s) + " " + Log.color(:path, path) + " " + message
     end
   end
 

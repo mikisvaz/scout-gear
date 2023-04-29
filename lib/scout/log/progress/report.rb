@@ -195,15 +195,16 @@ module Log
     def done(io = STDERR)
       done_msg = Log.color(:magenta, "· ") << Log.color(:green, "done")
       if @start
-        ellapsed = (Time.now - @start).to_i
+        ellapsed = (Time.now - @start)
       else
         ellapsed = 0
       end
-      ellapsed = [ellapsed/3600, ellapsed/60 % 60, ellapsed % 60].map{|t| "%02i" % t }.join(':')
-      done_msg << " " << Log.color(:blue, (@ticks).to_s) << " #{bytes ? 'bytes' : 'items'} in " << Log.color(:green, ellapsed)
+      ellapsed_str = [ellapsed/3600, ellapsed/60 % 60, ellapsed % 60].map{|t| "%02i" % t }.join(':')
+      done_msg << " " << Log.color(:blue, (@ticks).to_s) << " #{bytes ? 'bytes' : 'items'} in " << Log.color(:green, ellapsed_str)
       @last_count = 0
       @last_time = @start
-      done_msg << " - " << thr_msg 
+      thr = ellapsed > 0 ? (@ticks / ellapsed).to_i.to_s : 0
+      done_msg << " - " << Log.color(:blue, thr) << " per second"
       done_msg << Log.color(:magenta, " · " << desc)
       print(io, Log.up_lines(@depth) << done_msg << Log.down_lines(@depth)) 
 

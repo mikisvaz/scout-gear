@@ -370,4 +370,34 @@ module Open
   def self.tee_stream(stream)
     tee_stream_thread(stream)
   end
+
+  def self.read_stream(stream, size)
+    str = nil
+    Thread.pass while IO.select([stream],nil,nil,1).nil?
+    while not str = stream.read(size)
+      IO.select([stream],nil,nil,1) 
+      Thread.pass
+      raise ClosedStream if stream.eof?
+    end
+
+    while str.length < size
+      raise ClosedStream if stream.eof?
+      IO.select([stream],nil,nil,1)
+      if new = stream.read(size-str.length)
+        str << new
+      end
+    end
+    str
+  end
+
+  def self.read_stream(stream, size)
+    str = ""
+    while str.length < size
+      missing = size - str.length
+      more = stream.read(missing)
+      str << more
+    end
+    str
+  end
+
 end

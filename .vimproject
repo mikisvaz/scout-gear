@@ -103,6 +103,12 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     usage.rb
     util.rb
    }
+   semaphore.rb
+   work_queue.rb
+   work_queue=work_queue{
+    socket.rb
+    worker.rb
+   }
   }
  }
  test=test {
@@ -224,16 +230,16 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
       concurrency=concurrency{
        processes.rb
        threads.rb
-     processes=processes{
-      socket.rb
-      worker.rb
+       processes=processes{
+        socket.rb
+        worker.rb
+       }
+      }
+
+      procpath.rb
+
+      migrate.rb
      }
-    }
-
-    procpath.rb
-
-    migrate.rb
-   }
 
    monitor.rb
 

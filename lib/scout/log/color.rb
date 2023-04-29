@@ -2,6 +2,7 @@ require_relative 'color_class'
 require_relative '../indiferent_hash'
 
 require 'term/ansicolor'
+require 'colorist'
 
 module Colorize
   def self.colors=(colors)
@@ -9,7 +10,13 @@ module Colorize
   end
 
   def self.colors
-    @colors ||= IndiferentHash.setup({green: "#00cd00" , red: "#cd0000" , yellow: "#ffd700" })
+    @colors ||= IndiferentHash.setup(Hash[<<-EOF.split("\n").collect{|l| l.split(" ")}])
+green #00cd00 
+red #cd0000 
+yellow #ffd700
+blue #0000cd
+path blue
+EOF
   end
 
   def self.diverging_colors=(colors)
@@ -33,7 +40,6 @@ module Colorize
     EOF
   end
 
-
   def self.from_name(color)
     return color if color =~ /^#?[0-9A-F]+$/i
     return colors[color.to_s] if colors.include?(color.to_s)
@@ -52,7 +58,7 @@ module Colorize
     when 'blue'
       colors["RoyalBlue"] 
     else
-      colors[color.to_s] || color
+      colors[color.to_s] || color.to_s
     end
   end
 
@@ -134,8 +140,21 @@ module Log
   WHITE, DARK, GREEN, YELLOW, RED = Color::SOLARIZED.values_at :base0, :base00, :green, :yellow, :magenta
 
   SEVERITY_COLOR = [reset, cyan, green, magenta, blue, yellow, red] #.collect{|e| "\033[#{e}"}
+  CONCEPT_COLORS = IndiferentHash.setup({
+    :title => magenta,
+    :path => blue,
+    :input => blue,
+    :value => green,
+    :integer => green,
+    :negative => red,
+    :float => green,
+    :waiting => yellow,
+    :started => blue,
+    :done => green,
+    :error => red,
+  })
   HIGHLIGHT = "\033[1m"
-
+  
   def self.uncolor(str)
     "" << Term::ANSIColor.uncolor(str)
   end
@@ -144,15 +163,20 @@ module Log
     reset
   end
 
-  def self.color(severity, str = nil, reset = false)
+  def self.color(color, str = nil, reset = false)
     return str.dup || "" if nocolor 
-    color = reset ? Term::ANSIColor.reset : ""
-    color << SEVERITY_COLOR[severity] if Integer === severity
-    color << Term::ANSIColor.send(severity) if Symbol === severity and Term::ANSIColor.respond_to? severity 
+
+    color = SEVERITY_COLOR[color] if Integer === color
+    color = CONCEPT_COLORS[color] if CONCEPT_COLORS.include?(color)
+    color = Term::ANSIColor.send(color) if Symbol === color and Term::ANSIColor.respond_to?(color)
+
+    return str if Symbol === color
+    color_str = reset ? Term::ANSIColor.reset : ""
+    color_str << color
     if str.nil?
-      color
+      color_str
     else
-      color + str.to_s + self.color(0)
+      color_str + str.to_s + Term::ANSIColor.reset
     end
   end
 

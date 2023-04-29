@@ -71,8 +71,20 @@ end
 
 class LockInterrupted < TryAgain; end
 
-#
-#class ClosedStream < StandardError; end
+class ClosedStream < StandardError; end
+
+class DoneProcessing < Exception
+  attr_accessor :pid
+  def initialize(pid = Process.pid)
+    @pid = pid
+  end
+
+  def message
+    "Done processing pid #{pid}"
+  end
+end
+
+
 #class OpenGzipError < StandardError; end
 #
 #
