@@ -143,13 +143,14 @@ module Log
   CONCEPT_COLORS = IndiferentHash.setup({
     :title => magenta,
     :path => blue,
-    :input => blue,
+    :input => cyan,
     :value => green,
     :integer => green,
     :negative => red,
     :float => green,
     :waiting => yellow,
-    :started => blue,
+    :started => cyan,
+    :start => cyan,
     :done => green,
     :error => red,
   })
@@ -166,10 +167,36 @@ module Log
   def self.color(color, str = nil, reset = false)
     return str.dup || "" if nocolor 
 
+    if (color == :integer || color == :float) && Numeric === str
+      color = if str < 0
+                :red
+              elsif str > 1
+                :cyan
+              else
+                :green
+              end
+    end
+
+    if color == :status 
+      color = case str.to_sym
+              when :done
+                :green
+              when :error, :aborted
+                :red
+              when :waiting, :queued
+                :yellow
+              when :started, :start, :streamming
+                :cyan
+              else
+                :cyan
+              end
+    end
+
     color = SEVERITY_COLOR[color] if Integer === color
     color = CONCEPT_COLORS[color] if CONCEPT_COLORS.include?(color)
     color = Term::ANSIColor.send(color) if Symbol === color and Term::ANSIColor.respond_to?(color)
 
+    str = str.to_s unless str.nil?
     return str if Symbol === color
     color_str = reset ? Term::ANSIColor.reset : ""
     color_str << color
