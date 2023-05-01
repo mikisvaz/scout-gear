@@ -4,7 +4,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 require 'scout/work_queue/worker'
 class TestSemaphore < Test::Unit::TestCase
 
-  def _test_simple
+  def test_simple
     ScoutSemaphore.with_semaphore 1 do |sem|
       10.times do
         ScoutSemaphore.synchronize(sem) do

@@ -1,16 +1,18 @@
 class WorkQueue
   class Worker
     attr_accessor :pid, :ignore_ouput
-    def initialize
+    def initialize(ignore_ouput = false)
+      @ignore_output = ignore_ouput
     end
 
     def run
       @pid = Process.fork do
+        Log.debug "Worker start with #{Process.pid}"
         yield
       end
     end
 
-    def process(input, output, &block)
+    def process(input, output = nil, &block)
       run do
         begin
           while obj = input.read
@@ -19,14 +21,22 @@ class WorkQueue
               raise obj 
             end
             res = block.call obj
-            output.write res unless ignore_ouput || res == :ignore 
+            output.write res unless output.nil? || ignore_ouput || res == :ignore 
           end
         rescue DoneProcessing
-          Log.log "Worker #{Process.pid} done"
+        rescue Interrupt
         rescue Exception
-          Log.exception $!
+          output.write WorkerException.new($!, Process.pid)
           exit -1
         end
+      end
+    end
+
+    def abort
+      begin
+        Log.log "Aborting worker #{@pid}"
+        Process.kill "INT", @pid 
+      rescue Errno::ECHILD
       end
     end
 
@@ -35,17 +45,12 @@ class WorkQueue
       Process.waitpid @pid
     end
 
-    def exit(status)
-      Log.log "Worker #{@pid} exited with status #{Log.color(:green, status)}"
-    end
-
     def self.join(workers)
       workers = [workers] unless Array === workers
       begin
         while pid = Process.wait 
           status = $?
-          worker = workers.select{|w| w.pid == pid }.first
-          worker.exit status.exitstatus if worker
+            worker = workers.select{|w| w.pid == pid }.first
         end
       rescue Errno::ECHILD
       end

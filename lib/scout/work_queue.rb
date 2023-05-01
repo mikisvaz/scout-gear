@@ -35,52 +35,79 @@ class WorkQueue
   end
 
   def remove_worker(pid)
-    worker = @worker_mutex.synchronize do
-      Log.debug "Remove #{pid}"
-      @removed_workers.concat(@workers.delete_if{|w| w.pid == pid })
+    @worker_mutex.synchronize do
+      @workers.delete_if{|w| w.pid == pid }
+      @removed_workers << pid
     end
   end
 
   def process(&callback)
-    @workers.each do |w| 
-      w.process @input, @output, &@worker_proc
-    end
-    @reader = Thread.new do
+    @reader = Thread.new do |parent|
       begin
+        Thread.current.report_on_exception = false
+        Thread.current["name"] = "Output reader #{Process.pid}"
+        @done_workers ||= []
         while true
           obj = @output.read
           if DoneProcessing === obj
-            remove_worker obj.pid if obj.pid
+            done = @worker_mutex.synchronize do
+              Log.low "Worker #{obj.pid} done"
+              @done_workers << obj.pid
+              @done_workers.length == @removed_workers.length + @workers.length
+            end
+            break if done
+          elsif Exception === obj
+            raise obj
           else
             callback.call obj if callback
           end
         end
+      rescue DoneProcessing
       rescue Aborted
+      rescue WorkerException
+        Log.error "Exception in worker #{obj.pid} #{Log.fingerprint obj.exception}"
+        self.abort
+        raise obj.exception
       end
-    end if @output
+    end
+
+    @workers.each do |w| 
+      w.process @input, @output, &@worker_proc
+    end
+
+    Thread.pass until @reader["name"]
+
+    @waiter = Thread.new do
+      begin
+        Thread.current.report_on_exception = false
+        Thread.current["name"] = "Worker waiter #{Process.pid}"
+        while true
+          pid = Process.wait
+          remove_worker(pid)
+          break if workers.empty?
+        end
+      end
+    end
+
+    Thread.pass until @waiter["name"]
   end
 
   def write(obj)
     @input.write obj
   end
 
+  def abort
+    workers.each{|w| w.abort }
+  end
+
   def close
-    while @worker_mutex.synchronize{ @workers.length } > 0
-      begin
-        @input.write DoneProcessing.new
-        pid = Process.wait
-        status = $?
-        worker = @worker_mutex.synchronize{ @removed_workers.delete_if{|w| w.pid == pid }.first }
-        worker.exit $?.exitstatus if worker
-      rescue Errno::ECHILD
-        Thread.pass until @workers.length == 0
-        break
-      end
+    @worker_mutex.synchronize{ @workers.length }.times do
+      @input.write DoneProcessing.new()
     end
-    @reader.raise Aborted if @reader
   end
 
   def join
+    @waiter.join if @waiter
     @reader.join if @reader
   end
 end

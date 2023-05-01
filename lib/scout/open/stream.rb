@@ -31,7 +31,10 @@ module Open
         Thread.current.report_on_exception = false
         consume_stream(io, false, into, into_close)
       end
+
       io.threads.push(consumer_thread) if io.respond_to?(:threads)
+      Thread.pass until consumer_thread["name"]
+
       consumer_thread
     else
       if into
@@ -217,16 +220,15 @@ module Open
 
       #parent_pid = Process.pid
       pid = Process.fork {
-        purge_pipes(sin)
-        sout.close
         begin
+          purge_pipes(sin)
+          sout.close
 
           yield sin
           sin.close if close and not sin.closed? 
 
         rescue Exception
           Log.exception $!
-          #Process.kill :INT, parent_pid
           Kernel.exit!(-1)
         end
         Kernel.exit! 0
@@ -240,9 +242,9 @@ module Open
       ConcurrentStream.setup sout, :pair => sin
 
       thread = Thread.new do 
-        Thread.current["name"] = "Pipe input #{Log.fingerprint sin} => #{Log.fingerprint sout}"
-        Thread.current.report_on_exception = false
         begin
+          Thread.current.report_on_exception = false
+          Thread.current["name"] = "Pipe input #{Log.fingerprint sin} => #{Log.fingerprint sout}"
           
           yield sin
 
@@ -267,6 +269,7 @@ module Open
 
       sin.threads = [thread]
       sout.threads = [thread]
+      Thread.pass until thread["name"]
     end
 
     sout
@@ -285,8 +288,8 @@ module Open
 
     splitter_thread = Thread.new(Thread.current) do |parent|
       begin
-        Thread.current["name"] = "Splitter #{Log.fingerprint stream}"
         Thread.current.report_on_exception = false
+        Thread.current["name"] = "Splitter #{Log.fingerprint stream}"
 
         skip = [false] * num
         begin
@@ -346,7 +349,7 @@ module Open
     out_pipes.each do |sout|
       ConcurrentStream.setup sout, :threads => splitter_thread, :filename => filename, :pair => stream
     end
-    splitter_thread.wakeup until splitter_thread["name"]
+    Thread.pass until splitter_thread["name"]
 
     main_pipe = out_pipes.first
     main_pipe.autojoin = true

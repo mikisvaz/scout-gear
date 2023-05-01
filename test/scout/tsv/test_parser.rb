@@ -4,7 +4,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 require 'scout/tsv'
 class TestTSVParser < Test::Unit::TestCase
 
-  def _test_parse_line
+  def test_parse_line
     line = (0..10).to_a * "\t"
     key, values = TSV.parse_line(line)
 
@@ -12,7 +12,7 @@ class TestTSVParser < Test::Unit::TestCase
     assert_equal (1..10).collect{|v| v.to_s }, values
   end
 
-  def _test_parse_double
+  def test_parse_double
     line = (0..10).collect{|v| v == 0 ? v : [v,v] * "|" } * "\t"
     key, values = TSV.parse_line(line, type: :double, cast: :to_i)
 
@@ -20,7 +20,7 @@ class TestTSVParser < Test::Unit::TestCase
     assert_equal (1..10).collect{|v| [v,v] }, values
   end
 
-  def _test_benchmark
+  def __test_benchmark
     num = 10_000
     txt = num.times.inject(nil) do |acc,i|
       (acc.nil? ? "" : acc << "\n") << (0..10).collect{|v| v == 0 ? i : [v,v] * "|" } * "\t"
@@ -35,7 +35,7 @@ class TestTSVParser < Test::Unit::TestCase
     end
   end
 
-  def _test_parse_stream
+  def test_parse_stream
     lines =<<-EOF
 1 2 3 4 5
 11 12 13 14 15
@@ -47,7 +47,7 @@ class TestTSVParser < Test::Unit::TestCase
     assert_equal data["1"], %w(2 3 4 5)
   end
 
-  def _test_parse_stream_block
+  def test_parse_stream_block
     lines =<<-EOF
 1 2 3 4 5
 11 12 13 14 15
@@ -62,18 +62,18 @@ class TestTSVParser < Test::Unit::TestCase
     assert_equal 68, sum
   end
 
-  def _test_parse_header
+  def test_parse_header
     header =<<-EOF
-#: cast=:to_f#:sep=" "
+#: :sep=" "
 #Key ValueA ValueB
 k A B
     EOF
     header = StringIO.new header
 
-    iii TSV.parse_header(header)
+    assert_equal "Key", TSV.parse_header(header)[1]
   end
 
-  def test_parse_header
+  def test_parse
     header =<<-EOF
 #: :sep=" "#:type=:double
 #Key ValueA ValueB
@@ -82,5 +82,6 @@ k a|A b|B
     header = StringIO.new header
 
     tsv = TSV.parse(header)
+    assert_equal 'a', tsv['k'][0][0]
   end
 end

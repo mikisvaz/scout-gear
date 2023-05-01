@@ -84,6 +84,14 @@ class DoneProcessing < Exception
   end
 end
 
+class WorkerException < ScoutException
+  attr_accessor :exception, :pid
+  def initialize(exception, pid)
+    @exception = exception
+    @pid = pid
+  end
+end
+
 
 #class OpenGzipError < StandardError; end
 #

@@ -206,7 +206,11 @@ module Log
       line = line.sub('`',"'")
       color = :green if line =~ /workflow/
       color = :blue if line =~ /scout-/
-      Log.color color, line
+      if color
+        Log.color color, line
+      else
+        line
+      end
     end unless stack.nil?
   end
 

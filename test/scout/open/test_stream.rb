@@ -139,7 +139,7 @@ class TestOpenStream < Test::Unit::TestCase
 
   def test_tee_stream_save_error
     Log.with_severity 6 do
-      5.times do |i|
+      50.times do |i|
         TmpFile.with_file do |tmp|
           Path.setup tmp
           assert_raise ScoutException do

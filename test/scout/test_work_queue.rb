@@ -89,5 +89,33 @@ class TestWorkQueue < Test::Unit::TestCase
 
     assert_equal 0, res.length
   end
+
+  def test_queue_error
+    num = 10
+    reps = 10_000
+
+    q = WorkQueue.new num do |obj|
+      raise ScoutException if rand < 1
+      [Process.pid.to_s, obj.to_s] * " "
+    end
+
+    res = []
+    q.process do |out|
+      res << out
+    end
+
+    pid = Process.fork do
+      reps.times do |i|
+        q.write i
+      end
+    end
+
+    Process.wait pid
+
+    assert_raise ScoutException do
+      q.close
+      q.join
+    end
+  end
 end
 

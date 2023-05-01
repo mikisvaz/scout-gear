@@ -95,5 +95,53 @@ class TestQueueWorker < Test::Unit::TestCase
     output.clean
   end
 
+  def test_process_exception
+    input = WorkQueue::Socket.new
+    output = WorkQueue::Socket.new
+
+    workers = 10.times.collect{ WorkQueue::Worker.new }
+    workers.each do |w|
+      w.process(input, output) do |obj|
+        raise ScoutException
+        [Process.pid, obj.inspect] * " "
+      end
+    end
+
+    read = Thread.new do 
+      Thread.current.report_on_exception = false
+      begin
+        while obj = output.read
+          if DoneProcessing === obj
+            pid = obj.pid
+            workers.delete_if{|w| w.pid = pid }
+            break if workers.empty?
+          end
+          raise obj if Exception === obj
+        end
+      end
+    end
+
+    write = Thread.new do
+      Thread.report_on_exception = false
+      100.times do |i|
+        input.write i
+      end
+      10.times do
+        input.write DoneProcessing.new
+      end
+      input.close_write
+    end
+
+    write.join
+
+    assert_raise ScoutException do
+      read.join
+    end
+
+    WorkQueue::Worker.join workers
+    input.clean
+    output.clean
+  end
+
 end
 
