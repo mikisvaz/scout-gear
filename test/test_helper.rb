@@ -22,6 +22,7 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 #require 'scout/helper/misc/development'
 require 'scout/tmpfile'
 require 'scout/log'
+require 'scout/open'
 require 'scout/persist'
 require 'scout/workflow'
 
@@ -32,6 +33,7 @@ class Test::Unit::TestCase
   end
 
   setup do
+    Log::ProgressBar.default_severity = 0
     Persist.cache_dir = tmpdir.var.cache
     Open.remote_cache_dir = tmpdir.var.cache
     Workflow.directory = tmpdir.var.jobs

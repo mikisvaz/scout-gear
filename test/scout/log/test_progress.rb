@@ -5,7 +5,7 @@ class TestProgress < Test::Unit::TestCase
   SLEEP_TIME=0.0001
   def test_bar
     t1 = Thread.new do
-      Log::ProgressBar.with_bar(20, :desc => "Bar 1", :severity => 0) do |bar|
+      Log::ProgressBar.with_bar(20, :desc => "Bar 1") do |bar|
         20.times do
           bar.tick
           sleep SLEEP_TIME
@@ -16,7 +16,7 @@ class TestProgress < Test::Unit::TestCase
     end
 
     t2 = Thread.new do
-      Log::ProgressBar.with_bar(20, :desc => "Bar 2", :severity => 0) do |bar|
+      Log::ProgressBar.with_bar(20, :desc => "Bar 2") do |bar|
         20.times do
           bar.tick
           sleep SLEEP_TIME
@@ -31,7 +31,7 @@ class TestProgress < Test::Unit::TestCase
 
   def test_bar_no_size
     t1 = Thread.new do
-      Log::ProgressBar.with_bar(nil, :desc => "Bar 1", :frequency => 0, :severity => 0) do |bar|
+      Log::ProgressBar.with_bar(nil, :desc => "Bar 1", :frequency => 0) do |bar|
         20.times do
           bar.tick
           sleep SLEEP_TIME
@@ -41,7 +41,7 @@ class TestProgress < Test::Unit::TestCase
     end
 
     t2 = Thread.new do
-      Log::ProgressBar.with_bar(nil, :desc => "Bar 2", :frequency => 0, :severity => 0) do |bar|
+      Log::ProgressBar.with_bar(nil, :desc => "Bar 2", :frequency => 0) do |bar|
         20.times do
           bar.tick
           sleep SLEEP_TIME
@@ -54,10 +54,10 @@ class TestProgress < Test::Unit::TestCase
   end
 
   def test_bar_nested
-    Log::ProgressBar.with_bar(20, :desc => "Bar 1", :severity => 0) do |bar|
+    Log::ProgressBar.with_bar(20, :desc => "Bar 1") do |bar|
       bar.init
       20.times do
-        Log::ProgressBar.with_bar(5, :desc => "Bar 2", :severity => 0) do |bar|
+        Log::ProgressBar.with_bar(5, :desc => "Bar 2") do |bar|
           5.times do
             bar.tick
             sleep SLEEP_TIME
@@ -72,7 +72,7 @@ class TestProgress < Test::Unit::TestCase
   def test_pos
     size = 10000
 
-    Log::ProgressBar.with_bar(size, :desc => "Bar 1", :severity => 0) do |bar|
+    Log::ProgressBar.with_bar(size, :desc => "Bar 1") do |bar|
       bar.init
       nums = []
       100.times do
@@ -91,7 +91,7 @@ class TestProgress < Test::Unit::TestCase
 
     TmpFile.with_file do |file|
 
-      Log::ProgressBar.with_bar(size, :desc => "Bar 1", :file => file, :severity => 0) do |bar|
+      Log::ProgressBar.with_bar(size, :desc => "Bar 1", :file => file) do |bar|
         bar.init
         nums = []
         100.times do
@@ -106,4 +106,3 @@ class TestProgress < Test::Unit::TestCase
     end
   end
 end
-

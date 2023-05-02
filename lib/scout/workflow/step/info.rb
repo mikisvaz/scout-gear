@@ -1,5 +1,5 @@
 class Step
-  SERIALIZER = :json
+  SERIALIZER = :marshal
   def info_file
     @info_file ||= begin
                      info_file = @path + ".info"
@@ -20,7 +20,12 @@ class Step
   end
 
   def info
-    outdated = @info && Open.exists?(info_file) && @info_load_time && Open.mtime(info_file) > @info_load_time
+    outdated = begin
+                 #@info && Open.exists?(info_file) && @info_load_time && Open.mtime(info_file) > @info_load_time
+                 @info_load_time && mtime = Open.mtime(info_file) && mtime > @info_load_time
+               rescue
+                 true
+               end
 
     if @info.nil? || outdated
       load_info
@@ -62,7 +67,6 @@ class Step
   end
 
   def log(status, message = nil)
-    report_status status, message
     if message
       merge_info :status => status, :messages => [message]
     else
@@ -71,7 +75,18 @@ class Step
   end
 
   def status
-    info[:status]
+    info[:status].tap{|s| s.nil? ? s : s.to_sym }
   end
 
+  def error?
+    status == :error
+  end
+
+  def aborted?
+    status == :aborted
+  end
+
+  def running?
+    ! done? && (info[:pid] && Misc.pid_alive?(info[:pid]))
+  end
 end

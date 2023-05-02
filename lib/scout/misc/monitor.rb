@@ -1,4 +1,7 @@
 module Misc
+  def self.pid_alive?(pid)
+    !! Process.kill(0, pid) rescue false
+  end
   def self.benchmark(repeats = 1, message = nil)
     require 'benchmark'
     res = nil

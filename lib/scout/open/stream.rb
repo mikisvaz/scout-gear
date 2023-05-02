@@ -1,5 +1,5 @@
 module Open
-  BLOCK_SIZE = 1024
+  BLOCK_SIZE = 1024 * 8
 
   class << self
     attr_accessor :sensible_write_lock_dir
@@ -52,9 +52,9 @@ module Open
           into_path, into = into, File.open(into, 'w') 
         end
         
-        into.sync = true if IO === into
         into_close = false unless into.respond_to? :close
-        io.sync = true
+        #into.sync = true if IO === into
+        #io.sync = true
 
         begin
           while c = io.readpartial(BLOCK_SIZE)
@@ -110,7 +110,7 @@ module Open
         Log.warn "Path exists in sensible_write, not forcing update: #{ path }"
         Open.consume_stream content 
       else
-        FileUtils.mkdir_p File.dirname(tmp_path) unless File.directory? File.dirname(tmp_path)
+        FileUtils.mkdir_p File.dirname(tmp_path) unless File.directory?(File.dirname(tmp_path))
         FileUtils.rm_f tmp_path if File.exist? tmp_path
         begin
 
@@ -121,7 +121,7 @@ module Open
             File.open(tmp_path, 'wb') do |f| f.write content end
           when (IO === content or StringIO === content or File === content)
             Open.write(tmp_path) do |f|
-              f.sync = true
+              #f.sync = true
               begin
                 while block = content.readpartial(BLOCK_SIZE)
                   f.write block
@@ -344,7 +344,6 @@ module Open
         end
       end
     end
-
 
     out_pipes.each do |sout|
       ConcurrentStream.setup sout, :threads => splitter_thread, :filename => filename, :pair => stream

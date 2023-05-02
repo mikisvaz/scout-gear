@@ -79,5 +79,25 @@ class TestPersist < Test::Unit::TestCase
       assert_equal "TEST2", Persist.persist(dir.cache, type, :dir => tmpdir.persist, :update => dir.file3){ Open.read(dir.file3) }
     end
   end
+
+  def __test_speed
+    times = 100_000
+    TmpFile.with_file do |tmpfile|
+      sout = Persist.persist(tmpfile, :string, :path => tmpfile) do
+        Open.open_pipe do |sin|
+          times.times do |i|
+            sin.puts "line-#{i}"
+          end
+        end
+      end
+
+      Log::ProgressBar.with_bar do |bar|
+        while l = sout.gets
+          bar.tick
+        end
+      end
+    end
+  end
+
 end
 

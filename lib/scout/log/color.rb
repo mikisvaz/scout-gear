@@ -185,8 +185,10 @@ module Log
                 :red
               when :waiting, :queued
                 :yellow
-              when :started, :start, :streamming
+              when :started, :streamming
                 :cyan
+              when :start
+                :title
               else
                 :cyan
               end

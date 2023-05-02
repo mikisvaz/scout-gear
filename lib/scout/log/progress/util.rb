@@ -81,7 +81,7 @@ module Log
       Log::ProgressBar.remove_bar self, error
     end
 
-    def self.with_bar(max, options = {})
+    def self.with_bar(max = nil, options = {})
       bar = new_bar(max, options)
       begin
         error = false

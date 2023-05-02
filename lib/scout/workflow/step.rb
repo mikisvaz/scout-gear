@@ -11,6 +11,11 @@ class Step
     @inputs = inputs
     @dependencies = dependencies
     @task = task
+    @mutex = Mutex.new
+  end
+
+  def synchronize(&block)
+    @mutex.synchronize(&block)
   end
 
   def inputs
@@ -49,13 +54,13 @@ class Step
   end
 
   def exec
-    self.instance_exec(*inputs, &task)
+    @result = self.instance_exec(*inputs, &task)
   end
 
   attr_reader :result
   def run
     return @result || self.load if done?
-    dependencies.each{|dep| dep.run }
+    dependencies.each{|dep| dep.run unless dep.running? || dep.done? }
     @result = Persist.persist(name, type, :path => path) do
       begin
         merge_info :status => :start, :start => Time.now,
@@ -63,15 +68,29 @@ class Step
           :inputs => inputs, :type => type,
           :dependencies => dependencies.collect{|d| d.path }
 
-        @result = exec
+        exec
+      rescue
+        merge_info :status => :error, :exception => $!
+        raise $!
       ensure
-        if streaming?
-          ConcurrentStream.setup(@result) do
+        if ! (error? || aborted?)
+          if streaming?
+            ConcurrentStream.setup(@result) do
+              merge_info :status => :done, :end => Time.now
+            end
+
+            @result.abort_callback = proc do |exception|
+              if Aborted === exception || Interrupt === exception
+                merge_info :status => :aborted, :end => Time.now
+              else
+                merge_info :status => :error, :exception => exception, :end => Time.now
+              end
+            end
+
+            log :streaming
+          else
             merge_info :status => :done, :end => Time.now
           end
-          log :streaming
-        else
-          merge_info :status => :done, :end => Time.now
         end
       end
     end
@@ -82,19 +101,33 @@ class Step
   end
 
   def streaming?
-    IO === @result || StringIO === @result
+    @take_stream || IO === @result || StringIO === @result
   end
 
-  def stream
-    join
-    streaming? ? @result : Open.open(path)
+  def get_stream
+    synchronize do
+      if streaming? && ! @take_stream
+        Log.debug "Taking stream from result #{Log.color :path, self.path}"
+        @take_stream, @result = @result, nil
+        @take_stream
+      elsif done?
+        Open.open(self.path)
+      else
+        exec
+      end
+    end
   end
 
   def join
-    if streaming?
-      Open.consume_stream(@result, false) 
-      @result = nil
+    stream = synchronize do
+      if streaming?
+        stream, @result = @result, stream
+        stream
+      else
+        nil
+      end
     end
+    Open.consume_stream(stream, false) if stream
   end
 
   def produce
@@ -109,6 +142,10 @@ class Step
   end
 
   def clean
+    @take_stream = nil 
+    @result = nil
+    @info = nil
+    @info_load_time = nil
     Open.rm path if Open.exist?(path)
     Open.rm info_file if Open.exist?(info_file)
   end
