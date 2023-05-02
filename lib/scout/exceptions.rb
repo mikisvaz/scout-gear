@@ -85,9 +85,9 @@ class DoneProcessing < Exception
 end
 
 class WorkerException < ScoutException
-  attr_accessor :exception, :pid
-  def initialize(exception, pid)
-    @exception = exception
+  attr_accessor :worker_exception, :pid
+  def initialize(worker_exception, pid)
+    @worker_exception = worker_exception
     @pid = pid
   end
 end

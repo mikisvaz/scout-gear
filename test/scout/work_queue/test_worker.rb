@@ -113,7 +113,7 @@ class TestQueueWorker < Test::Unit::TestCase
         while obj = output.read
           if DoneProcessing === obj
             pid = obj.pid
-            workers.delete_if{|w| w.pid = pid }
+            @worker_mutex.synchronize{ @workers.delete_if{|w| w.pid = pid } }
             break if workers.empty?
           end
           raise obj if Exception === obj
@@ -134,7 +134,7 @@ class TestQueueWorker < Test::Unit::TestCase
 
     write.join
 
-    assert_raise ScoutException do
+    assert_raise WorkerException do
       read.join
     end
 

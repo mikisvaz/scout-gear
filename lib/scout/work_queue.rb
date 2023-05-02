@@ -36,6 +36,7 @@ class WorkQueue
 
   def remove_worker(pid)
     @worker_mutex.synchronize do
+      Log.debug "Removed worker #{pid}"
       @workers.delete_if{|w| w.pid == pid }
       @removed_workers << pid
     end
@@ -50,11 +51,13 @@ class WorkQueue
         while true
           obj = @output.read
           if DoneProcessing === obj
+
             done = @worker_mutex.synchronize do
               Log.low "Worker #{obj.pid} done"
               @done_workers << obj.pid
-              @done_workers.length == @removed_workers.length + @workers.length
+              @closed && @done_workers.length == @removed_workers.length + @workers.length
             end
+
             break if done
           elsif Exception === obj
             raise obj
@@ -65,9 +68,13 @@ class WorkQueue
       rescue DoneProcessing
       rescue Aborted
       rescue WorkerException
-        Log.error "Exception in worker #{obj.pid} #{Log.fingerprint obj.exception}"
+        Log.error "Exception in worker #{obj.pid} in queue #{Process.pid}: #{obj.message}"
         self.abort
-        raise obj.exception
+        raise obj.worker_exception
+      rescue
+        Log.error "Exception processing output in queue #{Process.pid}: #{$!.message}"
+        self.abort
+        raise $!
       end
     end
 
@@ -84,11 +91,12 @@ class WorkQueue
         while true
           pid = Process.wait
           remove_worker(pid)
-          break if workers.empty?
+          break if @worker_mutex.synchronize{ @workers.empty? }
         end
       end
     end
 
+    Thread.pass until @worker_mutex.synchronize{ @workers.select{|w| w.pid.nil? }.empty? }
     Thread.pass until @waiter["name"]
   end
 
@@ -97,10 +105,14 @@ class WorkQueue
   end
 
   def abort
-    workers.each{|w| w.abort }
+    Log.low "Aborting #{@workers.length} workers in queue #{Process.pid}"
+    @worker_mutex.synchronize do
+      @workers.each{|w| w.abort }
+    end
   end
 
   def close
+    @closed = true
     @worker_mutex.synchronize{ @workers.length }.times do
       @input.write DoneProcessing.new()
     end

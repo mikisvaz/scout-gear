@@ -34,14 +34,14 @@ class WorkQueue
 
     def abort
       begin
-        Log.log "Aborting worker #{@pid}"
+        Log.debug "Aborting worker #{@pid}"
         Process.kill "INT", @pid 
       rescue Errno::ECHILD
       end
     end
 
     def join
-      Log.log "Joining worker #{@pid}"
+      Log.debug "Joining worker #{@pid}"
       Process.waitpid @pid
     end
 

@@ -3,7 +3,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 
 require 'scout/log'
 class TestWorkQueue < Test::Unit::TestCase
-  def test_queue_remove_workers
+  def test_a_queue_remove_workers
     num = 10
     reps = 10_000
     q = WorkQueue.new num do |obj|
@@ -19,7 +19,9 @@ class TestWorkQueue < Test::Unit::TestCase
       q.write i
     end
 
-    num.times do q.remove_one_worker end
+    (num - 1).times do q.remove_one_worker end
+
+    Thread.pass until q.workers.length == 1
 
     w = q.add_worker do |obj|
       "HEY"
@@ -80,9 +82,9 @@ class TestWorkQueue < Test::Unit::TestCase
       reps.times do |i|
         q.write i
       end
+      q.close
     end
 
-    Process.wait pid
 
     q.close
     q.join
@@ -91,11 +93,11 @@ class TestWorkQueue < Test::Unit::TestCase
   end
 
   def test_queue_error
-    num = 10
+    num = 100
     reps = 10_000
 
     q = WorkQueue.new num do |obj|
-      raise ScoutException if rand < 1
+      raise ScoutException if rand < 0.1
       [Process.pid.to_s, obj.to_s] * " "
     end
 
@@ -108,13 +110,39 @@ class TestWorkQueue < Test::Unit::TestCase
       reps.times do |i|
         q.write i
       end
+      q.close
     end
 
-    Process.wait pid
+    assert_raise ScoutException do
+      q.join
+      t.join
+    end
+  end
+
+  def test_queue_error_in_input
+    num = 100
+    reps = 10_000
+
+    q = WorkQueue.new num do |obj|
+      [Process.pid.to_s, obj.to_s] * " "
+    end
+
+    res = []
+    q.process do |out|
+      raise ScoutException if rand < 0.01
+      res << out
+    end
+
+    pid = Process.fork do
+      reps.times do |i|
+        q.write i
+      end
+      q.close
+    end
 
     assert_raise ScoutException do
-      q.close
       q.join
+      t.join
     end
   end
 end
