@@ -21,7 +21,7 @@ class WorkQueue
               raise obj 
             end
             res = block.call obj
-            output.write res unless output.nil? || ignore_ouput || res == :ignore 
+            output.write res unless ignore_ouput || res == :ignore 
           end
         rescue DoneProcessing
         rescue Interrupt

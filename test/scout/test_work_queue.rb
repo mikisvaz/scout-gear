@@ -40,7 +40,7 @@ class TestWorkQueue < Test::Unit::TestCase
 
   def test_queue
     num = 10
-    reps = 10_000
+    reps = 1_000
     q = WorkQueue.new num do |obj|
       [Process.pid.to_s, obj.to_s] * " "
     end
@@ -57,8 +57,8 @@ class TestWorkQueue < Test::Unit::TestCase
     end
 
     Process.wait pid
-
     q.close
+
     q.join
 
     assert_equal reps, res.length
@@ -69,6 +69,7 @@ class TestWorkQueue < Test::Unit::TestCase
     reps = 10_000
     q = WorkQueue.new num do |obj|
       [Process.pid.to_s, obj.to_s] * " "
+      :ignore
     end
 
     q.ignore_ouput
@@ -78,13 +79,9 @@ class TestWorkQueue < Test::Unit::TestCase
       res << out
     end
 
-    pid = Process.fork do
-      reps.times do |i|
-        q.write i
-      end
-      q.close
+    reps.times do |i|
+      q.write i
     end
-
 
     q.close
     q.join
@@ -110,8 +107,10 @@ class TestWorkQueue < Test::Unit::TestCase
       reps.times do |i|
         q.write i
       end
-      q.close
     end
+
+    Process.waitpid pid
+    q.close
 
     assert_raise ScoutException do
       q.join

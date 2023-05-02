@@ -36,9 +36,12 @@ class WorkQueue
 
   def remove_worker(pid)
     @worker_mutex.synchronize do
-      Log.debug "Removed worker #{pid}"
-      @workers.delete_if{|w| w.pid == pid }
-      @removed_workers << pid
+      worker = @workers.index{|w| w.pid == pid}
+      if worker
+        Log.debug "Removed worker #{pid}"
+        @workers.delete_at(worker)
+        @removed_workers << pid
+      end
     end
   end
 

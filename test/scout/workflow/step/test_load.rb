@@ -5,29 +5,27 @@ require 'scout/workflow/step'
 
 class TestStepLoad < Test::Unit::TestCase
   def test_dependency
-    sss 0 do
-      tmpfile = tmpdir.test_step
-      step1 = Step.new tmpfile.step1, ["12"] do |s|
-        s.length
-      end
-
-      step2 = Step.new tmpfile.step2 do 
-        step1 = dependencies.first
-        step1.inputs.first + " has " + step1.load.to_s + " characters"
-      end
-
-      step2.dependencies = [step1]
-
-      step2.recursive_clean
-      step2.run
-
-      new_step2 = Step.load(step2.path)
-
-      assert_equal "12 has 2 characters", new_step2.load
-      assert_equal "12 has 2 characters", new_step2.run
-      assert_equal 2, new_step2.dependencies.first.run
-      assert_equal "12", new_step2.dependencies.first.inputs.first
+    tmpfile = tmpdir.test_step
+    step1 = Step.new tmpfile.step1, ["12"] do |s|
+      s.length
     end
+
+    step2 = Step.new tmpfile.step2 do 
+      step1 = dependencies.first
+      step1.inputs.first + " has " + step1.load.to_s + " characters"
+    end
+
+    step2.dependencies = [step1]
+
+    step2.recursive_clean
+    step2.run
+
+    new_step2 = Step.load(step2.path)
+
+    assert_equal "12 has 2 characters", new_step2.load
+    assert_equal "12 has 2 characters", new_step2.run
+    assert_equal 2, new_step2.dependencies.first.run
+    assert_equal "12", new_step2.dependencies.first.inputs.first
   end
 
   def test_relocate

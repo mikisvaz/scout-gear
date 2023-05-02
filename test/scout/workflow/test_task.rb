@@ -37,7 +37,6 @@ class TestTask < Test::Unit::TestCase
   end
 
   def test_override_inputs_block
-    Log.severity = 0
     wf = Workflow.annonymous_workflow "TaskInputs" do
       input :input1, :string
       task :step1 => :string do |i| i end
@@ -55,7 +54,6 @@ class TestTask < Test::Unit::TestCase
   end
 
   def test_task_override_dep
-    Log.severity = 0
     wf = Workflow.annonymous_workflow "TaskInputs" do
       input :input1, :integer
       task :step1 => :integer do |i| i end
@@ -171,7 +169,6 @@ class TestTask < Test::Unit::TestCase
       end
     end
 
-    Log.severity = 0
     job = wf.job(:my_sum, :vv1 => 2, :vv2 => 3)
     assert_equal 5, job.run
   end

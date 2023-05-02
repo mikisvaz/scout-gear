@@ -3,7 +3,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 
 class TestWorkflowStep < Test::Unit::TestCase
 
-  def _test_step
+  def test_step
     TmpFile.with_file do |tmpfile|
       step = Step.new tmpfile, ["12"] do |s|
         s.length
@@ -14,7 +14,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     end
   end
 
-  def _test_dependency
+  def test_dependency
     tmpfile = tmpdir.test_step
     step1 = Step.new tmpfile.step1, ["12"] do |s|
       s.length
@@ -32,7 +32,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     assert_equal "12 has 2 characters", step2.run
   end
 
-  def _test_streaming
+  def test_streaming
     tmpfile = tmpdir.test_step
 
     times = 10_000
@@ -90,7 +90,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     assert_equal times/2, step2.path.read.split("\n").length
   end
 
-  def _test_streaming_duplicate
+  def test_streaming_duplicate
     tmpfile = tmpdir.test_step
 
     times = 10_000
@@ -150,7 +150,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     tmpfile = tmpdir.test_step
 
     times = 10_000
-    sleep = 1 / times
+    sleep = 0.1 / times
 
     step1 = Step.new tmpfile.step1, [times, sleep] do |times,sleep|
       Open.open_pipe do |sin|
