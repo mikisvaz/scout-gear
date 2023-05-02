@@ -20,8 +20,8 @@ module Log
     attr_accessor :max, :ticks, :frequency, :depth, :desc, :file, :bytes, :process, :callback, :severity
 
     def initialize(max = nil, options = {})
-      depth, desc, file, bytes, frequency, process, callback = 
-        IndiferentHash.process_options options, :depth, :desc, :file, :bytes, :frequency, :process, :callback,
+      depth, desc, file, bytes, frequency, process, callback, severity = 
+        IndiferentHash.process_options options, :depth, :desc, :file, :bytes, :frequency, :process, :callback, :severity,
         :depth => 0, :frequency => 2
 
       max = nil if TrueClass === max
@@ -29,6 +29,7 @@ module Log
       @max = max
       @ticks = 0
       @frequency = frequency
+      @severity = severity
       @last_time = nil
       @last_count = nil
       @last_percent = nil

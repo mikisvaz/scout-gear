@@ -2,6 +2,7 @@ require 'yaml'
 module Log
   class ProgressBar
     def print(io, str)
+      return if self.severity && self.severity < Log.severity
       return if Log.no_bar
       STDERR.print str
       Log.logfile.puts str unless Log.logfile.nil?

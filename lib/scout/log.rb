@@ -186,11 +186,12 @@ module Log
 
   def self.exception(e)
     stack = caller
+    backtrace = e.backtrace || []
     if ENV["RBBT_ORIGINAL_STACK"] == 'true'
       error([e.class.to_s, e.message].compact * ": " )
-      error("BACKTRACE [#{Process.pid}]: " << Log.last_caller(stack) << "\n" + color_stack(e.backtrace)*"\n")
+      error("BACKTRACE [#{Process.pid}]: " << Log.last_caller(stack) << "\n" + color_stack(backtrace)*"\n")
     else
-      error("BACKTRACE [#{Process.pid}]: " << Log.last_caller(stack) << "\n" + color_stack(e.backtrace.reverse)*"\n")
+      error("BACKTRACE [#{Process.pid}]: " << Log.last_caller(stack) << "\n" + color_stack(backtrace.reverse)*"\n")
       error([e.class.to_s, e.message].compact * ": " )
     end
   end
