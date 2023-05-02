@@ -96,21 +96,8 @@ module Persist
       Open.write(file, save_drivers[type].call(content))
       return
     end
-
-    if IO === content || StringIO === content
-      main, copy = Open.tee_stream_thread content
-      t = Thread.new do
-        Thread.current.report_on_exception = false
-        Thread.current["name"] = "file saver: " + file
-        Open.sensible_write(file, main)
-      end
-      Thread.pass until t["name"]
-      ConcurrentStream.setup copy, :threads => t, :filename => file, :autojoin => true
-    else
-      serialized = serialize(content, type)
-      Open.sensible_write(file, serialized, :force => true)
-      content
-    end
+    serialized = serialize(content, type)
+    Open.sensible_write(file, serialized, :force => true)
   end
 
   def self.load(file, type = :serializer)

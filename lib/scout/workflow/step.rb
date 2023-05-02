@@ -5,13 +5,14 @@ require_relative 'step/load'
 
 class Step 
 
-  attr_accessor :path, :inputs, :dependencies, :task
+  attr_accessor :path, :inputs, :dependencies, :task, :tee_copies
   def initialize(path, inputs = nil, dependencies = nil, &task) 
     @path = path
     @inputs = inputs
     @dependencies = dependencies
     @task = task
     @mutex = Mutex.new
+    @tee_copies = 1
   end
 
   def synchronize(&block)
@@ -58,10 +59,34 @@ class Step
   end
 
   attr_reader :result
+  def prepare_dependencies
+    inverse_dep = {}
+    dependencies.each{|dep| 
+      next if dep.done?
+      if dep.dependencies
+        dep.dependencies.each do |d|
+          inverse_dep[d] ||= []
+          inverse_dep[d] << dep 
+        end
+      end
+      if inputs
+        inputs.each do |d|
+          next unless Step === d
+          inverse_dep[d] ||= []
+          inverse_dep[d] << dep 
+        end
+      end
+    }
+    inverse_dep.each do |dep,list|
+      dep.tee_copies = list.length
+    end
+  end
+
   def run
     return @result || self.load if done?
+    prepare_dependencies
     dependencies.each{|dep| dep.run unless dep.running? || dep.done? }
-    @result = Persist.persist(name, type, :path => path) do
+    @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
       begin
         merge_info :status => :start, :start => Time.now,
           :pid => Process.pid, :pid_hostname => ENV["HOSTNAME"], 
@@ -106,14 +131,18 @@ class Step
 
   def get_stream
     synchronize do
-      if streaming? && ! @take_stream
-        Log.debug "Taking stream from result #{Log.color :path, self.path}"
-        @take_stream, @result = @result, nil
+      if streaming? && ! @result.nil?
+        Log.debug "Taking result #{Log.fingerprint @result}"
+        @take_stream, @result = @result, @result.next
         @take_stream
       elsif done?
         Open.open(self.path)
       else
-        exec
+        if running?
+          nil
+        else
+          exec
+        end
       end
     end
   end

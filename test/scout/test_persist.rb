@@ -56,6 +56,21 @@ class TestPersist < Test::Unit::TestCase
     end
   end
 
+  def test_stream_multiple
+    TmpFile.with_file do |tmpfile|
+      Path.setup(tmpfile)
+      obj = "TEST\nTEST"
+      stream = StringIO.new obj
+      stream.rewind
+      res1 = Persist.persist(tmpfile, :string, :dir => tmpdir.persist, :tee_copies => 2){ stream }
+      res2 = res1.next
+      assert IO === res1
+      assert_equal obj, res1.read
+      assert_equal obj, res2.read
+      assert_equal obj, Persist.persist(tmpfile, :string, :dir => tmpdir.persist){ raise ScoutException }
+    end
+  end
+
   def test_update_time
     TmpFile.with_file do |dir|
       Path.setup(dir)

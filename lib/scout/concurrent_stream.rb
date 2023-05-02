@@ -9,11 +9,11 @@ module AbortedStream
 end
 
 module ConcurrentStream
-  attr_accessor :threads, :pids, :callback, :abort_callback, :filename, :joined, :aborted, :autojoin, :lockfile, :no_fail, :pair, :thread, :stream_exception, :log, :std_err
+  attr_accessor :threads, :pids, :callback, :abort_callback, :filename, :joined, :aborted, :autojoin, :lockfile, :no_fail, :pair, :thread, :stream_exception, :log, :std_err, :next
 
   def self.setup(stream, options = {}, &block)
     
-    threads, pids, callback, abort_callback, filename, autojoin, lockfile, no_fail, pair = IndiferentHash.process_options options, :threads, :pids, :callback, :abort_callback, :filename, :autojoin, :lockfile, :no_fail, :pair
+    threads, pids, callback, abort_callback, filename, autojoin, lockfile, no_fail, pair, next_stream = IndiferentHash.process_options options, :threads, :pids, :callback, :abort_callback, :filename, :autojoin, :lockfile, :no_fail, :pair, :next
     stream.extend ConcurrentStream unless ConcurrentStream === stream
 
     stream.threads ||= []
@@ -24,6 +24,7 @@ module ConcurrentStream
     stream.no_fail = no_fail unless no_fail.nil?
     stream.std_err = ""
 
+    stream.next = next_stream unless next_stream.nil?
     stream.pair = pair unless pair.nil?
 
     callback = block if block_given?

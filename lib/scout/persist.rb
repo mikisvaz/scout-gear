@@ -38,7 +38,24 @@ module Persist
       res = yield
       begin
         Open.rm(file)
-        res = Persist.save(res, file, type)
+
+        if IO === res || StringIO === res
+          tee_copies = options[:tee_copies] || 1
+          main, *copies = Open.tee_stream_thread_multiple res, tee_copies + 1
+          t = Thread.new do
+            Thread.current.report_on_exception = false
+            Thread.current["name"] = "file saver: " + file
+            Open.sensible_write(file, main)
+          end
+          Thread.pass until t["name"]
+          copies.each_with_index do |copy,i|
+            next_stream = copies[i+1] if copies.length > i
+            ConcurrentStream.setup copy, :threads => t, :filename => file, :autojoin => true, :next => next_stream
+          end
+          res = copies.first
+        else
+          Persist.save(res, file, type)
+        end
       rescue
         raise $! unless options[:canfail]
         Log.debug "Could not persist #{type} on #{file}"

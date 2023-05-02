@@ -99,6 +99,32 @@ class TestOpenStream < Test::Unit::TestCase
     end
   end
 
+  def test_tee_stream_multiple
+    num = 2000
+    sout = Open.open_pipe do |sin|
+      num.times do |i|
+        sin.puts "line #{i} - #{rand(100000).to_s * 100}"
+      end
+    end
+
+    TmpFile.with_file do |tmp|
+      Path.setup tmp
+
+      s1, s2, s3 = Open.tee_stream_thread_multiple sout, 3
+
+      t1 = Open.consume_stream(s1, true, tmp.file1)
+      t2 = Open.consume_stream(s2, true, tmp.file2)
+      t3 = Open.consume_stream(s3, true, tmp.file3)
+      t1.join
+      t2.join
+      t3.join
+      assert_equal num, Open.read(tmp.file1).split("\n").length
+      assert_equal num, Open.read(tmp.file2).split("\n").length
+      assert_equal num, Open.read(tmp.file3).split("\n").length
+    end
+  end
+
+
   def test_tee_stream_source_error
     5.times do |i|
       num = 2000
@@ -137,6 +163,47 @@ class TestOpenStream < Test::Unit::TestCase
     end
   end
 
+  def test_tee_stream_source_error_multiple
+    5.times do |i|
+      num = 2000
+      sout = Open.open_pipe do |sin|
+        num.times do |i|
+          sin.puts "line #{i} - #{rand(100000).to_s * 100}"
+        end
+        raise ScoutException
+      end
+
+      TmpFile.with_file do |tmp|
+        Path.setup tmp
+
+        s1, s2, s3 = Open.tee_stream_thread_multiple sout, 3
+
+        t1 = Open.consume_stream(s1, true, tmp.file1)
+        t2 = Open.consume_stream(s2, true, tmp.file2)
+        t3 = Open.consume_stream(s3, true, tmp.file3)
+        assert_raise ScoutException do
+          begin
+            t1.join
+            t2.join
+            t3.join
+          rescue 
+            raise
+          ensure
+            [t1, t2, t2].each do |t|
+              begin
+                t.join if t.alive?
+              rescue ScoutException
+              end
+            end
+          end
+        end
+        refute Open.exist?(tmp.file1)
+        refute Open.exist?(tmp.file2)
+        refute Open.exist?(tmp.file3)
+      end
+    end
+  end
+
   def test_tee_stream_save_error
     Log.with_severity 6 do
       50.times do |i|
@@ -170,6 +237,49 @@ class TestOpenStream < Test::Unit::TestCase
             end
           end
           refute Open.exist?(tmp.file)
+        end
+      end
+    end
+  end
+
+  def test_tee_stream_save_error_multiple
+    Log.with_severity 6 do
+      50.times do |i|
+        TmpFile.with_file do |tmp|
+          Path.setup tmp
+          assert_raise ScoutException do
+            num = 2000
+            begin
+              sout = Open.open_pipe do |sin|
+                num.times do |i|
+                  sin.puts "line #{i} - #{rand(100000).to_s * 100}"
+                end
+              end
+
+              begin
+                s1, s2, s3 = Open.tee_stream_thread_multiple sout, 3
+
+                s2.abort ScoutException.new
+                t1 = Open.consume_stream(s1, true, tmp.file1)
+                t2 = Open.consume_stream(s2, true, tmp.file2)
+
+                t1.join
+                t2.join
+              ensure
+                s1.close if s1.respond_to?(:close) && ! s1.closed?
+                s1.join if s1.respond_to?(:join) && ! s1.joined?
+                s2.close if s2.respond_to?(:close) && ! s2.closed?
+                s2.join if s2.respond_to?(:join) && ! s2.joined?
+                s3.close if s3.respond_to?(:close) && ! s3.closed?
+                s3.join if s3.respond_to?(:join) && ! s3.joined?
+              end
+            ensure
+              sout.close if sout.respond_to?(:close) && ! sout.closed?
+              sout.join if sout.respond_to?(:join) && ! sout.joined?
+            end
+          end
+          refute Open.exist?(tmp.file1)
+          refute Open.exist?(tmp.file2)
         end
       end
     end
