@@ -34,7 +34,6 @@ module Task
         str.puts Log.color :yellow, dep + ":"
         str.puts
         str.puts SOPT.input_array_doc(inputs)
-        str.puts
       end
 
       #task_inputs = dep_inputs deps, workflow
@@ -72,6 +71,7 @@ module Task
       str.puts
     end
 
+    str.puts
     str.puts Log.color(:magenta, "Returns: ") << Log.color(:blue, type.to_s) << "\n"
     str.puts
 

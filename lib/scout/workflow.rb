@@ -24,17 +24,25 @@ module Workflow
     base.libdir = Path.setup(libdir).tap{|p| p.resource = base}
   end
 
-  def self.require_workflow(workflow)
-    workflow = Path.setup('workflows')[workflow]["workflow.rb"] unless Open.exists?(workflow)
+  def self.require_workflow(workflow_name)
+    workflow = workflow_name 
+    workflow = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow)
+    workflow = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
+    workflow = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
     if Open.exists?(workflow)
       workflow = workflow.find if Path === workflow
+      $LOAD_PATH.unshift(File.join(File.dirname(workflow), 'lib'))
       load workflow
+    else
+      raise "Workflow #{workflow_name} not found"
     end
     workflows.last
   end
 
   def job(name, *args)
     task = tasks[name]
-    task.job(*args)
+    step = task.job(*args)
+    step.extend step_module
+    step
   end
 end

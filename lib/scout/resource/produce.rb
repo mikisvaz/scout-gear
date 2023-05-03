@@ -126,97 +126,10 @@ module Resource
             when :rake
               run_rake(path, content, rake_dir)
             when :install
-              Log.debug "Installing software: #{path}"
-
-              $set_software_env = false unless File.exist? path
-              
-              software_dir = path.resource.root.software.find :user
-              helper_file = File.expand_path(Rbbt.share.install.software.lib.install_helpers.find(:lib, caller_lib_dir(__FILE__)))
-              #helper_file = File.expand_path(Rbbt.share.install.software.lib.install_helpers.find)
-
-              preamble = <<-EOF
-#!/bin/bash
-
-RBBT_SOFTWARE_DIR="#{software_dir}"
-
-INSTALL_HELPER_FILE="#{helper_file}"
-source "$INSTALL_HELPER_FILE"
-              EOF
-
-              content = content.call if Proc === content
-
-              content = if content =~ /git:|\.git$/
-                          {:git => content}
-                        else
-                          {:src => content}
-                        end if String === content and Open.remote?(content)
-
-              script_text = case content
-                            when nil
-                              raise "No way to install #{path}"
-                            when Path
-                              Open.read(content) 
-                            when String
-                              if Path.is_filename?(content) and Open.exists?(content)
-                                Open.read(content) 
-                              else
-                                content
-                              end
-                            when Hash
-                              name = content[:name] || File.basename(path)
-                              git = content[:git]
-                              src = content[:src]
-                              url = content[:url]
-                              jar = content[:jar]
-                              extra = content[:extra]
-                              commands = content[:commands]
-                              if git
-                                <<-EOF
-
-name='#{name}'
-url='#{git}'
-
-install_git "$name" "$url" #{extra}
-
-#{commands}
-                                EOF
-                              elsif src
-                                <<-EOF
-
-name='#{name}'
-url='#{src}'
-
-install_src "$name" "$url" #{extra}
-
-#{commands}
-                                EOF
-                              elsif jar
-                                <<-EOF
-
-name='#{name}'
-url='#{jar}'
-
-install_jar "$name" "$url" #{extra}
-
-#{commands}
-                                EOF
-                              else
-                                <<-EOF
-
-name='#{name}'
-url='#{url}'
-
-#{commands}
-                                EOF
-                              end
-                            end
-
-              script = preamble + "\n" + script_text
-              Log.debug "Installing software with script:\n" << script
-              CMD.cmd_log('bash', :in => script)
-
-              set_software_env(software_dir) unless $set_software_env
-              $set_software_env = true
+              software_dir = self.root.software
+              name = File.basename(path)
+              Resource.install(content, name, software_dir)
+              set_software_env(software_dir)
             else
               raise "Could not produce #{ resource }. (#{ type }, #{ content })"
             end

@@ -112,7 +112,6 @@ def commands(prev)
 end
 
 def scout_usage(prev = nil)
-  puts
   puts SOPT.doc
 
   if prev

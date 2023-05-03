@@ -28,6 +28,10 @@ require 'scout/workflow'
 
 class Test::Unit::TestCase
 
+  def assert_equal_path(path1, path2)
+    assert_equal File.expand_path(path1), File.expand_path(path2)
+  end
+
   def tmpdir
     @tmpdir = Path.setup('tmp/test_tmpdir').find
   end

@@ -50,7 +50,7 @@ if options[:print_filepath]
   path = path.find if Path === path
   puts path
 else
-  if ! Open.consume_stream(job.stream, false, STDOUT, false).end_with? "\n"
+  if ! Open.consume_stream(job.get_stream, false, STDOUT, false).end_with? "\n"
     puts
   end
 end

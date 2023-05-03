@@ -136,15 +136,38 @@ module Path
     found
   end
 
+  def self.exists_file_or_alternatives(file)
+    return file if File.exist?(file) or File.directory?(file)
+    %w(gz bgz zip).each do |extension|
+      alt_file = file + '.' + extension
+      return alt_file if File.exist?(alt_file) or File.directory?(alt_file)
+    end
+    nil
+  end
+
   def find(where = nil)
-    return self if located?
+    if located?
+      if File.exist?(self)
+        return self if located?
+      else
+        found = Path.exists_file_or_alternatives(self)
+        if found
+          return self.annotate(found)
+        else
+          return self if located?
+        end
+      end
+    end
+
     return find_all if where == 'all' || where == :all
+
     return follow(where) if where
 
     map_order.each do |map_name|
       found = follow(map_name, false)
 
-      return annotate_found_where(found, map_name) if File.exist?(found) || File.directory?(found)
+      found = Path.exists_file_or_alternatives(found)
+      return annotate_found_where(found, map_name) if found
     end
 
     return follow(:default)

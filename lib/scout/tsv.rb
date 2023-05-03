@@ -1,5 +1,7 @@
 require_relative 'meta_extension'
 require_relative 'tsv/parser'
+require_relative 'tsv/dumper'
+require_relative 'tsv/persist'
 
 module TSV
   extend MetaExtension

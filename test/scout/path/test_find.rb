@@ -29,7 +29,7 @@ class TestPathFind < Test::Unit::TestCase
   def test_current
     path = Path.setup("share/data/some_file", 'scout')
     TmpFile.in_dir do |tmpdir|
-      assert_equal File.join(tmpdir,"share/data/some_file"),  path.find(:current)
+      assert_equal_path File.join(tmpdir,"share/data/some_file"),  path.find(:current)
     end
   end
 
@@ -38,7 +38,7 @@ class TestPathFind < Test::Unit::TestCase
     TmpFile.in_dir do |tmpdir|
       FileUtils.mkdir_p(File.dirname(File.join(tmpdir, path)))
       File.write(File.join(tmpdir, path), 'string')
-      assert_equal File.join(tmpdir,"share/data/some_file"),  path.find
+      assert_equal_path File.join(tmpdir,"share/data/some_file"),  path.find
       assert_equal :current,  path.find.where
       assert_equal "share/data/some_file",  path.find.original
     end
@@ -67,7 +67,7 @@ class TestPathFind < Test::Unit::TestCase
 
     p = Path.setup("/tmp/foo/bar")
     assert p.located?
-    assert_equal p, p.find
+    assert_equal_path p, p.find
     
   end
 
@@ -75,10 +75,10 @@ class TestPathFind < Test::Unit::TestCase
     path = Path.setup("share/data/some_file", 'scout')
     TmpFile.with_file do |tmpdir|
       path.path_maps[:custom] = [tmpdir, '{PATH}'] * "/"
-      assert_equal File.join(tmpdir,"share/data/some_file"),  path.find(:custom)
+      assert_equal_path File.join(tmpdir,"share/data/some_file"),  path.find(:custom)
 
       path.path_maps[:custom] = [tmpdir, '{TOPLEVEL}/{PKGDIR}/{SUBPATH}'] * "/"
-      assert_equal File.join(tmpdir,"share/scout/data/some_file"),  path.find(:custom)
+      assert_equal_path File.join(tmpdir,"share/scout/data/some_file"),  path.find(:custom)
     end
   end
 
@@ -87,7 +87,7 @@ class TestPathFind < Test::Unit::TestCase
     TmpFile.with_file do |tmpdir|
       path.pkgdir = 'scout_alt'
       path.path_maps[:custom] = [tmpdir, '{TOPLEVEL}/{PKGDIR}/{SUBPATH}'] * "/"
-      assert_equal File.join(tmpdir,"share/scout_alt/data/some_file"),  path.find(:custom)
+      assert_equal_path File.join(tmpdir,"share/scout_alt/data/some_file"),  path.find(:custom)
     end
   end
 
@@ -98,6 +98,13 @@ class TestPathFind < Test::Unit::TestCase
     assert_equal "/some_dir/scout_commands/find",  Path.follow(path, '/some_dir/{PATH/bin\/scout/scout_commands}')
   end
 
-
+  def test_gz
+    TmpFile.with_file do |tmpdir|
+      Path.setup(tmpdir)
+      Open.write(tmpdir.somefile + '.gz', "FOO")
+      assert_equal_path tmpdir.somefile + '.gz', tmpdir.somefile.find
+      assert Open.exist?(tmpdir.somefile)
+    end
+  end
 end
 

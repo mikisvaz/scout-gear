@@ -18,6 +18,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  lib=lib {
   scout-gear.rb
   workflow-scout.rb
+  rbbt-scout.rb
   scout.rb
   scout=scout{
    meta_extension.rb
@@ -30,6 +31,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     digest.rb
     filesystem.rb
     monitor.rb
+    system.rb
    }
    indiferent_hash.rb
    indiferent_hash=indiferent_hash{
@@ -77,6 +79,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     produce=produce{
      rake.rb
     }
+    software.rb
     scout.rb
     util.rb
     path.rb
@@ -112,6 +115,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    tsv.rb
    tsv=tsv{
     parser.rb
+    dumper.rb
+    persist.rb
    }
   }
  }
@@ -126,6 +131,13 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    test_tmpfile.rb
   }
  }
+ share=share{
+  software=software{
+   install_helpers
+  }
+ }
+
+
 
  modules=modules{
   rbbt-util=rbbt-util filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.txt *.conf LICENSE" {
