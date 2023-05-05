@@ -93,11 +93,15 @@ module Persist
 
     Log.debug "Save #{Log.fingerprint type} on #{file}"
     if save_drivers[type]
-      Open.write(file, save_drivers[type].call(content))
-      return
+      if save_drivers[type].arity == 1
+        return Open.sensible_write(file, save_drivers[type].call(content))
+      else
+        return save_drivers[type].call(file, content)
+      end
     end
     serialized = serialize(content, type)
     Open.sensible_write(file, serialized, :force => true)
+    return nil
   end
 
   def self.load(file, type = :serializer)

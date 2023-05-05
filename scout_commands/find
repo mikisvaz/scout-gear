@@ -69,7 +69,7 @@ end if resource
 
 path = (resource || Scout)[path.dup]
 
-if where.nil? || where == 'all' || path.search_paths.include?(where.to_sym)
+if where.nil? || where == 'all' || path.path_maps.include?(where.to_sym)
   location = path.find(where)
 
   if Array === location

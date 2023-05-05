@@ -35,6 +35,7 @@ module Persist
     if Open.exist?(file) && ! update
       Persist.load(file, type)
     else
+      return yield(file) if block.arity == 1
       res = yield
       begin
         Open.rm(file)
@@ -54,7 +55,8 @@ module Persist
           end
           res = copies.first
         else
-          Persist.save(res, file, type)
+          pres = Persist.save(res, file, type)
+          res = pres unless pres.nil?
         end
       rescue
         raise $! unless options[:canfail]

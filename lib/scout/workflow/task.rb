@@ -4,7 +4,7 @@ require_relative 'task/inputs'
 
 module Task
   extend MetaExtension
-  extension_attr :name, :type, :inputs, :deps, :directory, :description, :returns
+  extension_attr :name, :type, :inputs, :deps, :directory, :description, :returns, :extension
 
   DEFAULT_NAME = "Default"
 

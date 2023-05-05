@@ -43,7 +43,7 @@ class TestQueueWorker < Test::Unit::TestCase
             current = nil
             pid_list.each do |pid|
               if pid != current
-                raise "Out of order" if seen.include? pid
+                raise "Out of order #{Log.fingerprint seen} #{ pid }" if seen.include? pid
               end
               current = pid
               seen << pid

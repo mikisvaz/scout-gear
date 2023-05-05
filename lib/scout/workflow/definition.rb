@@ -94,6 +94,10 @@ module Workflow
     annotate_next_task_single(:returns, type)
   end
 
+  def extension(extension)
+    annotate_next_task_single(:extension, extension)
+  end
+
   def task(name_and_type, &block)
     name, type = name_and_type.collect.first
     @tasks ||= IndiferentHash.setup({})

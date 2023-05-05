@@ -138,7 +138,8 @@ module TSV
       option = option.to_sym
       kwargs[option] = value unless kwargs.include?(option)
     end
+    type = kwargs[:type] ||= :double
     data = parse_stream(stream, first_line: first_line, **kwargs)
-    TSV.setup data, :key_field => key_field, :fields => fields
+    TSV.setup data, :key_field => key_field, :fields => fields, :type => type
   end
 end

@@ -117,6 +117,10 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     parser.rb
     dumper.rb
     persist.rb
+    persist=persist{
+     adapter.rb
+     tokyocabinet.rb
+    }
    }
   }
  }
