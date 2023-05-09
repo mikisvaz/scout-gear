@@ -9,11 +9,11 @@ module AbortedStream
 end
 
 module ConcurrentStream
-  attr_accessor :threads, :pids, :callback, :abort_callback, :filename, :joined, :aborted, :autojoin, :lockfile, :no_fail, :pair, :thread, :stream_exception, :log, :std_err, :next
+  attr_accessor :threads, :pids, :callback, :abort_callback, :filename, :joined, :aborted, :autojoin, :lock, :no_fail, :pair, :thread, :stream_exception, :log, :std_err, :next
 
   def self.setup(stream, options = {}, &block)
     
-    threads, pids, callback, abort_callback, filename, autojoin, lockfile, no_fail, pair, next_stream = IndiferentHash.process_options options, :threads, :pids, :callback, :abort_callback, :filename, :autojoin, :lockfile, :no_fail, :pair, :next
+    threads, pids, callback, abort_callback, filename, autojoin, lock, no_fail, pair, next_stream = IndiferentHash.process_options options, :threads, :pids, :callback, :abort_callback, :filename, :autojoin, :lock, :no_fail, :pair, :next
     stream.extend ConcurrentStream unless ConcurrentStream === stream
 
     stream.threads ||= []
@@ -54,7 +54,7 @@ module ConcurrentStream
 
     stream.filename = filename.nil? ? stream.inspect.split(":").last[0..-2] : filename
 
-    stream.lockfile = lockfile unless lockfile.nil?
+    stream.lock = lock unless lock.nil?
 
     stream.aborted = false
 
@@ -62,7 +62,7 @@ module ConcurrentStream
   end
 
   def annotate(stream)
-    ConcurrentStream.setup(stream, :threads => threads, :pids => pids, :callback => callback, :abort_callback => abort_callback, :filename => filename, :autojoin => autojoin, :lockfile => lockfile)
+    ConcurrentStream.setup(stream, :threads => threads, :pids => pids, :callback => callback, :abort_callback => abort_callback, :filename => filename, :autojoin => autojoin, :lock => lock)
     stream
   end
 
@@ -140,7 +140,7 @@ module ConcurrentStream
       close unless closed?
     ensure
       @joined = true
-      lockfile.unlock if lockfile and lockfile.locked?
+      lock.unlock if lock and lock.locked?
       raise stream_exception if stream_exception
     end
   end
@@ -205,8 +205,8 @@ module ConcurrentStream
     ensure
       close unless closed?
 
-      if lockfile and lockfile.locked?
-        lockfile.unlock 
+      if lock and lock.locked?
+        lock.unlock 
       end
     end
   end

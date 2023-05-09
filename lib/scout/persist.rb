@@ -29,41 +29,47 @@ module Persist
     return yield if FalseClass === persist_options[:persist]
     file = persist_options[:path] || options[:path] || persistence_path(name, options)
 
+    lockfile = persist_options[:lockfile] || options[:lockfile] || Persist.persistence_path(file + '.persist', {:dir => Persist.lock_dir})
+
     update = options[:update] || persist_options[:update]
     update = Open.mtime(update) if Path === update
     update = Open.mtime(file) >= update ? false : true if Time === update
 
-    if Open.exist?(file) && ! update
-      Persist.load(file, type)
-    else
-      return yield(file) if block.arity == 1
-      res = yield
-      begin
-        Open.rm(file)
+    Open.lock lockfile do |lock|
+      if Open.exist?(file) && ! update
+        Persist.load(file, type)
+      else
+        return yield(file) if block.arity == 1
+        res = yield
+        begin
+          Open.rm(file)
 
-        if IO === res || StringIO === res
-          tee_copies = options[:tee_copies] || 1
-          main, *copies = Open.tee_stream_thread_multiple res, tee_copies + 1
-          t = Thread.new do
-            Thread.current.report_on_exception = false
-            Thread.current["name"] = "file saver: " + file
-            Open.sensible_write(file, main)
+          if IO === res || StringIO === res
+            tee_copies = options[:tee_copies] || 1
+            main, *copies = Open.tee_stream_thread_multiple res, tee_copies + 1
+            main.lock = lock
+            t = Thread.new do
+              Thread.current.report_on_exception = false
+              Thread.current["name"] = "file saver: " + file
+              Open.sensible_write(file, main)
+            end
+            Thread.pass until t["name"]
+            copies.each_with_index do |copy,i|
+              next_stream = copies[i+1] if copies.length > i
+              ConcurrentStream.setup copy, :threads => t, :filename => file, :autojoin => true, :next => next_stream
+            end
+            res = copies.first
+            raise KeepLocked.new(res)
+          else
+            pres = Persist.save(res, file, type)
+            res = pres unless pres.nil?
           end
-          Thread.pass until t["name"]
-          copies.each_with_index do |copy,i|
-            next_stream = copies[i+1] if copies.length > i
-            ConcurrentStream.setup copy, :threads => t, :filename => file, :autojoin => true, :next => next_stream
-          end
-          res = copies.first
-        else
-          pres = Persist.save(res, file, type)
-          res = pres unless pres.nil?
+        rescue
+          raise $! unless options[:canfail]
+          Log.debug "Could not persist #{type} on #{file}"
         end
-      rescue
-        raise $! unless options[:canfail]
-        Log.debug "Could not persist #{type} on #{file}"
+        res
       end
-      res
     end
   end
 

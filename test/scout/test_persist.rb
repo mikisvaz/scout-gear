@@ -95,6 +95,67 @@ class TestPersist < Test::Unit::TestCase
     end
   end
 
+  def test_concurrent
+    num = 10
+
+    s = 0.01
+    10.times do
+      TmpFile.with_file do |file|
+        output1 = file + '.output1'
+        output2 = file + '.output2'
+        pid1 = Process.fork do
+          Open.purge_pipes
+          sleep rand/10.0
+          io = Persist.persist("test", :string, :path => file) do
+            Open.open_pipe do |sin|
+              num.times do |i|
+                sin.puts "line-#{i}-#{Process.pid}"
+                sleep s
+              end
+            end
+          end
+          if IO === io
+            Open.consume_stream(io, false)
+          else
+            Open.write(output1, io)
+          end
+        end
+        pid2 = Process.fork do
+          Open.purge_pipes
+          sleep rand/10.0
+          io = Persist.persist("test", :string, :path => file) do
+            Open.open_pipe do |sin|
+              num.times do |i|
+                sin.puts "line-#{i}-#{Process.pid}"
+                sleep s
+              end
+            end
+          end
+          if IO === io
+            Open.consume_stream(io, false)
+          else
+            Open.write(output2, io)
+          end
+        end
+        Process.wait
+        Process.wait
+
+        assert File.exist?(output1) || File.exist?(output2)
+        [pid1, pid2].zip([output2, output1]).each do |pid, found|
+          next unless File.exist?(found)
+          assert Open.read(found).include? "-#{pid}\n"
+        end
+        [pid1, pid2].zip([output1, output2]).each do |pid, found|
+          next unless File.exist?(found)
+          refute Open.read(found).include? "-#{pid}\n"
+        end
+        Open.rm file
+        Open.rm output1
+        Open.rm output2
+      end
+    end
+  end
+
   def __test_speed
     times = 100_000
     TmpFile.with_file do |tmpfile|
