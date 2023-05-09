@@ -35,7 +35,7 @@ module TSV
         fields_str = "#{header_hash}#{key_field}#{sep}#{fields*sep}"
       end
 
-      if preamble 
+      if preamble && options.values.compact.any?
         preamble_str = "#: " << IndiferentHash.hash2string(options)
       else
         preamble_str = nil
@@ -47,9 +47,13 @@ module TSV
 
     attr_accessor :options
     def initialize(options = {})
-      @sep, @type = IndiferentHash.process_options options, :sep, :type, :sep => "\t", :type => :double
+      @sep, @type = IndiferentHash.process_options options, 
+        :sep, :type, 
+        :sep => "\t", :type => :double
       @options = options
       @sout, @sin = Open.pipe
+      ConcurrentStream.setup(@sin, :pair => @sout)
+      ConcurrentStream.setup(@sout, :pair => @sin)
     end
 
     def init
@@ -63,7 +67,7 @@ module TSV
       when :single
         @sin.puts key + @sep + value
       when :list, :flat
-        @sin.puts key + @sep + value * sep
+        @sin.puts key + @sep + value * @sep
       when :double
         @sin.puts key + @sep + value.collect{|v| v * "|" } * @sep
       end
@@ -71,14 +75,20 @@ module TSV
 
     def close
       @sin.close
+      @sin.join
     end
 
     def stream
       @sout
     end
+
+    def abort(exception=nil)
+      @sin.abort(exception)
+    end
   end
 
   def stream
+    iii self.extension_attr_hash
     dumper = TSV::Dumper.new self.extension_attr_hash
     dumper.init
     Thread.new do 

@@ -12,6 +12,15 @@ class TestTSVParser < Test::Unit::TestCase
     assert_equal (1..10).collect{|v| v.to_s }, values
   end
 
+  def test_parse_line_key
+    line = (0..10).to_a * "\t"
+    key, values = TSV.parse_line(line, key: 2)
+    
+    assert_equal "2", key
+    assert_equal %w(0 1 3 4 5 6 7 8 9 10), values
+  end
+
+
   def test_parse_double
     line = (0..10).collect{|v| v == 0 ? v : [v,v] * "|" } * "\t"
     key, values = TSV.parse_line(line, type: :double, cast: :to_i)
@@ -83,5 +92,82 @@ k a|A b|B
 
     tsv = TSV.parse(header)
     assert_equal 'a', tsv['k'][0][0]
+  end
+
+  def test_parse_fields
+    content =<<-EOF
+#: :sep=" "#:type=:double
+#Key ValueA ValueB
+k a|A b|B
+    EOF
+    content = StringIO.new content
+
+    tsv = TSV.parse(content, fields: %w(ValueB))
+    assert_equal [%w(b B)], tsv['k']
+    assert_equal %w(ValueB), tsv.fields
+
+    content.rewind
+
+    tsv = TSV.parse(content, fields: %w(ValueB ValueA))
+    assert_equal [%w(b B), %w(a A)], tsv['k']
+    assert_equal %w(ValueB ValueA), tsv.fields
+
+    content.rewind
+
+    tsv = TSV.parse(content, fields: %w(ValueB Key))
+    assert_equal [%w(b B), %w(k)], tsv['k']
+  end
+
+  def test_parse_key
+    content =<<-EOF
+#: :sep=" "#:type=:double
+#Key ValueA ValueB
+k a|A b|B
+    EOF
+    content = StringIO.new content
+
+    tsv = TSV.parse(content, key_field: "ValueB")
+    assert_equal %w(b B), tsv.keys
+    assert_equal %w(a A), tsv["B"][1]
+
+    content.rewind
+
+    tsv = TSV.parse(content, key_field: "ValueB", one2one: true, type: :double)
+    assert_equal %w(b B), tsv.keys
+    assert_equal %w(A), tsv["B"][1]
+
+    content.rewind
+
+    tsv = TSV.parse(content, key_field: "ValueB", one2one: true, type: :list)
+    assert_equal %w(b B), tsv.keys
+    assert_equal "a", tsv["b"][1]
+    assert_equal "A", tsv["B"][1]
+    assert_equal "k", tsv["b"][0]
+    assert_equal "k", tsv["B"][0]
+
+    content.rewind
+
+    tsv = TSV.parse(content, key_field: "ValueB", one2one: true, type: :list)
+    assert_equal %w(b B), tsv.keys
+    assert_equal "A", tsv["B"][1]
+  end
+
+  def test_parser_class
+    content =<<-EOF
+Key ValueA ValueB
+k a|A b|B
+    EOF
+    content = StringIO.new content
+
+    parser = TSV::Parser.new content, sep: " ", header_hash: ''
+
+    assert_equal "Key", parser.key_field
+
+    values = []
+    parser.traverse fields: %w(ValueB), type: :double do |k,v|
+      values << [k,v]
+    end
+
+    assert_equal [["k", [%w(b B)]]], values
   end
 end

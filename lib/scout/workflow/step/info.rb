@@ -21,8 +21,7 @@ class Step
 
   def info
     outdated = begin
-                 #@info && Open.exists?(info_file) && @info_load_time && Open.mtime(info_file) > @info_load_time
-                 @info_load_time && mtime = Open.mtime(info_file) && mtime > @info_load_time
+                 @info_load_time && (mtime = Open.mtime(info_file)) && mtime > @info_load_time
                rescue
                  true
                end
@@ -38,6 +37,19 @@ class Step
     info = self.info
     new_info.each do |key,value|
       report_status new_info[:status], new_info[:message] if key == :status
+      if Exception === value
+        begin
+          Marshal.dump(value)
+        rescue TypeError
+          if ScoutException === value
+            new = ScoutException.new value.message
+          else
+            new = Exception.new value.message
+          end
+          new.set_backtrace(value.backtrace)
+          value = new
+        end
+      end
       if info.include?(key)
         case info[key]
         when Array

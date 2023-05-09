@@ -37,6 +37,11 @@ if dev_dir
       $LOAD_PATH.unshift f
     end
   end
+  ['rbbt-*/lib'].each do |pattern|
+    Dir.glob(File.join(File.expand_path(dev_dir), pattern)).each do |f|
+      $LOAD_PATH.unshift f
+    end
+  end
 end
 
 Log.nocolor = true if ARGV.include? "--nocolor"

@@ -2,6 +2,10 @@ require_relative '../path'
 require_relative '../persist'
 require_relative 'step/info'
 require_relative 'step/load'
+require_relative 'step/file'
+require_relative 'step/dependencies'
+require_relative 'step/provenance'
+require_relative 'step/config'
 
 class Step 
 
@@ -54,38 +58,19 @@ class Step
     @task_name ||= @task.name if @task.respond_to?(:name)
   end
 
+  def workflow
+    @task.workflow if @task
+  end
+
   def exec
     @result = self.instance_exec(*inputs, &task)
   end
 
   attr_reader :result
-  def prepare_dependencies
-    inverse_dep = {}
-    dependencies.each{|dep| 
-      next if dep.done?
-      if dep.dependencies
-        dep.dependencies.each do |d|
-          inverse_dep[d] ||= []
-          inverse_dep[d] << dep 
-        end
-      end
-      if inputs
-        inputs.each do |d|
-          next unless Step === d
-          inverse_dep[d] ||= []
-          inverse_dep[d] << dep 
-        end
-      end
-    }
-    inverse_dep.each do |dep,list|
-      dep.tee_copies = list.length
-    end
-  end
-
   def run
     return @result || self.load if done?
     prepare_dependencies
-    dependencies.each{|dep| dep.run unless dep.running? || dep.done? }
+    run_dependencies
     @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
       begin
         merge_info :status => :start, :start => Time.now,
@@ -94,9 +79,9 @@ class Step
           :dependencies => dependencies.collect{|d| d.path }
 
         exec
-      rescue
-        merge_info :status => :error, :exception => $!
-        raise $!
+      rescue Exception => e
+        merge_info :status => :error, :exception => e
+        raise e
       ensure
         if ! (error? || aborted?)
           if streaming?
@@ -132,7 +117,11 @@ class Step
   def get_stream
     synchronize do
       if streaming? && ! @result.nil?
-        Log.debug "Taking result #{Log.fingerprint @result}"
+        if @result.next
+          Log.debug "Taking result #{Log.fingerprint @result} next #{Log.fingerprint @result.next}"
+        else
+          Log.debug "Taking result #{Log.fingerprint @result}"
+        end
         @take_stream, @result = @result, @result.next
         @take_stream
       elsif done?
@@ -148,14 +137,7 @@ class Step
   end
 
   def join
-    stream = synchronize do
-      if streaming?
-        stream, @result = @result, stream
-        stream
-      else
-        nil
-      end
-    end
+    stream = get_stream if streaming?
     Open.consume_stream(stream, false) if stream
   end
 
@@ -177,6 +159,7 @@ class Step
     @info_load_time = nil
     Open.rm path if Open.exist?(path)
     Open.rm info_file if Open.exist?(info_file)
+    Open.rm_rf files_dir if Open.exist?(files_dir)
   end
 
   def recursive_clean
@@ -194,6 +177,6 @@ class Step
   end
 
   def digest_str
-    path
+    path.dup
   end
 end

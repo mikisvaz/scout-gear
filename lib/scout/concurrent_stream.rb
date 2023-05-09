@@ -231,6 +231,9 @@ module ConcurrentStream
   def read(*args)
     begin
       super(*args)
+    rescue
+      raise stream_exception if stream_exception
+      raise $!
     ensure
       begin
         close unless closed?

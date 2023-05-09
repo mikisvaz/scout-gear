@@ -33,6 +33,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     monitor.rb
     system.rb
    }
+   named_array.rb
    indiferent_hash.rb
    indiferent_hash=indiferent_hash{
     case_insensitive.rb
@@ -84,6 +85,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     util.rb
     path.rb
    }
+   config.rb
    persist.rb
    persist=persist{
     serialize.rb
@@ -97,6 +99,10 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     step=step{
      info.rb
      load.rb
+     file.rb
+     config.rb
+     dependencies.rb
+     provenance.rb
     }
     task.rb
     task=task{
@@ -117,10 +123,14 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     parser.rb
     dumper.rb
     persist.rb
+    index.rb
     persist=persist{
      adapter.rb
      tokyocabinet.rb
     }
+    traverse.rb
+    util.rb
+    path.rb
    }
   }
  }
@@ -402,6 +412,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      resource.rb
      resource=resource{
       path.rb
+      path=path{
+       refactor.rb
+      }
       util.rb
       with_key.rb
       rake.rb

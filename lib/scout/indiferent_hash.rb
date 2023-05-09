@@ -58,9 +58,11 @@ module IndiferentHash
   def delete(key)
     case key
     when Symbol, Module
-      super(key) || super(key.to_s)
+      v = super(key) 
+      v.nil? ? super(key.to_s) : v
     when String
-      super(key) || super(key.to_sym)
+      v = super(key)
+      v.nil? ? super(key.to_sym) : v
     else
       super(key)
     end

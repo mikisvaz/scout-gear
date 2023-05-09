@@ -1,4 +1,9 @@
 module Path
+  def no_method_missing
+    class << self
+      undef_method :method_missing
+    end
+  end
 
   def self.is_filename?(string, need_to_exists = true)
     return false if string.nil?
@@ -56,9 +61,7 @@ module Path
     end.flatten.uniq
   end
 
-  def no_method_missing
-    class << self
-      undef_method :method_missing
-    end
+  def set_extension(extension)
+    self.annotate(self + ".#{extension}")
   end
 end

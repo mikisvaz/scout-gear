@@ -27,5 +27,18 @@ a\t1|11\t2|22
     EOF
     assert_equal txt, tsv.to_s
   end
+
+  def test_raise
+    dumper = TSV::Dumper.new :key_field => "Key", :fields => %w(Field1 Field2), :type => :double
+    dumper.init
+    t = Thread.new do
+      dumper.add "a", [["1", "11"], ["2", "22"]]
+      dumper.abort ScoutException
+    end
+
+    assert_raise ScoutException do
+      dumper.stream.read
+    end
+  end
 end
 

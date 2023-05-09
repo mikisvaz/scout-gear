@@ -53,8 +53,6 @@ module Open
         end
         
         into_close = false unless into.respond_to? :close
-        #into.sync = true if IO === into
-        #io.sync = true
 
         begin
           while c = io.readpartial(BLOCK_SIZE)
@@ -77,7 +75,7 @@ module Open
         FileUtils.rm into_path if into_path and File.exist?(into_path)
       rescue Exception
         Log.low "Consume stream Exception reading #{Log.fingerprint io} into #{into_path || into} - #{$!.message}"
-        exception = io.stream_exception || $!
+        exception = (io.respond_to?(:stream_exception) && io.stream_exception) ? io.stream_exception : $!
         io.abort exception if io.respond_to? :abort
         into.close if into.respond_to?(:closed?) && ! into.closed?
         into_path = into if into_path.nil? && String === into
@@ -399,5 +397,39 @@ module Open
     end
     str
   end
+  
+  def self.sort_stream(stream, header_hash = "#", cmd_args = "-u")
+    Open.open_pipe do |sin|
+      line = stream.gets
+      while line =~ /^#{header_hash}/ do
+        sin.puts line
+        line = stream.gets
+      end
+
+      line_stream = Open.open_pipe do |line_stream_in|
+        line_stream_in.puts line
+        begin
+          Open.consume_stream(stream, false, line_stream_in)
+        rescue
+          raise $!
+        end
+      end
+
+      sorted = CMD.cmd("env LC_ALL=C sort #{cmd_args || ""}", :in => line_stream, :pipe => true)
+
+      begin
+        Open.consume_stream(sorted, false, sin)
+      rescue
+        Log.exception $!
+        begin
+          sorted.raise($!) if sorted.respond_to? :raise
+          stream.raise($!) if stream.respond_to? :raise
+        ensure
+          raise $!
+        end
+      end
+    end
+  end
+
 
 end

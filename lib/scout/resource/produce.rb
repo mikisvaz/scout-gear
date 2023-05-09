@@ -39,7 +39,7 @@ module Resource
       else
         ScoutRake.run(rakefile, rake_dir, task)
       end
-    rescue Rake::TaskNotFound
+    rescue ScoutRake::TaskNotFound
       if rake_dir.nil? or rake_dir.empty? or rake_dir == "/" or rake_dir == "./"
         raise $! 
       end
@@ -51,9 +51,9 @@ module Resource
 
   def produce(path, force = false)
     case
-    when @resources.include?(path)
+    when (@resources && @resources.include?(path))
       type, content = @resources[path]
-    when (Path === path && @resources.include?(path.original))
+    when (Path === path && @resources && @resources.include?(path.original))
       type, content = @resources[path.original]
     when has_rake(path)
       type = :rake

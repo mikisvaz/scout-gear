@@ -19,6 +19,16 @@ class TestMetaExtension < Test::Unit::TestCase
     assert_equal :code, str2.code
   end
 
+  def test_marshal
+    str = "String"
+    ExtensionClass.setup(str, :code)
+    assert ExtensionClass === str
+    assert_equal :code, str.code
+
+    str2 = Marshal.load(Marshal.dump(str))
+    assert_equal :code, str2.code
+  end
+
   def test_setup_alternatives
     str = "String"
 

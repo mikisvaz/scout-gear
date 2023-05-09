@@ -20,7 +20,7 @@ row4    a    a    id3
     EOF
 
     tsv = TmpFile.with_file(content) do |filename|
-      TSV.open(filename)
+      TSV.open(filename, :persist => false)
     end
 
     TmpFile.with_file(content2) do |filename|
@@ -29,6 +29,46 @@ row4    a    a    id3
 
     assert_include tsv.keys, 'row4'
     assert_include tsv.keys, 'row1'
+  end
+
+  def test_open_persist
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename, :persist => true)
+    end
+
+    assert tsv.respond_to?(:persistence_class)
+    assert_equal TokyoCabinet::HDB, tsv.persistence_class
+
+    assert_include tsv.keys, 'row1'
+    assert_include tsv.keys, 'row2'
+  end
+
+  def test_open_persist_in_situ
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename, :persist => true)
+    end
+
+    assert tsv.respond_to?(:persistence_class)
+    assert_equal TokyoCabinet::HDB, tsv.persistence_class
+
+    assert_include tsv.keys, 'row1'
+    assert_include tsv.keys, 'row2'
   end
 end
 

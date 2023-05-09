@@ -26,6 +26,7 @@ module Persist
 
   def self.persist(name, type = :serializer, options = {}, &block)
     persist_options = IndiferentHash.pull_keys options, :persist 
+    return yield if FalseClass === persist_options[:persist]
     file = persist_options[:path] || options[:path] || persistence_path(name, options)
 
     update = options[:update] || persist_options[:update]

@@ -29,6 +29,7 @@ module IndiferentHash
 
   def self.pull_keys(hash, prefix)
     new = {}
+    prefix = prefix.to_s
     hash.keys.each do |key|
       if key.to_s =~ /#{ prefix }_(.*)/
         case

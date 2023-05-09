@@ -137,3 +137,4 @@ end
 #
 #
 #
+class ResourceNotFound < ScoutException; end

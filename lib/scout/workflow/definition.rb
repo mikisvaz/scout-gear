@@ -103,7 +103,7 @@ module Workflow
     @tasks ||= IndiferentHash.setup({})
     begin
       @annotate_next_task ||= {}
-      task = Task.setup(block, @annotate_next_task.merge(name: name, type: type, directory: directory[name]))
+      task = Task.setup(block, @annotate_next_task.merge(name: name, type: type, directory: directory[name], workflow: self))
       @tasks[name] = task
     ensure
       @annotate_next_task = {}

@@ -4,7 +4,7 @@ require_relative 'task/inputs'
 
 module Task
   extend MetaExtension
-  extension_attr :name, :type, :inputs, :deps, :directory, :description, :returns, :extension
+  extension_attr :name, :type, :inputs, :deps, :directory, :description, :returns, :extension, :workflow
 
   DEFAULT_NAME = "Default"
 
@@ -54,7 +54,7 @@ module Task
       resolved_inputs = {}
       inputs.each do |k,v|
         if Symbol === v
-          input_dep = dependencies.select{|d| d.task_name == v}.first
+          input_dep = dependencies.select{|d| d.task_name == v }.first
           resolved_inputs[k] = input_dep || inputs[v] || k
         else
           resolved_inputs[k] = v
@@ -150,6 +150,7 @@ module Task
 
     path = directory[id]
 
+    NamedArray.setup(inputs, @inputs.collect{|i| i[0] }) if @inputs
     Step.new path.find, inputs, dependencies, &self
   end
 end

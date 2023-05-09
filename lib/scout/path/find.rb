@@ -9,7 +9,8 @@ module Path
         break unless file =~ /(?:scout|rbbt)\/(?:resource\.rb|workflow\.rb)/ or
           file =~ /(?:scout|rbbt)\/(?:.*\/)?path\.rb/ or
           file =~ /(?:scout|rbbt)\/(?:.*\/)?path\/(?:find|refactor|util)\.rb/ or
-          file =~ /(?:scout|rbbt)\/persist.rb/
+          file =~ /(?:scout|rbbt)\/persist.rb/ or
+          file =~ /modules\/rbbt-util/
       end
       file = file.sub(/\.rb[^\w].*/,'.rb')
     end

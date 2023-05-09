@@ -21,13 +21,15 @@ row2    a    a    id3
 
     assert_equal %w(a aa aaa), tsv["row1"][0]
 
-    tsv = TmpFile.with_file(content) do |filename|
-      Persist.persist(__method__, :HDB) do
-        raise
+    tsv_loaded = assert_nothing_raised do
+      TmpFile.with_file(content) do |filename|
+        Persist.persist(__method__, :HDB) do
+          raise
+        end
       end
     end
 
-    assert_equal %w(a aa aaa), tsv["row1"][0]
+    assert_equal %w(a aa aaa), tsv_loaded["row1"][0]
   end
 
   def test_custom_load
