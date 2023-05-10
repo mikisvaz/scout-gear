@@ -656,12 +656,12 @@ when (defined?(RemoteStep) and RemoteStep)
   end
 when Step
   if res.streaming?
-    io = TSV.get_stream res
+    io = TSV.stream res
     Misc.consume_stream(io, false, out)
     io.join if io.respond_to? :join
   elsif IO === res.result
     begin
-      io = res.get_stream
+      io = res.stream
       Misc.consume_stream(io, false, out)
       io.join if io.respond_to? :join
     rescue Aborted, Interrupt

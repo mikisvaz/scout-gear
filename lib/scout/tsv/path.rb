@@ -1,13 +1,13 @@
 module Path
-  def tsv(...)
+  def tsv(*args, **kwargs, &block)
     found = self.find
     found = self.set_extension('tsv').find unless found.exists?
-    TSV.open(found, ...)
+    TSV.open(found, *args, **kwargs, &block)
   end
 
-  def index(...)
+  def index(*args, **kwargs, &block)
     found = self.find
     found = self.set_extension('tsv').find unless found.exists?
-    TSV.index(found, ...)
+    TSV.index(found, *args, **kwargs, &block)
   end
 end

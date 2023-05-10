@@ -4,7 +4,11 @@ module TSV
     if Array === value
       value.collect{|e| cast_value(e, cast) }
     else
-      value.send(cast)
+      if Proc === cast
+        cast.call value
+      else
+        value.send(cast)
+      end
     end
   end
 
@@ -75,40 +79,41 @@ module TSV
               these_items = items
             end
 
-            these_items = case [source_type, type]
-                          when [:single, :single]
-                            these_items
-                          when [:list, :single]
-                            these_items.first
-                          when [:flat, :single]
-                            these_items.first
-                          when [:double, :single]
-                            these_items.first.first
-                          when [:single, :list]
-                            [these_items]
-                          when [:list, :list]
-                            these_items
-                          when [:flat, :list]
-                            these_items
-                          when [:double, :list]
-                            these_items.collect{|l| l.first }
-                          when [:single, :flat]
-                            [these_items]
-                          when [:list, :flat]
-                            these_items
-                          when [:flat, :flat]
-                            these_items
-                          when [:double, :flat]
-                            these_items.flatten
-                          when [:single, :double]
-                            [[these_items]]
-                          when [:list, :double]
-                            these_items.collect{|l| [l] }
-                          when [:flat, :double]
-                            [these_items]
-                          when [:double, :double]
-                            these_items
-                          end
+            these_items = 
+              case [source_type, type]
+              when [:single, :single]
+                these_items
+              when [:list, :single]
+                these_items.first
+              when [:flat, :single]
+                these_items.first
+              when [:double, :single]
+                these_items.first.first
+              when [:single, :list]
+                [these_items]
+              when [:list, :list]
+                these_items
+              when [:flat, :list]
+                these_items
+              when [:double, :list]
+                these_items.collect{|l| l.first }
+              when [:single, :flat]
+                [these_items]
+              when [:list, :flat]
+                these_items
+              when [:flat, :flat]
+                these_items
+              when [:double, :flat]
+                these_items.flatten
+              when [:single, :double]
+                [[these_items]]
+              when [:list, :double]
+                these_items.collect{|l| [l] }
+              when [:flat, :double]
+                [these_items]
+              when [:double, :double]
+                these_items
+              end
 
             if block_given?
               res = block.call(key, these_items)
@@ -227,8 +232,8 @@ module TSV
       if key_field
         all_field_names ||= [@key_field] + @fields
         key = NamedArray.identify_name(all_field_names, key_field)
-        kwargs[:key] = key
-        key_field_name = all_field_names[key]
+        kwargs[:key] = key == :key ? 0 : key
+        key_field_name = key === :key ? @key_field : all_field_names[key]
         if fields.nil?
           field_names = all_field_names - [@key_field]
         end
@@ -247,21 +252,42 @@ module TSV
 
       data = TSV.parse_stream(@stream, first_line: @first_line, **kwargs, &block)
 
-      TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type) if data
-
-      data || self
+      if data
+        TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type)
+      else
+        self
+      end
     end
 
   end
 
-  def self.parse(stream, fix: true, header_hash: "#", sep: "\t", filename: nil, namespace: nil,  **kwargs, &block)
+  def self.parse(stream, fix: true, header_hash: "#", sep: "\t", filename: nil, namespace: nil, unnamed: false, serializer: nil, **kwargs, &block)
     parser = TSV::Parser.new stream, fix: fix, header_hash: header_hash, sep: sep
-    kwargs = parser.options.merge(kwargs)
 
-    type = kwargs[:type] ||= :double
+    cast = parser.options[:cast] || kwargs[:cast]
+    type = kwargs[:type] ||=  parser.options[:type] ||= :double
     if (data = kwargs[:data]) && data.respond_to?(:persistence_class)
       TSV.setup(data, type: type)
       data.extend TSVAdapter
+      if serializer
+        data.serializer = serializer
+      elsif cast
+        data.serializer = 
+          case [cast, type]
+          when [:to_i, :single]
+            :integer
+          when [:to_i, :list], [:to_i, :flat]
+            :integer_array
+          when [:to_f, :single]
+            :float
+          when [:to_f, :list], [:to_f, :flat]
+            :float_array
+          else
+            type
+          end
+      else
+        data.serializer = type
+      end
     end
 
     kwargs[:data] = {} if kwargs[:data].nil?
@@ -270,6 +296,7 @@ module TSV
     data.type = type
     data.filename = filename
     data.namespace = namespace
+    data.unnamed = unnamed
     data
   end
 

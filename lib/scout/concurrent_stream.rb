@@ -136,6 +136,7 @@ module ConcurrentStream
     begin
       join_threads
       join_pids
+      raise stream_exception if stream_exception
       join_callback
       close unless closed?
     ensure
@@ -160,7 +161,7 @@ module ConcurrentStream
     @threads.each do |t|
       next if t == Thread.current
       begin
-        t.join unless t == Thread.current
+        t.join
       rescue Aborted
       rescue Exception
         Log.debug "Thread (#{name}) exception: #{$!.message}"

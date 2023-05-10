@@ -20,6 +20,7 @@ module Task
       seen = inputs.collect{|name,_| name }
       dep_inputs = {}
       deps.each do |dep_workflow,task_name|
+        next if task_name.nil?
         task = dep_workflow.tasks[task_name]
         next if task.inputs.nil?
         inputs = task.inputs.reject{|name, _| seen.include? name }
@@ -122,6 +123,7 @@ module Workflow
       next if seen.include? dep
       seen << dep
       workflow, task, *rest = dep
+      next if task.nil?
 
       key = [workflow, task]
 

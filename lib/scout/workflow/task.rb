@@ -1,4 +1,5 @@
 require_relative '../meta_extension'
+require_relative '../named_array'
 require_relative 'step'
 require_relative 'task/inputs'
 
@@ -24,7 +25,7 @@ module Task
     return inputs if deps.nil?
     deps.inject(inputs) do |acc,dep|
       workflow, task = dep
-      next if workflow.nil?
+      next acc if workflow.nil? || task.nil?
       acc += workflow.tasks[task].recursive_inputs
     end
   end
@@ -144,13 +145,16 @@ module Task
 
     if non_default_inputs.any?
       hash = Misc.digest(:inputs => input_hash, :dependencies => dependencies)
-      Log.debug "Hash #{name} - #{hash}: #{Misc.digest_str(:inputs => inputs, :non_default_inputs => non_default_inputs, :dependencies => dependencies)}"
+      Log.debug "Hash #{name} - #{hash}: #{Log.fingerprint(:inputs => inputs, :non_default_inputs => non_default_inputs, :dependencies => dependencies)}"
       id = [id, hash] * "_"
     end
 
     path = directory[id]
 
-    NamedArray.setup(inputs, @inputs.collect{|i| i[0] }) if @inputs
-    Step.new path.find, inputs, dependencies, &self
+    Persist.memory(path) do 
+      Log.debug "Creating job #{path} #{Log.fingerprint inputs} #{Log.fingerprint dependencies}"
+      NamedArray.setup(inputs, @inputs.collect{|i| i[0] }) if @inputs
+      Step.new path.find, inputs, dependencies, &self
+    end
   end
 end

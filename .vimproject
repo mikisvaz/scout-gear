@@ -103,6 +103,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      config.rb
      dependencies.rb
      provenance.rb
+     progress.rb
     }
     task.rb
     task=task{
@@ -123,26 +124,57 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     parser.rb
     dumper.rb
     persist.rb
-    index.rb
     persist=persist{
      adapter.rb
+     serialize.rb
      tokyocabinet.rb
+     fix_width_table.rb
     }
+    index.rb
     traverse.rb
     util.rb
+    util=util{
+     process.rb
+     select.rb
+    }
     path.rb
+    open.rb
    }
   }
  }
  test=test {
   test_helper.rb
+  test_scout-gear.rb
   scout=scout{
+   test_cmd.rb
+   test_concurrent_stream.rb
+   test_config.rb
    test_indiferent_hash.rb
+   test_log.rb
+   test_meta_extension.rb
+   test_misc.rb
+   test_named_array.rb
+   test_open.rb
+   test_path.rb
+   test_persist.rb
+   test_resource.rb
+   test_semaphore.rb
+   test_tmpfile.rb
+   test_tsv.rb
+   test_work_queue.rb
+   test_workflow.rb
+   workflow=workflow{
+    test_definition.rb
+    test_documentation.rb
+    test_step.rb
+    test_task.rb
+    test_usage.rb
+    test_util.rb
+    }
    indiferent_hash=indiferent_hash{
+    test_case_insensitive.rb
     test_options.rb
    }
-   test_log.rb
-   test_tmpfile.rb
   }
  }
  share=share{

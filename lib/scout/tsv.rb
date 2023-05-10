@@ -6,10 +6,11 @@ require_relative 'tsv/persist'
 require_relative 'tsv/index'
 require_relative 'tsv/path'
 require_relative 'tsv/traverse'
+require_relative 'tsv/open'
 
 module TSV
   extend MetaExtension
-  extension_attr :key_field, :fields, :type, :filename, :namespace, :unnamed
+  extension_attr :key_field, :fields, :type, :filename, :namespace, :unnamed, :identifiers
 
   def self.open(file, options = {})
     persist, type = IndiferentHash.process_options options, :persist, :persist_type, :persist => false, :persist_type => "HDB"
@@ -22,6 +23,5 @@ module TSV
       end
     end
   end
-
 end
 

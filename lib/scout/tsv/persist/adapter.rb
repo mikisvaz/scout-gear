@@ -1,7 +1,8 @@
 require_relative '../../open/lock'
+require_relative 'serialize'
 
 module TSVAdapter
-  attr_accessor :persistence_path, :persistence_class, :closed, :writable
+  attr_accessor :persistence_path, :persistence_class, :serializer, :closed, :writable
 
   class << self
     attr_accessor :lock_dir
@@ -12,6 +13,10 @@ module TSVAdapter
 
   EXTENSION_ATTR_HASH_KEY = "__extension_attr_hash__"
   EXTENSION_ATTR_HASH_SERIALIZER = Marshal
+
+  def serializer=(serializer)
+    @serializer = Symbol === serializer ? SERIALIZER_ALIAS[serializer] : serializer
+  end
 
   def load_extension_attr_hash
     EXTENSION_ATTR_HASH_SERIALIZER.load(self[EXTENSION_ATTR_HASH_KEY])
@@ -28,6 +33,8 @@ module TSVAdapter
       base[EXTENSION_ATTR_HASH_KEY] = EXTENSION_ATTR_HASH_SERIALIZER.dump(base.extension_attr_hash)
     end
 
+    base.serializer = SERIALIZER_ALIAS[base.type]
+
     class << base
       alias orig_set []=
         alias orig_get []
@@ -43,37 +50,47 @@ module TSVAdapter
           super(key, save_value(value))
         end
       end
+
+      def load_value(str)
+        serializer.load(str)
+      end
+
+      def save_value(value)
+        serializer.dump(value)
+      end
+
+
     end
 
-    case base.type
-    when :single
-      class << base
-        def load_value(value)
-          value
-        end
-        def save_value(value)
-          value
-        end
-      end
-    when :list, :flat
-      class << base
-        def load_value(value)
-          value.nil? ? nil : value.split("\t")
-        end
-        def save_value(value)
-          value * "\t"
-        end
-      end
-    when :double
-      class << base
-        def load_value(value)
-          value.nil? ? nil : value.split("\t").collect{|v| v.split("|") }
-        end
-        def save_value(value)
-          value.collect{|v| v * "|" } * "\t"
-        end
-      end
-    end
+    #case base.type
+    #when :single
+    #  class << base
+    #    def load_value(value)
+    #      value
+    #    end
+    #    def save_value(value)
+    #      value
+    #    end
+    #  end
+    #when :list, :flat
+    #  class << base
+    #    def load_value(value)
+    #      value.nil? ? nil : value.split("\t")
+    #    end
+    #    def save_value(value)
+    #      value * "\t"
+    #    end
+    #  end
+    #when :double
+    #  class << base
+    #    def load_value(value)
+    #      value.nil? ? nil : value.split("\t").collect{|v| v.split("|") }
+    #    end
+    #    def save_value(value)
+    #      value.collect{|v| v * "|" } * "\t"
+    #    end
+    #  end
+    #end
   end
 
   def keys(*args)

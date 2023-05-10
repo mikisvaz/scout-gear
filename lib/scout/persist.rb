@@ -14,7 +14,7 @@ module Persist
 
     attr_writer :lock_dir
     def lock_dir
-      @lock_dir ||= Path.setup("var/cache/persist_locks")
+      @lock_dir ||= Path.setup("tmp/persist_locks").find
     end
   end
 
@@ -24,6 +24,8 @@ module Persist
     TmpFile.tmp_for_file(name, options, other_options)
   end
 
+  MEMORY_CACHE = {}
+  CONNECTIONS = {}
   def self.persist(name, type = :serializer, options = {}, &block)
     persist_options = IndiferentHash.pull_keys options, :persist 
     return yield if FalseClass === persist_options[:persist]
@@ -34,6 +36,12 @@ module Persist
     update = options[:update] || persist_options[:update]
     update = Open.mtime(update) if Path === update
     update = Open.mtime(file) >= update ? false : true if Time === update
+
+    if type == :memory
+      repo = options[:memory] || options[:repo] || MEMORY_CACHE
+      repo[file] ||= yield
+      return repo[file]
+    end
 
     Open.lock lockfile do |lock|
       if Open.exist?(file) && ! update

@@ -17,23 +17,28 @@ class TestQueueWorker < Test::Unit::TestCase
   end
 
   def test_semaphore
-    ScoutSemaphore.with_semaphore 1 do |sem|
 
+    2.times do
       TmpFile.with_file do |outfile|
-        2.times do
+        ScoutSemaphore.with_semaphore 1 do |sem|
           sout = Open.open_pipe do |sin|
-            workers = 100.times.collect{ WorkQueue::Worker.new }
+            workers = 500.times.collect{ WorkQueue::Worker.new }
             workers.each do |w|
               w.run do
                 ScoutSemaphore.synchronize(sem) do
+                  sin.puts "Start - #{Process.pid}"
                   10.times do
                     sin.puts Process.pid
                   end
+                  sin.puts "End - #{Process.pid}"
+                  sin.flush
+                  sin.close
                 end
               end
             end
 
             WorkQueue::Worker.join(workers)
+            sin.close
           end
           Open.consume_stream(sout, false, outfile)
           pid_list = Open.read(outfile).split("\n")

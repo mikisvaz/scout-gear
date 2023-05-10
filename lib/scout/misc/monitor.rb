@@ -14,7 +14,7 @@ module Misc
       if message
         puts "#{message }: #{ repeats } repeats"
       else
-        puts "Benchmark for #{ repeats } repeats"
+        puts "Benchmark for #{ repeats } repeats (#{caller.first})"
       end
       puts measure
     rescue Exception

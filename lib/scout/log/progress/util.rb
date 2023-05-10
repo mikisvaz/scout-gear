@@ -96,6 +96,71 @@ module Log
         remove_bar(bar, error) if bar && ! keep
       end
     end
+
+    def self.guess_obj_max(obj)
+    begin
+      case obj
+      when (defined? Step and Step)
+        if obj.done?
+          path = obj.path
+          path = path.find if path.respond_to? :find
+          if File.exist? path
+            CMD.cmd("wc -l '#{path}'").read.to_i 
+          else
+            nil
+          end
+        else
+          nil
+        end
+      when TSV
+        obj.length
+      when Array, Hash
+        obj.size
+      when File
+        return nil if Open.gzip?(obj) or Open.bgzip?(obj)
+        CMD.cmd("wc -l '#{obj.path}'").read.to_i
+      when Path, String
+        obj = obj.find if Path === obj
+        if File.exist? obj
+          return nil if Open.gzip?(obj) or Open.bgzip?(obj)
+          CMD.cmd("wc -l '#{obj}'").read.to_i
+        else
+          nil
+        end
+      end
+    rescue Exception
+      Log.exception $!
+      nil
+    end
   end
+
+  def self.get_obj_bar(bar, obj)
+    case bar
+    when String
+      max = guess_obj_max(obj)
+      Log::ProgressBar.new_bar(max, {:desc => bar}) 
+    when TrueClass
+      max = guess_obj_max(obj)
+      Log::ProgressBar.new_bar(max, nil) 
+    when Numeric
+      max = guess_obj_max(obj)
+      Log::ProgressBar.new_bar(bar) 
+    when Hash
+      max = Misc.process_options(bar, :max) || max
+      Log::ProgressBar.new_bar(max, bar) 
+    when Log::ProgressBar
+      bar.max ||= guess_obj_max(obj)
+      bar
+    else
+      if (defined? Step and Step === bar)
+        max = guess_obj_max(obj)
+        Log::ProgressBar.new_bar(max, {:desc => bar.status, :file => bar.file(:progress)}) 
+      else
+        bar
+      end
+    end
+  end
+  end
+
 end
 

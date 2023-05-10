@@ -1,8 +1,7 @@
 require File.expand_path(__FILE__).sub(%r(/test/.*), '/test/test_helper.rb')
 require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
 
-require 'scout/tsv'
-class TestTSVUtil < Test::Unit::TestCase
+class TestOpenTraverse < Test::Unit::TestCase
   def test_true
     assert true
   end

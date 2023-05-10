@@ -61,7 +61,15 @@ row2    a    a    id3
     EOF
 
     tsv = TmpFile.with_file(content) do |filename|
-      TSV.open(filename, :persist => true)
+      TSV.open(filename, :persist => false)
+    end
+
+    assert_include tsv.keys, 'row1'
+    assert_include tsv.keys, 'row2'
+    assert_equal %w(A a), tsv["row2"][0]
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename, :persist => true, :merge => true)
     end
 
     assert tsv.respond_to?(:persistence_class)
@@ -69,6 +77,7 @@ row2    a    a    id3
 
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
+    assert_equal %w(A a), tsv["row2"][0]
   end
 end
 

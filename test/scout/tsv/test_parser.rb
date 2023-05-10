@@ -29,15 +29,16 @@ class TestTSVParser < Test::Unit::TestCase
     assert_equal (1..10).collect{|v| [v,v] }, values
   end
 
-  def __test_benchmark
+  def ___test_benchmark
     num = 10_000
     txt = num.times.inject(nil) do |acc,i|
       (acc.nil? ? "" : acc << "\n") << (0..10).collect{|v| v == 0 ? i : [v,v] * "|" } * "\t"
     end 
 
     txt = StringIO.new(([txt] * (10))*"\n")
-    Misc.benchmark 1 do
-    #Misc.profile do
+    Misc.benchmark 5 do
+      txt.rewind
+      #Misc.profile do
       data = TSV.parse_stream(txt, fix: true, type: :double, bar: true, merge: :concat)
       assert_equal num, data.size
       assert_equal 20, data['1'][0].length
@@ -170,4 +171,28 @@ k a|A b|B
 
     assert_equal [["k", [%w(b B)]]], values
   end
+
+
+  def test_parse_persist_serializer
+    content =<<-EOF
+Key ValueA ValueB
+k 1 2
+    EOF
+    content = StringIO.new content
+
+    TmpFile.with_file do |db|
+      data = ScoutCabinet.open db, true, "HDB"
+      TSV.parse content, sep: " ", header_hash: '', data: data, cast: :to_i, type: :list
+      assert_equal [1, 2], data["k"]
+    end
+
+    TmpFile.with_file do |db|
+      content.rewind
+      data = ScoutCabinet.open db, true, "HDB"
+      TSV.parse content, sep: " ", header_hash: '', data: data, cast: :to_i, type: :list, serializer: :float_array
+      assert_equal [1.0, 2.0], data["k"]
+    end
+
+  end
+
 end

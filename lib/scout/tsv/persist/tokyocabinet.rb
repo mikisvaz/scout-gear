@@ -4,7 +4,6 @@ require_relative 'adapter'
 module ScoutCabinet
   attr_accessor :persistence_path, :persistence_class
 
-  CONNECTIONS = {}
   def self.open(path, write, tokyocabinet_class = TokyoCabinet::HDB)
     if String === tokyocabinet_class && tokyocabinet_class.include?(":big")
       big = true
@@ -19,7 +18,7 @@ module ScoutCabinet
     tokyocabinet_class = TokyoCabinet::HDB if tokyocabinet_class == "HDB" or tokyocabinet_class.nil?
     tokyocabinet_class = TokyoCabinet::BDB if tokyocabinet_class == "BDB"
 
-    database = CONNECTIONS[path] ||= tokyocabinet_class.new
+    database = Persist::CONNECTIONS[path] ||= tokyocabinet_class.new
 
     if big and not Open.exists?(path)
       database.tune(nil,nil,nil,tokyocabinet_class::TLARGE | tokyocabinet_class::TDEFLATE) 
@@ -39,7 +38,7 @@ module ScoutCabinet
 
     database.open(path, tokyocabinet_class::OREADER)
 
-    CONNECTIONS[path] = database
+    Persist::CONNECTIONS[path] = database
 
     database
   end

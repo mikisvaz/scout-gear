@@ -6,6 +6,7 @@ require_relative 'step/file'
 require_relative 'step/dependencies'
 require_relative 'step/provenance'
 require_relative 'step/config'
+require_relative 'step/progress'
 
 class Step 
 
@@ -78,7 +79,9 @@ class Step
           :inputs => inputs, :type => type,
           :dependencies => dependencies.collect{|d| d.path }
 
-        exec
+        @result = exec
+        @result = @result.respond_to?(:stream) ? @result.stream : @result
+        @result
       rescue Exception => e
         merge_info :status => :error, :exception => e
         raise e
@@ -104,6 +107,7 @@ class Step
         end
       end
     end
+    @result
   end
 
   def done?
@@ -111,10 +115,10 @@ class Step
   end
 
   def streaming?
-    @take_stream || IO === @result || StringIO === @result
+    @take_stream || IO === @result || StringIO === @result 
   end
 
-  def get_stream
+  def stream
     synchronize do
       if streaming? && ! @result.nil?
         if @result.next
@@ -137,8 +141,8 @@ class Step
   end
 
   def join
-    stream = get_stream if streaming?
-    Open.consume_stream(stream, false) if stream
+    io = self.stream if streaming?
+    Open.consume_stream(io, false) if io
   end
 
   def produce
@@ -147,6 +151,7 @@ class Step
   end
 
   def load
+    iii [:load, self.object_id, done?, self.path, @result, streaming?]
     return @result unless @result.nil? || streaming?
     join
     done? ? Persist.load(path, type) : exec

@@ -164,4 +164,12 @@ module Workflow
   end
 
   alias dep_task task_alias
+
+  def export(*args)
+  end
+
+  alias export_synchronous export
+  alias export_asynchronous export
+  alias export_exec export
+  alias export_stream export
 end

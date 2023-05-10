@@ -27,7 +27,6 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     step2.dependencies = [step1]
 
-
     assert_equal "12 has 2 characters", step2.run
     assert_equal "12 has 2 characters", step2.run
   end
@@ -50,7 +49,7 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     step2 = Step.new tmpfile.step2 do 
       step1 = dependencies.first
-      stream = step1.get_stream
+      stream = step1.stream
 
       Open.open_pipe do |sin|
         while line = stream.gets
@@ -108,7 +107,7 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     step2 = Step.new tmpfile.step2 do 
       step1 = dependencies.first
-      stream = step1.get_stream
+      stream = step1.stream
 
       Open.open_pipe do |sin|
         while line = stream.gets
@@ -123,7 +122,7 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     step3 = Step.new tmpfile.step3 do 
       step1, step2 = dependencies
-      stream = step2.get_stream
+      stream = step2.stream
 
       Open.open_pipe do |sin|
         while line = stream.gets
@@ -164,7 +163,7 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     step2 = Step.new tmpfile.step2 do 
       step1 = dependencies.first
-      stream = step1.get_stream
+      stream = step1.stream
 
       Open.open_pipe do |sin|
         while line = stream.gets
@@ -179,7 +178,7 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     step3 = Step.new tmpfile.step3 do 
       step1 = dependencies.first
-      stream = step1.get_stream
+      stream = step1.stream
 
       Open.open_pipe do |sin|
         while line = stream.gets
@@ -199,14 +198,14 @@ class TestWorkflowStep < Test::Unit::TestCase
       mutex = Mutex.new
       Open.open_pipe do |sin|
         t2 = Thread.new do
-          stream2 = step2.get_stream
+          stream2 = step2.stream
           while line = stream2.gets
             sin.puts line
           end
         end
 
         t3 = Thread.new do
-          stream3 = step3.get_stream
+          stream3 = step3.stream
           while line = stream3.gets
             sin.puts line
           end

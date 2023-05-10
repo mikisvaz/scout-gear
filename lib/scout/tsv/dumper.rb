@@ -52,8 +52,8 @@ module TSV
         :sep => "\t", :type => :double
       @options = options
       @sout, @sin = Open.pipe
-      ConcurrentStream.setup(@sin, :pair => @sout)
-      ConcurrentStream.setup(@sout, :pair => @sin)
+      ConcurrentStream.setup(@sin, pair: @sout)
+      ConcurrentStream.setup(@sout, pair: @sin)
     end
 
     def init
@@ -88,16 +88,21 @@ module TSV
   end
 
   def stream
-    iii self.extension_attr_hash
     dumper = TSV::Dumper.new self.extension_attr_hash
     dumper.init
-    Thread.new do 
-      Thread.current["name"] = "Dumper thread"
-      self.each do |k,v|
-        dumper.add k, v
+    t = Thread.new do 
+      begin
+        Thread.current.report_on_exception = true
+        Thread.current["name"] = "Dumper thread"
+        self.each do |k,v|
+          dumper.add k, v
+        end
+        dumper.close
+      rescue
+        dumper.abort($!)
       end
-      dumper.close
     end
+    Thread.pass until t["name"]
     dumper.stream
   end
 

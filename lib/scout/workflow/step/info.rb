@@ -101,4 +101,8 @@ class Step
   def running?
     ! done? && (info[:pid] && Misc.pid_alive?(info[:pid]))
   end
+
+  def exception
+    info[:exception]
+  end
 end

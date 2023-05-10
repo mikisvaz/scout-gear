@@ -23,6 +23,13 @@ row2    a    a    id3
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
 
+    tsv = Persist.persist("TEST Persist TSV", :tsv) do 
+      TmpFile.with_file(content) do |filename|
+        TSV.open(filename)
+      end
+    end
+
+
     assert_nothing_raised do
       tsv = Persist.persist("TEST Persist TSV", :tsv) do 
         raise

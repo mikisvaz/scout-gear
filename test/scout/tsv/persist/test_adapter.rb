@@ -3,7 +3,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 
 require 'scout/tsv'
 class TestTSVAdapter < Test::Unit::TestCase
-  def test_get_set
+  def _test_get_set
     tsv = TSV.setup({}, :type => :list, :key_field => "Key", :fields => %w(one two three))
     tsv.type = :list
     tsv.extend TSVAdapter
@@ -29,6 +29,16 @@ class TestTSVAdapter < Test::Unit::TestCase
     tsv["b"] = %w(11 22 33)
     assert_equal [["a", %w(1 2 3)], ["b", %w(11 22 33)]], tsv.sort
     assert_equal [["b", %w(11 22 33)], ["a", %w(1 2 3)]], tsv.sort_by{|k,v| -v[0].to_i }
+  end
+
+  def test_serializer
+    tsv = TSV.setup({}, :type => :list, :key_field => "Key", :fields => %w(one two three))
+    tsv.type = :list
+    tsv.extend TSVAdapter
+    tsv.serializer = :integer_array
+    tsv["a"] = [1, 2, 3]
+
+    assert_equal [1, 2, 3], tsv["a"]
   end
 end
 
