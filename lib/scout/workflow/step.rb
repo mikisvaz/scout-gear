@@ -143,6 +143,7 @@ class Step
   def join
     io = self.stream if streaming?
     Open.consume_stream(io, false) if io
+    self
   end
 
   def produce
@@ -151,7 +152,6 @@ class Step
   end
 
   def load
-    iii [:load, self.object_id, done?, self.path, @result, streaming?]
     return @result unless @result.nil? || streaming?
     join
     done? ? Persist.load(path, type) : exec

@@ -41,7 +41,7 @@ class TestStepLoad < Test::Unit::TestCase
       end
     end
 
-    step2 = wf.job(:step2, :input1 => "TEST")
+    step2 = wf.job(:step2, nil, :input1 => "TEST_STRING")
     step1 = step2.step(:step1)
 
     step2.run
@@ -53,8 +53,8 @@ class TestStepLoad < Test::Unit::TestCase
         Open.mv step1.info_file, dir.var.jobs.RelocateWorkflow.step1[File.basename(step1.info_file)]
 
         new_step2 = Step.load(step2.path)
-        assert_equal "TEST".reverse, new_step2.load
-        assert_equal "TEST", new_step2.dependencies.first.load
+        assert_equal "TEST_STRING".reverse, new_step2.load
+        assert_equal "TEST_STRING", new_step2.dependencies.first.load
       end
     end
 

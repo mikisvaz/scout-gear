@@ -5,7 +5,7 @@ require 'scout/path'
 require 'scout/open'
 
 class TestOpenStream < Test::Unit::TestCase
-  def test_consume_stream
+  def test_stream
     content =<<-EOF
 1
 2

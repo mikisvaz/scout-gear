@@ -86,7 +86,7 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     assert step1.path.read.end_with? "line-#{times-1}\n"
     assert_equal times/2, lines.length
-    assert_equal times/2, step2.path.read.split("\n").length
+    assert_equal times/2, step2.join.path.read.split("\n").length
   end
 
   def test_streaming_duplicate
@@ -219,12 +219,13 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     lines = []
     io = step4.run
-    Log::ProgressBar.with_bar do |b|
+    Log::ProgressBar.with_bar severity: 0 do |b|
       while line = io.gets
         b.tick
         lines << line.strip
       end
     end
+    io.close
 
     assert_equal times, lines.length
   end

@@ -17,4 +17,15 @@ module Misc
     end
     intersect
   end
+
+  def self.counts(array)
+    counts = {}
+    array.each do |e|
+      counts[e] ||= 0
+      counts[e] += 1
+    end
+
+    counts
+  end
+
 end

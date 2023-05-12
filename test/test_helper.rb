@@ -33,12 +33,13 @@ class Test::Unit::TestCase
   end
 
   def tmpdir
-    @tmpdir = Path.setup('tmp/test_tmpdir').find
+    @tmpdir ||= Path.setup('tmp/test_tmpdir').find
   end
 
   setup do
     Log::ProgressBar.default_severity = 0
     Persist.cache_dir = tmpdir.var.cache
+    Persist::MEMORY_CACHE.clear
     Open.remote_cache_dir = tmpdir.var.cache
     Workflow.directory = tmpdir.var.jobs
     Workflow.workflows.each{|wf| wf.directory = Workflow.directory[wf.name] }

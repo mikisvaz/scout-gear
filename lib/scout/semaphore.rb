@@ -37,7 +37,7 @@ if continue
     int ret;
     sem_t* sem;
     sem = sem_open(name, 0);
-    if (sem == -1){
+    if (sem == SEM_FAILED){
       return(errno);
     }
     ret = sem_wait(sem);
