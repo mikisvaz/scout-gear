@@ -37,6 +37,7 @@ class Test::Unit::TestCase
   end
 
   setup do
+    TmpFile.tmpdir = tmpdir.tmpfiles
     Log::ProgressBar.default_severity = 0
     Persist.cache_dir = tmpdir.var.cache
     Persist::MEMORY_CACHE.clear

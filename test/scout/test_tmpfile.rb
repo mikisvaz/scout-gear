@@ -10,7 +10,7 @@ class TestTmpFile < Test::Unit::TestCase
   def test_do_tmp_file
     content = "Hello World!"
     TmpFile.with_file(content) do |file|
-      assert_equal_path content, File.open(file).read
+      assert_equal content, File.open(file).read
     end
   end
 
