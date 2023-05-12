@@ -92,6 +92,7 @@ class WorkerException < ScoutException
   end
 end
 
+class SemaphoreInterrupted < TryAgain; end
 
 #class OpenGzipError < StandardError; end
 #

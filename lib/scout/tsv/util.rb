@@ -9,25 +9,29 @@ module TSV
     NamedArray.setup(v, @fields) unless @unnamed || ! (Array === v)
     v
   end
-  [:each, :collect, :map].each do |method|
-    define_method(method) do |*args,&block|
+
+  def each(*args, &block)
+    if block_given?
       super(*args) do |k,v|
-        NamedArray.setup(v, @fields) unless @unnamed || ! (Array === v)
-        block.call k, v
-      end
+      NamedArray.setup(v, @fields) unless @unnamed || ! (Array === v)
+      block.call(k, v)
+    end
+    else
+      super(*args)
     end
   end
 
-  #[:select, :reject].each do |method|
-  #  define_method(method) do |*args,&block|
-  #    res = super(*args) do |k,v|
-  #      NamedArray.setup(v, @fields) unless @unnamed
-  #      block.call k, v
-  #    end
-  #    self.annotate(res)
-  #    res
-  #  end
-  #end
+  def collect(*args, &block)
+    if block_given?
+      res = []
+      each do |k,v|
+        res << yield(k, v)
+      end
+      res
+    else
+      super(*args)
+    end
+  end
 
   def with_unnamed
     begin

@@ -31,8 +31,6 @@ class TestQueueWorker < Test::Unit::TestCase
                     sin.puts Process.pid
                   end
                   sin.puts "End - #{Process.pid}"
-                  sin.flush
-                  sin.close
                 end
               end
             end

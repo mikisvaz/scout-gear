@@ -17,7 +17,6 @@ class FixWidthTable
       else
         FileUtils.rm @filename if File.exist? @filename
         FileUtils.mkdir_p File.dirname(@filename) unless File.exist? @filename
-        #@file = File.open(@filename, 'wb')
         @file = File.open(@filename, 'w:ASCII-8BIT')
       end
 
@@ -316,7 +315,6 @@ class FixWidthTable
 end
 
 Persist.save_drivers[:fwt] = proc do |file, content|
-  iif [:save, file, content]
   content.file.seek 0
   Misc.sensiblewrite(file, content.file.read)
 end

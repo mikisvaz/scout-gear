@@ -37,7 +37,13 @@ if continue
     int ret;
     sem_t* sem;
     sem = sem_open(name, 0);
+    if (sem == -1){
+      return(errno);
+    }
     ret = sem_wait(sem);
+    if (ret == -1){
+      return(errno);
+    }
     sem_close(sem);
     return(ret);
   }
@@ -51,6 +57,7 @@ if continue
     sem_close(sem);
   }
       EOF
+
     end
 
     SEM_MUTEX = Mutex.new
@@ -66,7 +73,7 @@ if continue
 
     def self.with_semaphore(size, file = nil)
       if file.nil?
-        file = "/" << Misc.digest(rand(1000000000000).to_s) if file.nil?
+        file = "/scout-" << Misc.digest(rand(100000000000).to_s)[0..10] if file.nil?
       else
         file = file.gsub('/', '_') if file
       end

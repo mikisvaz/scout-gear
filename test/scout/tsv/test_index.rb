@@ -122,7 +122,7 @@ g:         ____
     TmpFile.with_file(data) do |datafile|
       load_segment_data(datafile)
       TmpFile.with_file(load_segment_data(datafile).to_s) do |tsvfile|
-        f = TSV.range_index(tsvfile, "Start", "End", :persistence => true)
+        f = TSV.range_index(tsvfile, "Start", "End", :persist => true)
 
         assert_equal %w(), f[0].sort
         assert_equal %w(b), f[1].sort

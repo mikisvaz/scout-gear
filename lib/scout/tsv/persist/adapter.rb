@@ -19,7 +19,7 @@ module TSVAdapter
   end
 
   def load_extension_attr_hash
-    EXTENSION_ATTR_HASH_SERIALIZER.load(self[EXTENSION_ATTR_HASH_KEY])
+    EXTENSION_ATTR_HASH_SERIALIZER.load(StringIO.new(self[EXTENSION_ATTR_HASH_KEY]))
   end
 
   def save_extension_attr_hash
@@ -27,10 +27,12 @@ module TSVAdapter
   end
 
   def self.extended(base)
-    if base.include?(EXTENSION_ATTR_HASH_KEY)
-      TSV.setup(base, base.load_extension_attr_hash)
-    elsif TSV === base
-      base[EXTENSION_ATTR_HASH_KEY] = EXTENSION_ATTR_HASH_SERIALIZER.dump(base.extension_attr_hash)
+    if ! TSVAdapter === base
+      if (! TSVAdapter === base) && base.include?(EXTENSION_ATTR_HASH_KEY)
+        TSV.setup(base, base.load_extension_attr_hash)
+      elsif TSV === base
+        base[EXTENSION_ATTR_HASH_KEY] = EXTENSION_ATTR_HASH_SERIALIZER.dump(base.extension_attr_hash)
+      end
     end
 
     base.serializer = SERIALIZER_ALIAS[base.type]

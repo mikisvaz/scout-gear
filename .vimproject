@@ -32,6 +32,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     filesystem.rb
     monitor.rb
     system.rb
+    helper.rb
    }
    named_array.rb
    indiferent_hash.rb
@@ -136,6 +137,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     util=util{
      process.rb
      select.rb
+     filter.rb
     }
     path.rb
     open.rb

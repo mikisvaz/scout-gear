@@ -5,6 +5,7 @@ module ScoutCabinet
   attr_accessor :persistence_path, :persistence_class
 
   def self.open(path, write, tokyocabinet_class = TokyoCabinet::HDB)
+    path = path.find if Path === path
     if String === tokyocabinet_class && tokyocabinet_class.include?(":big")
       big = true
       tokyocabinet_class = tokyocabinet_class.split(":").first

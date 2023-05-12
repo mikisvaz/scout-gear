@@ -2,7 +2,6 @@ require_relative 'color_class'
 require_relative '../indiferent_hash'
 
 require 'term/ansicolor'
-require 'colorist'
 
 module Colorize
   def self.colors=(colors)

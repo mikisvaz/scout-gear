@@ -73,6 +73,7 @@ module TSV
         end
       end
 
+      filename = :memory if filename.nil?
       index = FixWidthTable.get(filename, max_key_size, true)
       index.add_range index_data
       index.read
