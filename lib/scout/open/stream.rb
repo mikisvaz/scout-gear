@@ -54,11 +54,9 @@ module Open
         
         into_close = false unless into.respond_to? :close
 
-        begin
-          while c = io.readpartial(BLOCK_SIZE)
-            into << c if into
-          end
-        rescue EOFError
+        while c = io.read(BLOCK_SIZE)
+          into << c if into
+          break if io.closed?
         end
 
         io.join if io.respond_to? :join
@@ -120,12 +118,10 @@ module Open
           when (IO === content or StringIO === content or File === content)
             Open.write(tmp_path) do |f|
               #f.sync = true
-              begin
-                while block = content.readpartial(BLOCK_SIZE)
-                  f.write block
-                end 
-              rescue EOFError
-              end
+              while block = content.read(BLOCK_SIZE)
+                f.write block
+                break if content.closed?
+              end 
             end
           else
             File.open(tmp_path, 'wb') do |f|  end
@@ -290,22 +286,20 @@ module Open
         Thread.current["name"] = "Splitter #{Log.fingerprint stream}"
 
         skip = [false] * num
-        begin
-          while block = stream.readpartial(BLOCK_SIZE)
+        while block = stream.read(BLOCK_SIZE)
 
-            in_pipes.each_with_index do |sin,i|
-              begin 
-                sin.write block
-              rescue IOError
-                Log.warn("Tee stream #{i} #{Log.fingerprint stream} IOError: #{$!.message} (#{Log.fingerprint sin})");
-                skip[i] = true
-              rescue
-                Log.warn("Tee stream #{i} #{Log.fingerprint stream} Exception: #{$!.message} (#{Log.fingerprint sin})");
-                raise $!
-              end unless skip[i] 
-            end
+          in_pipes.each_with_index do |sin,i|
+            begin 
+              sin.write block
+            rescue IOError
+              Log.warn("Tee stream #{i} #{Log.fingerprint stream} IOError: #{$!.message} (#{Log.fingerprint sin})");
+              skip[i] = true
+            rescue
+              Log.warn("Tee stream #{i} #{Log.fingerprint stream} Exception: #{$!.message} (#{Log.fingerprint sin})");
+              raise $!
+            end unless skip[i] 
           end
-        rescue IOError
+          break if stream.closed?
         end
 
         stream.join if stream.respond_to? :join
@@ -397,7 +391,7 @@ module Open
     end
     str
   end
-  
+
   def self.sort_stream(stream, header_hash = "#", cmd_args = "-u")
     Open.open_pipe do |sin|
       line = stream.gets
