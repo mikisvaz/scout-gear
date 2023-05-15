@@ -146,7 +146,7 @@ module Log
       max = guess_obj_max(obj)
       Log::ProgressBar.new_bar(bar) 
     when Hash
-      max = Misc.process_options(bar, :max) || max
+      max = IndiferentHash.process_options(bar, :max) || max
       Log::ProgressBar.new_bar(max, bar) 
     when Log::ProgressBar
       bar.max ||= guess_obj_max(obj)

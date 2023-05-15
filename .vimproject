@@ -513,7 +513,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
       test_path.rb
      }
      workflow=workflow{
-      _test_soap.rb
+      test_soap.rb
       test_doc.rb
       test_step.rb
       test_task.rb

@@ -1,5 +1,6 @@
 require_relative '../open'
 require_relative 'open'
+require 'set'
 
 module Persist
   TRUE_STRINGS = Set.new ["true", "True", "TRUE", "t", "T", "1", "yes", "Yes", "YES", "y", "Y", "ON", "on"] unless defined? TRUE_STRINGS
