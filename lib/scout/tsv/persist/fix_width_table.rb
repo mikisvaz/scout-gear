@@ -2,6 +2,7 @@ class FixWidthTable
 
   attr_accessor :filename, :file, :value_size, :record_size, :range, :size, :mask, :write
   def initialize(filename, value_size = nil, range = nil, update = false, in_memory = true)
+    filename = filename.find if Path === filename
     @filename = filename
 
     if update || %w(memory stringio).include?(filename.to_s.downcase) || ! File.exist?(filename)
