@@ -44,27 +44,44 @@ module Task
     
     provided_inputs ||= {}
 
-    load_dep = proc do |id, workflow, task, inputs, hash_options, dependencies|
-      task = hash_options[:task] if hash_options.include?(:task)
-      workflow = hash_options[:workflow] if hash_options.include?(:workflow)
-      id = hash_options[:id] if hash_options.include? :id
+    # Helper function
+    load_dep = proc do |id, workflow, task, step_options, definition_options, dependencies|
+      task = step_options.delete(:task) if step_options.include?(:task)
+      workflow = step_options.delete(:workflow) if step_options.include?(:workflow)
+      id = step_options.delete(:id) if step_options.include?(:id)
 
-      hash_inputs = hash_options.include?(:inputs)? hash_options[:inputs] : hash_options
-      inputs = IndiferentHash.add_defaults hash_inputs, inputs
+      step_inputs = step_options.include?(:inputs)? step_options.delete(:inputs) : step_options
+      step_inputs = IndiferentHash.add_defaults step_inputs, definition_options
 
       resolved_inputs = {}
-      inputs.each do |k,v|
+      step_inputs.each do |k,v|
         if Symbol === v
           input_dep = dependencies.select{|d| d.task_name == v }.first
-          resolved_inputs[k] = input_dep || inputs[v] || k
+          resolved_inputs[k] = input_dep || step_inputs[v] || k
         else
           resolved_inputs[k] = v
         end
       end
-      workflow.job(task, id, resolved_inputs)
+      [workflow.job(task, id, resolved_inputs), step_inputs]
     end
 
-    deps.each do |workflow,task,options,block=nil|
+    # Helper function
+    find_dep_non_default_inputs = proc do |dep,definition_options,step_inputs={}|
+      assigned_inputs, dep_non_default_inputs = dep.task.assign_inputs(dep.inputs)
+      if NamedArray === assigned_inputs
+        dep_non_default_inputs.reject! do |name|
+          definition_options.include?(name) && 
+            (definition_options[name] == assigned_inputs[name] ||
+             definition_options[name] == step_inputs[name])
+        end
+      end
+
+      dep_non_default_inputs
+    end
+
+    deps.each do |workflow,task,definition_options,block=nil|
+      definition_options[:id] = definition_options.delete(:jobname) if definition_options.include?(:jobname)
+
       if provided_inputs.include?(overriden = [workflow.name, task] * "#")
         dep = provided_inputs[overriden]
         dep = Step.new dep unless Step === dep
@@ -74,58 +91,52 @@ module Task
         next
       end
 
-      options ||= {}
-      if block
-        inputs = IndiferentHash.add_defaults options.dup, provided_inputs
+      definition_options ||= {}
 
-        res = block.call id, inputs, dependencies
+      if block
+        fixed_provided_inputs = self.assign_inputs(provided_inputs).first.to_hash
+        self.inputs.each do |name,type,desc,value|
+          fixed_provided_inputs[name] = value unless fixed_provided_inputs.include?(name)
+        end
+        fixed_provided_inputs = IndiferentHash.add_defaults fixed_provided_inputs, provided_inputs
+        block_options = IndiferentHash.add_defaults definition_options.dup, fixed_provided_inputs
+
+        res = block.call id, block_options, dependencies
 
         case res
         when Step
           dep = res
           dependencies << dep
-          dep_non_default_inputs = dep.task.assign_inputs(dep.inputs).last
-          non_default_inputs.concat(dep_non_default_inputs - options.keys)
+          dep_non_default_inputs = find_dep_non_default_inputs.call(dep, block_options)
+          non_default_inputs.concat(dep_non_default_inputs)
         when Hash
-          new_options = res
-          dep = load_dep.call(id, workflow, task, inputs, new_options, dependencies)
+          step_options = block_options.merge(res)
+          dep, step_inputs = load_dep.call(id, workflow, task, step_options, block_options, dependencies)
           dependencies << dep
-          dep_non_default_inputs = dep.task.assign_inputs(dep.inputs).last
-          dep_non_default_inputs -= options.keys 
-          if new_options.include?(:inputs)
-            dep_non_default_inputs -= new_options[:inputs].keys 
-          else
-            dep_non_default_inputs -= new_options.keys
-          end
+          dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
           non_default_inputs.concat(dep_non_default_inputs)
         when Array
           res.each do |_res|
             if Hash === _res
-              new_options = _res
-              dep = load_dep.call(id, workflow, task, inputs, new_options, dependencies)
+              step_options = block_options.merge(_res)
+              dep, step_inputs = load_dep.call(id, workflow, task, step_options, block_options, dependencies)
               dependencies << dep
-              dep_non_default_inputs = dep.task.assign_inputs(dep.inputs).last
-              dep_non_default_inputs -= options.keys 
-              if new_options.include?(:inputs)
-                dep_non_default_inputs -= new_options[:inputs].keys 
-              else
-                dep_non_default_inputs -= new_options.keys
-              end
+              dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
               non_default_inputs.concat(dep_non_default_inputs)
             else
               dep = _res
               dependencies << dep
-              dep_non_default_inputs = dep.task.assign_inputs(dep.inputs).last
-              non_default_inputs.concat(dep_non_default_inputs - options.keys)
+              dep_non_default_inputs = find_dep_non_default_inputs.call(dep, block_options)
+              non_default_inputs.concat(dep_non_default_inputs)
             end
           end
         end
       else
-        inputs = IndiferentHash.add_defaults options.dup, provided_inputs
-        dep = load_dep.call(id, workflow, task, inputs, {}, dependencies)
+        step_options = IndiferentHash.add_defaults definition_options.dup, provided_inputs
+        dep, step_inputs = load_dep.call(id, workflow, task, step_options, definition_options, dependencies)
         dependencies << dep
-        dep_non_default_inputs = dep.task.assign_inputs(dep.inputs).last
-        non_default_inputs.concat(dep_non_default_inputs - options.keys)
+        dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
+        non_default_inputs.concat(dep_non_default_inputs)
       end
     end
 
@@ -137,24 +148,44 @@ module Task
     provided_inputs = {} if provided_inputs.nil?
     id = DEFAULT_NAME if id.nil?
 
-    inputs, non_default_inputs, input_hash = process_inputs provided_inputs
+    inputs, non_default_inputs, input_digest = process_inputs provided_inputs
 
     dependencies = dependencies(id, provided_inputs, non_default_inputs)
 
     non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
 
     if non_default_inputs.any?
-      hash = Misc.digest(:inputs => input_hash, :dependencies => dependencies)
+      hash = Misc.digest(:inputs => input_digest, :dependencies => dependencies)
       Log.debug "Hash #{name} - #{hash}: #{Log.fingerprint(:inputs => inputs, :non_default_inputs => non_default_inputs, :dependencies => dependencies)}"
-      id = [id, hash] * "_"
+      name = [id, hash] * "_"
+    else
+      name = id
     end
 
-    path = directory[id]
+    extension = self.extension
+    if extension == :dep_task
+      extension = nil
+      if dependencies.any?
+        dep_basename = File.basename(dependencies.last.path)
+        if dep_basename.include? "."
+          parts = dep_basename.split(".")
+          extension = [parts.pop]
+          while parts.last.length <= 4
+            extension << parts.pop
+          end
+          extension = extension.reverse * "."
+        end
+      end
+    end
+
+    path = directory[name]
+
+    path = path.set_extension(extension) if extension
 
     Persist.memory(path) do 
-      Log.debug "Creating job #{path} #{Log.fingerprint inputs} #{Log.fingerprint dependencies}"
+      Log.low "Creating job #{path} #{Log.fingerprint inputs} #{Log.fingerprint dependencies}"
       NamedArray.setup(inputs, @inputs.collect{|i| i[0] }) if @inputs
-      Step.new path.find, inputs, dependencies, &self
+      Step.new path.find, inputs, dependencies, id, &self
     end
   end
 end

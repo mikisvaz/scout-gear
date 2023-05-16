@@ -71,8 +71,8 @@ class TestTaskInput < Test::Unit::TestCase
     task = self.example_task
 
     TmpFile.with_file("2\n3") do |integer_array_file|
-      assert_equal task.digest_inputs(:string => "String", :integer => 2, :integer_array => %w(2 3)),
-        task.digest_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file)
+      assert_equal task.process_inputs(:string => "String", :integer => 2, :integer_array => %w(2 3)).last,
+        task.process_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file).last
     end
   end
 
@@ -83,10 +83,10 @@ class TestTaskInput < Test::Unit::TestCase
 
     TmpFile.with_file("1\n2") do |integer_array_file|
       hash1 = Open.open(integer_array_file) do |f|
-        task.digest_inputs(:string => "String", :integer => 2, :integer_array => f)
+        task.process_inputs(:string => "String", :integer => 2, :integer_array => f).last
       end
       hash2 = Open.open(integer_array_file) do |f|
-        task.digest_inputs(:string => "String", :integer => 2, :integer_array => f)
+        task.process_inputs(:string => "String", :integer => 2, :integer_array => f).last
       end
       assert_equal hash1, hash2
     end
@@ -98,8 +98,8 @@ class TestTaskInput < Test::Unit::TestCase
     task = self.example_task
 
     TmpFile.with_file("2\n3") do |integer_array_file|
-      assert_equal task.digest_inputs(:string => "String", :integer => 2, :integer_array => %w(2 3)),
-        task.digest_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file)
+      assert_equal task.process_inputs(:string => "String", :integer => 2, :integer_array => %w(2 3)).last,
+        task.process_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file).last
     end
   end
 
@@ -108,12 +108,12 @@ class TestTaskInput < Test::Unit::TestCase
 
     TmpFile.with_file("2\n3") do |integer_array_file|
       inputs = {:string => "String", :integer => 2, :integer_array => integer_array_file, :float_array => %w(1.1 2.2)}
-      original_digest =  task.digest_inputs(inputs)
+      original_digest =  task.process_inputs(inputs).last
 
       TmpFile.with_file do |save_directory|
         task.save_inputs(save_directory, inputs)
         new_inputs = task.load_inputs(save_directory)
-        new_digest =  task.digest_inputs(new_inputs)
+        new_digest =  task.process_inputs(new_inputs).last
         assert_equal original_digest, new_digest
       end
     end
@@ -124,13 +124,13 @@ class TestTaskInput < Test::Unit::TestCase
 
     TmpFile.with_file("TEST") do |somefile|
       inputs = {:string => "String", :integer => 2, :file => somefile, :float_array => %w(1.1 2.2)}
-      original_digest =  task.digest_inputs(inputs)
+      original_digest =  task.process_inputs(inputs).last
 
       TmpFile.with_file do |save_directory|
         task.save_inputs(save_directory, inputs)
         Open.rm somefile
         new_inputs = task.load_inputs(save_directory)
-        new_digest =  task.digest_inputs(new_inputs)
+        new_digest =  task.process_inputs(new_inputs).last
         assert_equal original_digest, new_digest
       end
     end
@@ -141,7 +141,7 @@ class TestTaskInput < Test::Unit::TestCase
 
     TmpFile.with_file("TEST") do |somefile|
       inputs = {:string => "String", :integer => 2, :file => somefile, :float_array => %w(1.1 2.2)}
-      original_digest =  task.digest_inputs(inputs)
+      original_digest =  task.process_inputs(inputs).last
 
       TmpFile.with_file do |save_directory|
         task.save_inputs(save_directory, inputs)
@@ -149,7 +149,7 @@ class TestTaskInput < Test::Unit::TestCase
           Open.cp save_directory, copy_directory
           Open.rm_rf save_directory
           new_inputs = task.load_inputs(copy_directory)
-          new_digest =  task.digest_inputs(new_inputs)
+          new_digest =  task.process_inputs(new_inputs).last
           assert_equal original_digest, new_digest
         end
       end
@@ -167,14 +167,14 @@ class TestTaskInput < Test::Unit::TestCase
       Open.write(file1, "TEST1")
       Open.write(file2, "TEST2")
       inputs = {:string => "String", :integer => 2, :file_array => [file1, file2], :float_array => %w(1.1 2.2)}
-      original_digest =  task.digest_inputs(inputs)
+      original_digest =  task.process_inputs(inputs).last
 
       TmpFile.with_file do |save_directory|
         task.save_inputs(save_directory, inputs)
         Open.rm(file1)
         Open.rm(file2)
         new_inputs = task.load_inputs(save_directory)
-        new_digest =  task.digest_inputs(new_inputs)
+        new_digest =  task.process_inputs(new_inputs).last
         assert_equal original_digest, new_digest
       end
     end

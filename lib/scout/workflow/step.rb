@@ -10,11 +10,12 @@ require_relative 'step/progress'
 
 class Step 
 
-  attr_accessor :path, :inputs, :dependencies, :task, :tee_copies
-  def initialize(path, inputs = nil, dependencies = nil, &task) 
+  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies
+  def initialize(path, inputs = nil, dependencies = nil, id = nil, &task) 
     @path = path
     @inputs = inputs
     @dependencies = dependencies
+    @id = id
     @task = task
     @mutex = Mutex.new
     @tee_copies = 1
@@ -53,6 +54,13 @@ class Step
 
   def name
     @name ||= File.basename(@path)
+  end
+
+  def clean_name
+    return @id if @id
+    return info[:clean_name] if info.include? :clean_name
+    return m[1] if m = name.match(/(.*?)(?:_[a-z0-9]{32})?(?:\..*)?/)
+    return name.split(".").first
   end
 
   def task_name
@@ -177,11 +185,21 @@ class Step
   def step(task_name)
     dependencies.each do |dep|
       return dep if dep.task_name == task_name
+      rec_dep = dep.step(task_name)
+      return rec_dep if rec_dep
     end
     nil
   end
 
+  def short_path
+    Scout.identify @path
+  end
+
   def digest_str
-    path.dup
+    "Step: " + short_path
+  end
+
+  def fingerprint
+    digest_str
   end
 end

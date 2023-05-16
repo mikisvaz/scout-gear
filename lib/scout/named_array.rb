@@ -49,6 +49,7 @@ module NamedArray
 
   def [](key)
     pos = NamedArray.identify_name(@fields, key)
+    return nil if pos.nil?
     super(pos)
   end
 

@@ -21,38 +21,6 @@ class TestTask < Test::Unit::TestCase
     assert_equal 2, s.run
   end
 
-  def test_override_inputs
-    wf = Workflow.annonymous_workflow "TaskInputs" do
-      input :input1, :string
-      task :step1 => :string do |i| i end
-
-      dep :step1, :input1 => 1
-      input :input2, :string
-      task :step2 => :string do |i| i end
-    end
-
-    job = wf.job(:step2, :input1 => 2)
-    assert_equal Task::DEFAULT_NAME, job.name
-    assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
-  end
-
-  def test_override_inputs_block
-    wf = Workflow.annonymous_workflow "TaskInputs" do
-      input :input1, :string
-      task :step1 => :string do |i| i end
-
-      dep :step1 do |id,options|
-        {:inputs => {:input1 => 1}}
-      end
-      input :input2, :string
-      task :step2 => :string do |i| i end
-    end
-
-    job = wf.job(:step2, :input1 => 2)
-    assert_equal Task::DEFAULT_NAME, job.name
-    assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
-  end
-
   def test_task_override_dep
     wf = Workflow.annonymous_workflow "TaskInputs" do
       input :input1, :integer
@@ -108,11 +76,13 @@ class TestTask < Test::Unit::TestCase
     assert_equal Task::DEFAULT_NAME, job.name
 
     step1 = wf.job(:step1, :input1 => 3)
+    assert_equal 3, step1.run
     job = wf.job(:double, "TaskInputs#step1" => step1)
     assert_equal 12, job.run
     assert_not_equal Task::DEFAULT_NAME, job.name
 
     step1 = wf.job(:step1, :input1 => 4)
+    assert_equal 4, step1.run
     job = wf.job(:double, "TaskInputs#step1" => step1)
     assert_equal 14, job.run
     assert_not_equal Task::DEFAULT_NAME, job.name
@@ -172,5 +142,144 @@ class TestTask < Test::Unit::TestCase
     job = wf.job(:my_sum, :vv1 => 2, :vv2 => 3)
     assert_equal 5, job.run
   end
+
+  def test_defaults_in_dep_block
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :v1, :integer
+      input :v2, :integer
+      task :sum => :integer do |v1,v2|
+        v1 + v2
+      end
+
+      input :vv1, :integer
+      input :vv2, :integer, nil, 3
+      dep :sum, :v1 => :placeholder, :v2 => :placeholder do |jobname,options,dependencies|
+        raise "Non-numeric value where integer expected" unless Numeric === options[:vv1]
+        {inputs: {v1: options[:vv1], v2: options[:vv2]} }
+      end
+      task :my_sum => :integer do
+        dependencies.last.load
+      end
+    end
+
+    job = wf.job(:my_sum, :vv1 => "2")
+    assert_equal 5, job.run
+  end
+
+  def test_dependency_jobname
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :v1, :integer
+      input :v2, :integer
+      task :sum => :integer do |v1,v2|
+        v1 + v2
+      end
+
+      input :vv1, :integer
+      input :vv2, :integer
+      dep :sum, :v1 => :vv1, :v2 => :vv2, :jobname => "OTHER_NAME"
+      task :my_sum => :integer do
+        dependencies.last.load
+      end
+    end
+
+    job = wf.job(:my_sum, "TEST_NAME", :vv1 => 2, :vv2 => 3)
+    assert_equal 5, job.run
+    assert_equal "TEST_NAME", job.clean_name
+    assert_equal "OTHER_NAME", job.step(:sum).clean_name
+  end
+
+  def test_no_param_last_job
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :v1, :integer
+      input :v2, :integer
+      task :sum => :integer do |v1,v2|
+        v1 + v2
+      end
+
+      dep :sum
+      task :my_sum => :integer do
+        dependencies.last.load
+      end
+    end
+
+    job = wf.job(:my_sum, :v1 => 2, :v2 => "3")
+    assert_equal 5, job.run
+    refute_equal Task::DEFAULT_NAME, job.name
+  end
+
+  def test_no_param_last_job_block
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :v1, :integer
+      input :v2, :integer
+      task :sum => :integer do |v1,v2|
+        v1 + v2
+      end
+
+      dep :sum do |jobname,options|
+        {inputs: options}
+      end
+      task :my_sum => :integer do
+        dependencies.last.load
+      end
+    end
+
+    job = wf.job(:my_sum, :v1 => 2, :v2 => "3")
+    assert_equal 5, job.run
+    refute_equal Task::DEFAULT_NAME, job.name
+  end
+
+
+  def test_override_inputs_block
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :input1, :string
+      task :step1 => :string do |i| i end
+
+      dep :step1, :input1 => 1  do |id,options|
+        {:inputs => options}
+      end
+      input :input2, :string
+      task :step2 => :string do |i| step(:step1).load end
+    end
+
+    job = wf.job(:step2, :input1 => 2)
+    assert_equal 1, job.run
+    assert_equal Task::DEFAULT_NAME, job.name
+    assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
+  end
+
+  def test_override_inputs_block_array
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :input1, :string
+      task :step1 => :string do |i| i end
+
+      dep :step1, :input1 => 1  do |id,options|
+        [{:inputs => options}]
+      end
+      input :input2, :string
+      task :step2 => :string do |i| step(:step1).load end
+    end
+
+    job = wf.job(:step2, :input1 => 2)
+    assert_equal 1, job.run
+    assert_equal Task::DEFAULT_NAME, job.name
+    assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
+  end
+
+  def test_override_inputs
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :input1, :string
+      task :step1 => :string do |i| i end
+
+      dep :step1, :input1 => 1
+      input :input2, :string
+      task :step2 => :string do |i| step(:step1).load end
+    end
+
+    job = wf.job(:step2, :input1 => 2)
+    assert_equal 1, job.run
+    assert_equal Task::DEFAULT_NAME, job.name
+    assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
+  end
+
 end
 

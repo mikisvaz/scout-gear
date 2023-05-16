@@ -15,5 +15,11 @@ ValueB (Entity type)
     assert_equal 1, NamedArray.identify_name(names, "ValueB")
     assert_equal 1, NamedArray.identify_name(names, 1)
   end
+
+  def test_missing_field
+    a = NamedArray.setup([1,2], [:a, :b])
+    assert_equal 1, a[:a]
+    assert_equal nil, a[:c]
+  end
 end
 

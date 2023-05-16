@@ -248,7 +248,6 @@ d 22
     EOF
 
     TmpFile.with_file(content) do |filename|
-      sss 0
       tsv = TSV.open(filename, :key_field => "Value", :tsv_grep => "2")
       assert_includes tsv, "2"
       refute_includes tsv, "3"
@@ -279,11 +278,11 @@ row2   b  bbb bbbb bb
     EOF
 
     TmpFile.with_file(content) do |filename|
-      tsv = TSV.open(filename, :flat, :sep => /\s+/, :merge => false)
+      tsv = TSV.open(filename, type: :flat, :sep => /\s+/, :merge => false)
       assert_equal ["a", "aa", "aaa"], tsv["row1"]
     end
 
-    tsv = TSV.setup({}, "ID~ValueA,ValueB#:type=:flat")
+    tsv = TSV.str_setup("ID~ValueA,ValueB#:type=:flat", {})
     assert_equal "ID", tsv.key_field
   end
 end

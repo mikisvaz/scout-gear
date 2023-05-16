@@ -94,6 +94,11 @@ module Open
     File.symlink?(path) && ! File.exist?(File.readlink(path))
   end
 
+  def self.directory?(file)
+    file = file.find if Path === file
+    File.directory?(file)
+  end
+
   def self.exists?(file)
     file = file.find if Path === file
     File.exist?(file)

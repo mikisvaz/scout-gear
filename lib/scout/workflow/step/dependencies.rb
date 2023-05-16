@@ -37,4 +37,12 @@ class Step
     dependencies.each{|dep| dep.run unless dep.running? || dep.done? }
   end
 
+
+  def self.wait_for_jobs(jobs)
+    threads = []
+    jobs.each do |job| 
+      threads << job.join
+    end
+    threads.each do |t| t.join end
+  end
 end

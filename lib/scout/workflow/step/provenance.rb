@@ -5,7 +5,7 @@ class Step
 
   def self.status_color(status)
     case status.to_sym
-    when :error, :aborted, :missing, :dead, :unsync
+    when :error, :aborted, :dead, :unsync
       :red
     when :streaming, :started
       :cyan
@@ -13,7 +13,7 @@ class Step
       :green
     when :dependencies, :waiting, :setup
       :yellow
-    when :notfound, :cleaned
+    when :notfound, :cleaned, :missing
       :blue
     else
       if status.to_s.index ">"
@@ -91,6 +91,7 @@ class Step
     info[:task_name] = task
     path  = step.path
     status = info[:status] || :missing
+    status = :noinfo if status == :missing && Open.exist?(path)
     status = "remote" if Open.remote?(path) || Open.ssh?(path)
     name = info[:name] || File.basename(path)
     status = :unsync if status == :done and not Open.exist?(path)

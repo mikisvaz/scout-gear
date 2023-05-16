@@ -28,7 +28,9 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-if options[:help]
+help, provenance, clean, recursive_clean, jobname, print_filepath = IndiferentHash.process_options options, :help, :provenance, :clean, :recursive_clean, :jobname, :print_filepath
+
+if help
   if defined? scout_usage
     scout_usage 
   else
@@ -40,17 +42,17 @@ if options[:help]
 end
 
 job_options = task.get_SOPT(task)
-job = workflow.job(task_name, options[:job_name], job_options)
+job = workflow.job(task_name, jobname, job_options)
 
-job.recursive_clean if options[:recursive_clean]
-job.clean if options[:clean]
+job.recursive_clean if recursive_clean
+job.clean if clean
 
-if options[:provenance]
+if provenance
   puts Step.prov_report(job)
 else
   job.run unless job.done?
 
-  if options[:print_filepath]
+  if print_filepath
     job.join
     path = job.path
     path = path.find if Path === path

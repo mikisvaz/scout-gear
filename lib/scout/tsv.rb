@@ -24,24 +24,12 @@ module TSV
     {:key_field => key, :fields => fields}.merge(rest_options)
   end
 
-  class << self
-    alias old_setup setup
+  def self.str_setup(option_str, obj)
+    options = TSV.str2options(option_str) 
+    setup(obj, options)
   end
 
-  def self.setup(file, *args, **kwargs)
-    options = args.pop if Hash === args.last
-    type, option_str = args
-    option_str, type = type, nil if option_str.nil? && String === type
-    kwargs = IndiferentHash.add_defaults kwargs, TSV.str2options(option_str) if option_str
-    old_setup(file, **kwargs)
-  end
-
-  def self.open(file, *args)
-    options = args.pop if Hash === args.last
-    type, option_str = args
-    options_str, type = type, nil if option_str.nil? && String === type
-    options = IndiferentHash.add_defaults options, TSV.str2options(option_str) if option_str
-    options[:type] ||= type unless type.nil?
+  def self.open(file, options = {})
     persist, type, grep, invert_grep = IndiferentHash.process_options options, :persist, :persist_type, :grep, :invert_grep, :persist => false, :persist_type => "HDB"
     Persist.persist(file, type, options.merge(:persist => persist)) do |filename|
       data = filename ? ScoutCabinet.open(filename, true, type) : nil

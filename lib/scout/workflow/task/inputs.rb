@@ -1,11 +1,11 @@
+require_relative '../../named_array'
 module Task
-
   def format_input(value, type, options = {})
     return value if IO === value || StringIO === value
 
     value = value.load if Step === value
-    if String === value && ! [:path, :file].include?(type) 
-      if Open.exists?(value)
+    if String === value && ! [:path, :file, :folder].include?(type) 
+      if Open.exists?(value) && ! Open.directory?(value)
         Persist.load(value, type) 
       else
         Persist.deserialize(value, type)
@@ -34,31 +34,26 @@ module Task
     IndiferentHash.setup(provided_inputs) if Hash === provided_inputs
 
     input_array = []
+    input_names = []
     non_default_inputs = []
     self.inputs.each_with_index do |p,i|
       name, type, desc, value, options = p
+      input_names << name
       provided = Hash === provided_inputs ? provided_inputs[name] : provided_inputs[i]
       provided = format_input(provided, type, options || {})
       if ! provided.nil? && provided != value
-        non_default_inputs << name
+        non_default_inputs << name.to_sym
         input_array << provided
       else
         input_array << value
       end
     end
 
+    NamedArray.setup(input_array, input_names)
+
     [input_array, non_default_inputs]
   end
 
-  def digest_inputs(provided_inputs = {})
-    input_array, non_default_inputs = assign_inputs(provided_inputs)
-    if Array === provided_inputs 
-      Misc.digest(input_array)
-    else
-      Misc.digest(input_array)
-    end
-  end
-  
   def process_inputs(provided_inputs = {})
     input_array, non_default_inputs = assign_inputs provided_inputs
     digest = Misc.digest(input_array)

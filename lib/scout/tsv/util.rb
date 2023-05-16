@@ -73,10 +73,19 @@ Example:
   end
 
   def all_fields
+    return [] if @fields.nil?
     [@key_field] + @fields
   end
 
   def fingerprint
     "TSV:{"<< Log.fingerprint(self.all_fields|| []) << ";" << Log.fingerprint(self.keys) << "}"
+  end
+
+  def digest_str
+    fingerprint
+  end
+
+  def inspect
+    fingerprint
   end
 end

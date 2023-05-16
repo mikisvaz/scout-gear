@@ -56,8 +56,8 @@ module TSV
       ConcurrentStream.setup(@sout, pair: @sin)
     end
 
-    def init
-      header = Dumper.header(@options.merge(:type => @type, :sep => @sep))
+    def init(preamble: true)
+      header = Dumper.header(@options.merge(type: @type, sep: @sep, preamble: preamble))
       @sin.puts header if header and ! header.empty?
     end
 
@@ -87,9 +87,10 @@ module TSV
     end
   end
 
-  def stream
-    dumper = TSV::Dumper.new self.extension_attr_hash
-    dumper.init
+  def stream(options = {})
+    preamble = IndiferentHash.process_options options, :preamble, :preamble => true
+    dumper = TSV::Dumper.new self.extension_attr_hash.merge(options)
+    dumper.init(preamble: preamble)
     t = Thread.new do 
       begin
         Thread.current.report_on_exception = true
@@ -103,10 +104,12 @@ module TSV
       end
     end
     Thread.pass until t["name"]
-    dumper.stream
+    s = dumper.stream
+    ConcurrentStream.setup(s, :threads => [t])
+    s
   end
 
-  def to_s
-    stream.read
+  def to_s(options = {})
+    stream(options).read
   end
 end

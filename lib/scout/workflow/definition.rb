@@ -79,7 +79,7 @@ module Workflow
     end
     workflow = self if workflow.nil?
     options = {} if options.nil?
-    annotate_next_task :deps, [workflow, task, options, block, args]
+    annotate_next_task :deps, [workflow, task.to_sym, options, block, args]
   end
 
   def input(*args)
@@ -103,6 +103,20 @@ module Workflow
     @tasks ||= IndiferentHash.setup({})
     begin
       @annotate_next_task ||= {}
+      @annotate_next_task[:extension] ||=  
+        case type
+        when :tsv
+          "tsv"
+        when :yaml
+          "yaml"
+        when :marshal
+          "marshal"
+        when :json
+          "json"
+        else
+          nil
+        end
+
       task = Task.setup(block, @annotate_next_task.merge(name: name, type: type, directory: directory[name], workflow: self))
       @tasks[name] = task
     ensure
@@ -110,6 +124,8 @@ module Workflow
     end
   end
 
+  FORGET_DEP_TASKS = ENV["SCOUT_FORGET_DEP_TASKS"] == "true"
+  REMOVE_DEP_TASKS = ENV["SCOUT_REMOVE_DEP_TASKS"] == "true"
   def task_alias(name, workflow, oname, *rest, &block)
     dep(workflow, oname, *rest, &block) 
     extension :dep_task unless @extension

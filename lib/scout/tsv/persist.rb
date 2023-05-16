@@ -6,6 +6,8 @@ Persist.save_drivers[:tsv] = proc do |file,content|
              content
            elsif content.respond_to?(:stream)
              content.stream
+           else
+             content
            end
   Open.sensible_write(file, stream)
 end
