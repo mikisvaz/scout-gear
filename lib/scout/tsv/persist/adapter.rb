@@ -1,8 +1,9 @@
 require_relative '../../open/lock'
+require_relative '../../meta_extension'
 require_relative 'serialize'
 
 module TSVAdapter
-  attr_accessor :persistence_path, :persistence_class, :serializer, :closed, :writable
+  attr_accessor :persistence_path, :persistence_class, :closed, :writable, :serializer
 
   class << self
     attr_accessor :lock_dir
@@ -19,23 +20,15 @@ module TSVAdapter
   end
 
   def load_extension_attr_hash
-    EXTENSION_ATTR_HASH_SERIALIZER.load(StringIO.new(self[EXTENSION_ATTR_HASH_KEY]))
+    EXTENSION_ATTR_HASH_SERIALIZER.load(StringIO.new(self.orig_get(EXTENSION_ATTR_HASH_KEY)))
   end
 
   def save_extension_attr_hash
-    self[EXTENSION_ATTR_HASH_KEY]= EXTENSION_ATTR_HASH_SERIALIZER.dump(self.extension_attr_hash)
+    self.orig_set(EXTENSION_ATTR_HASH_KEY, EXTENSION_ATTR_HASH_SERIALIZER.dump(self.extension_attr_hash))
   end
 
   def self.extended(base)
-    if ! TSVAdapter === base
-      if (! TSVAdapter === base) && base.include?(EXTENSION_ATTR_HASH_KEY)
-        TSV.setup(base, base.load_extension_attr_hash)
-      elsif TSV === base
-        base[EXTENSION_ATTR_HASH_KEY] = EXTENSION_ATTR_HASH_SERIALIZER.dump(base.extension_attr_hash)
-      end
-    end
-
-    base.serializer = SERIALIZER_ALIAS[base.type]
+    return if base.respond_to?(:orig_set)
 
     class << base
       alias orig_set []=
@@ -60,39 +53,15 @@ module TSVAdapter
       def save_value(value)
         serializer.dump(value)
       end
-
-
     end
 
-    #case base.type
-    #when :single
-    #  class << base
-    #    def load_value(value)
-    #      value
-    #    end
-    #    def save_value(value)
-    #      value
-    #    end
-    #  end
-    #when :list, :flat
-    #  class << base
-    #    def load_value(value)
-    #      value.nil? ? nil : value.split("\t")
-    #    end
-    #    def save_value(value)
-    #      value * "\t"
-    #    end
-    #  end
-    #when :double
-    #  class << base
-    #    def load_value(value)
-    #      value.nil? ? nil : value.split("\t").collect{|v| v.split("|") }
-    #    end
-    #    def save_value(value)
-    #      value.collect{|v| v * "|" } * "\t"
-    #    end
-    #  end
-    #end
+    if base.include?(EXTENSION_ATTR_HASH_KEY)
+      TSV.setup(base, base.load_extension_attr_hash)
+    else
+      base.instance_variable_get(:@extension_attrs).push :serializer
+      base.serializer = SERIALIZER_ALIAS[base.type] if base.serializer.nil?
+      base.save_extension_attr_hash
+    end
   end
 
   def keys(*args)

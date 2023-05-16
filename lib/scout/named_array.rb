@@ -1,7 +1,7 @@
 require_relative 'meta_extension'
 module NamedArray
   extend MetaExtension
-  extension_attr :fields
+  extension_attr :fields, :key
 
   def self.identify_name(names, selected)
     res = (Array === selected ? selected : [selected]).collect do |field|

@@ -13,7 +13,6 @@ row2    A    B    Id3
 row2    AA    BB    Id33
     EOF
 
-    sss 0
     tsv = TmpFile.with_file(content) do |filename|
       TSV.open(filename, :persist => true)
     end

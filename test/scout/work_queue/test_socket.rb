@@ -22,7 +22,6 @@ class TestSocket < Test::Unit::TestCase
   end
 
   def __test_speed
-    sss 0
     socket = WorkQueue::Socket.new 
 
     num = 10_000

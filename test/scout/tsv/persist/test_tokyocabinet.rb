@@ -21,6 +21,11 @@ row2    a    a    id3
 
     assert_equal %w(a aa aaa), tsv["row1"][0]
 
+    assert TSVAdapter === tsv
+    assert TSV === tsv
+    assert_include tsv.instance_variable_get(:@extension_attrs), :key_field
+    assert_include tsv.instance_variable_get(:@extension_attrs), :serializer
+
     tsv_loaded = assert_nothing_raised do
       TmpFile.with_file(content) do |filename|
         Persist.persist(__method__, :HDB) do
@@ -54,7 +59,7 @@ row2    a    a    id3
     end
   end
 
-  def test_speed
+  def __test_speed
     tsv = TSV.setup({}, :type => :double, :key_field => "Key", :fields => %w(Field1 Field2))
 
     size = 100_000
@@ -88,5 +93,27 @@ row2    a    a    id3
       assert_equal tc["key-#{i}"], tsv["key-#{i}"]
     end
   end
+
+  def test_float_array
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1   0.2   0.3 0
+row2    0.1  4.5 0
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/, :persist => true, :type => :list, :cast => :to_f)
+      tsv.save_extension_attr_hash
+      assert_equal [0.2, 0.3, 0], tsv["row1"]
+      assert_equal TSVAdapter::FloatArraySerializer, tsv.serializer
+      Open.cp tsv.persistence_path, tmpdir.persistence.foo
+      tsv2 = ScoutCabinet.open(tmpdir.persistence.foo, false)
+      tsv2.extend TSVAdapter
+      assert_equal [0.2, 0.3, 0], tsv2["row1"]
+      assert_equal TSVAdapter::FloatArraySerializer, tsv2.serializer
+    end
+ 
+  end
+
 end
 

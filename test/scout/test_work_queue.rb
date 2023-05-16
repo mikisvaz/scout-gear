@@ -93,7 +93,6 @@ class TestWorkQueue < Test::Unit::TestCase
     num = 100
     reps = 10_000
 
-    sss 0
     q = WorkQueue.new num do |obj|
       raise ScoutException if rand < 0.1
       [Process.pid.to_s, obj.to_s] * " "

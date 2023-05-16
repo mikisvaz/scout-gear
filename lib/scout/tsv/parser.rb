@@ -17,12 +17,17 @@ module TSV
 
     if positions.nil? && key == 0
       key = items.shift
-    elsif positions.nil? 
-      key = items.delete_at(key)
+    elsif positions.nil?
+      if type == :flat
+        key = items[1..-1].collect{|e| e.split(sep2, -1) }.flatten
+        items = items.slice(0,1)
+      else
+        key = items.delete_at(key)
+      end
       key = key.split(sep2) if type == :double
     else 
       key, items = items[key], items.values_at(*positions)
-      key = key.split(sep2) if type == :double
+      key = key.split(sep2) if type == :double || type == :flat
     end
 
     items = case type
@@ -31,7 +36,7 @@ module TSV
             when :single
               items.first
             when :flat
-              [items]
+              items.collect{|i| i.split(sep2, -1) }.flatten
             when :double
               items.collect{|i| i.split(sep2, -1) }
             end
@@ -51,12 +56,16 @@ module TSV
       source_type = type if source_type.nil?
 
       data = {} if data.nil?
-      merge = false if type != :double
+      merge = false if type != :double && type != :flat
       line = first_line || stream.gets
       while line
         begin
           line.strip!
-          line = Misc.fixutf8(line) if fix
+          if Proc === fix
+            line = fix.call line
+          elsif fix
+            line = Misc.fixutf8(line)
+          end
           bar.tick if bar
           key, items = parse_line(line, type: source_type, **kargs)
 
@@ -123,7 +132,7 @@ module TSV
 
             if ! merge || ! data.include?(key)
               data[key] = these_items
-            else
+            elsif type == :double
               current = data[key]
               if merge == :concat
                 these_items.each_with_index do |new,i|
@@ -137,6 +146,13 @@ module TSV
                   merged[i] = current[i] + new
                 end
                 data[key] = merged
+              end
+            elsif type == :flat
+              current = data[key]
+              if merge == :concat
+                current[i].concat these_items
+              else
+                data[key] = current + these_items
               end
             end
           end
@@ -167,7 +183,13 @@ module TSV
     if line and (String === header_hash && m = line.match(/^#{header_hash}: (.*)/))
       options = IndiferentHash.string2hash m.captures.first.chomp
       line = stream.gets
-      line = Misc.fixutf8 line.chomp if line && fix
+      if line && fix
+        if Proc === fix
+          line = fix.call line
+        else
+          line = Misc.fixutf8 line.chomp if line && fix
+        end
+      end
     end
 
     # Determine separator
@@ -211,6 +233,7 @@ module TSV
       else
         @stream = Open.open(file)
       end
+      @fix = fix
       @options, @key_field, @fields, @first_line, @preamble = TSV.parse_header(@stream, fix:fix, header_hash:header_hash, sep:sep)
       @options[:sep] = sep if @options[:sep].nil?
     end
@@ -221,24 +244,40 @@ module TSV
 
     def traverse(key_field: nil, fields: nil, filename: nil, namespace: nil,  **kwargs, &block)
       if fields
-        all_field_names ||= [@key_field] + @fields
-        positions = NamedArray.identify_name(all_field_names, fields)
-        kwargs[:positions] = positions
-        field_names = all_field_names.values_at *positions
+        if @fields
+          all_field_names ||= [@key_field] + @fields
+          positions = NamedArray.identify_name(all_field_names, fields)
+          kwargs[:positions] = positions
+          field_names = all_field_names.values_at *positions
+        elsif fields.reject{|f| Numeric === f}.empty?
+          positions = fields
+          kwargs[:positions] = positions
+        else
+          raise "Non-numeric fields specified, but no field names available"
+        end
       else
         field_names = @fields
       end
 
       if key_field
-        all_field_names ||= [@key_field] + @fields
-        key = NamedArray.identify_name(all_field_names, key_field)
-        kwargs[:key] = key == :key ? 0 : key
-        key_field_name = key === :key ? @key_field : all_field_names[key]
-        if fields.nil?
-          field_names = all_field_names - [@key_field]
+        if @fields
+          all_field_names ||= [@key_field] + @fields
+          key = NamedArray.identify_name(all_field_names, key_field)
+          kwargs[:key] = key == :key ? 0 : key
+          key_field_name = key === :key ? @key_field : all_field_names[key]
+          if fields.nil?
+            field_names = all_field_names - [key_field_name]
+          end
+        else
+          kwargs[:key] = key_field == :key ? 0 : key_field
+          key = key_field
         end
       else
         key_field_name = @key_field
+      end
+
+      if field_names && (kwargs[:type] == :single || kwargs[:type] == :flat)
+        field_names = field_names.slice(0,1)
       end
 
       @options.each do |option,value|
@@ -250,7 +289,7 @@ module TSV
       kwargs[:source_type] = @options[:type]
       kwargs[:data] = false if kwargs[:data].nil?
 
-      data = TSV.parse_stream(@stream, first_line: @first_line, **kwargs, &block)
+      data = TSV.parse_stream(@stream, first_line: @first_line, fix: @fix, **kwargs, &block)
 
       if data
         TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type)
@@ -299,46 +338,4 @@ module TSV
     data.unnamed = unnamed
     data
   end
-
-  #def self.parse_alt(stream, key_field: nil, fields: nil, filename: nil, namespace: nil,  **kwargs, &block)
-  #  options, key_field_name, field_names, first_line, preamble = parse_header(stream)
-
-  #  if fields
-  #    all_field_names ||= [key_field_name] + field_names
-  #    positions = NamedArray.identify_name(all_field_names, fields)
-  #    kwargs[:positions] = positions
-  #    field_names = all_field_names.values_at *positions
-  #  end
-
-  #  if key_field
-  #    all_field_names ||= [key_field_name] + field_names
-  #    key = NamedArray.identify_name(all_field_names, key_field)
-  #    kwargs[:key] = key
-  #    key_field_name = all_field_names[key]
-  #    if fields.nil?
-  #      field_names = all_field_names - [key_field_name]
-  #    end
-  #  end
-
-  #  options.each do |option,value|
-  #    option = option.to_sym
-  #    next unless KEY_PARAMETERS.include? option
-  #    kwargs[option] = value unless kwargs.include?(option)
-  #  end
-
-  #  kwargs[:source_type] = options[:type]
-
-  #  type = kwargs[:type] ||= :double
-  #  if (data = kwargs[:data]) && data.respond_to?(:persistence_class)
-  #    TSV.setup(data, type: type, key_field: key_field_name, fields: field_names)
-  #    data.extend TSVAdapter
-  #  end
-
-  #  data = parse_stream(stream, first_line: first_line, **kwargs, &block)
-
-  #  TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => type, filename: filename, namespace: namespace)
-
-  #  data
-  #end
-
 end

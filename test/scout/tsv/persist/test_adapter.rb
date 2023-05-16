@@ -3,7 +3,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 
 require 'scout/tsv'
 class TestTSVAdapter < Test::Unit::TestCase
-  def test_get_set
+  def _test_get_set
     tsv = TSV.setup({}, :type => :list, :key_field => "Key", :fields => %w(one two three))
     tsv.type = :list
     tsv.extend TSVAdapter

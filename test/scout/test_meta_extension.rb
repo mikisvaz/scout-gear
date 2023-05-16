@@ -8,6 +8,13 @@ class TestMetaExtension < Test::Unit::TestCase
     extension_attr :code, :code2
   end
 
+  module ExtensionClass2
+    extend MetaExtension
+
+    extension_attr :code3, :code4
+  end
+
+
   def test_setup_annotate
     str = "String"
     ExtensionClass.setup(str, :code)
@@ -50,6 +57,24 @@ class TestMetaExtension < Test::Unit::TestCase
 
     assert o.extension_attr_hash.include?(:code)
     assert o.extension_attr_hash.include?(:code2)
+  end
+
+  def test_twice
+    str = "String"
+
+    ExtensionClass.setup(str, :code2 => :code)
+    assert_equal :code, str.code2
+    assert_include str.instance_variable_get(:@extension_attrs), :code
+
+    str.extend ExtensionClass2
+    str.code3 = :code_alt
+    assert_equal :code, str.code2
+    assert_equal :code_alt, str.code3
+    assert_include str.instance_variable_get(:@extension_attrs), :code
+    assert_include str.instance_variable_get(:@extension_attrs), :code3
+
+    assert_include str.extension_attr_hash, :code
+    assert_include str.extension_attr_hash, :code3
   end
 end
 

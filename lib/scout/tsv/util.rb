@@ -4,9 +4,9 @@ require_relative 'traverse'
 require_relative 'util/process'
 require_relative 'util/select'
 module TSV
-  def [](*args)
-    v = super(*args)
-    NamedArray.setup(v, @fields) unless @unnamed || ! (Array === v)
+  def [](key, *rest)
+    v = super(key, *rest)
+    NamedArray.setup(v, @fields, key) unless @unnamed || ! (Array === v)
     v
   end
 
