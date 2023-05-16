@@ -154,8 +154,9 @@ module ConcurrentStream
 
     @threads.each do |t| 
       next if t == Thread.current
+      exception = exception.nil? ? Aborting.new : exception
       Log.debug "Aborting thread #{Log.fingerprint(t)} with exception: #{exception}"
-      t.raise((exception.nil? ? Aborted.new : exception))
+      t.raise(exception)
     end 
 
     @threads.each do |t|
@@ -217,12 +218,11 @@ module ConcurrentStream
       begin
         super(*args)
       rescue
-        Log.exception $!
         self.abort
         self.join 
         stream_raise_exception $!
       ensure
-        self.join if self.closed? or self.eof? 
+        self.join if ! @stream_exception && (self.closed? || self.eof?)
       end
     else
       super(*args)
@@ -232,15 +232,15 @@ module ConcurrentStream
   def read(*args)
     begin
       super(*args)
-    rescue
-      raise stream_exception if stream_exception
-      raise $!
+    rescue Exception
+      @stream_exception ||= $!
+      raise @stream_exception
     ensure
       begin
         close unless closed?
       rescue Exception
         raise $! if ConcurrentStreamProcessFailed === $!
-      end if autojoin && ! closed? && eof?
+      end if autojoin && ! closed? && (@stream_exception || eof?)
     end
   end
 

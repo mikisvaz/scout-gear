@@ -67,11 +67,13 @@ module Open
 
         c
       rescue Aborted
+        Thread.current["exception"] = true
         Log.low "Consume stream Aborted #{Log.fingerprint io} into #{into_path || into}"
         io.abort $! if io.respond_to? :abort
         into.close if into.respond_to?(:closed?) && ! into.closed?
         FileUtils.rm into_path if into_path and File.exist?(into_path)
       rescue Exception
+        Thread.current["exception"] = true
         Log.low "Consume stream Exception reading #{Log.fingerprint io} into #{into_path || into} - #{$!.message}"
         exception = (io.respond_to?(:stream_exception) && io.stream_exception) ? io.stream_exception : $!
         io.abort exception if io.respond_to? :abort
@@ -116,12 +118,13 @@ module Open
           when String === content
             File.open(tmp_path, 'wb') do |f| f.write content end
           when (IO === content or StringIO === content or File === content)
-            Open.write(tmp_path) do |f|
-              #f.sync = true
-              while block = content.read(BLOCK_SIZE)
-                f.write block
-                break if content.closed?
-              end 
+            Thread.handle_interrupt(Exception => :immediate) do
+              Open.write(tmp_path) do |f|
+                while block = content.read(BLOCK_SIZE)
+                  f.write block
+                  break if content.closed?
+                end 
+              end
             end
           else
             File.open(tmp_path, 'wb') do |f|  end
@@ -187,7 +190,7 @@ module Open
       FileUtils.rm path if erase && File.exist?(path)
     end
   end
-  
+
   def self.release_pipes(*pipes)
     PIPE_MUTEX.synchronize do
       pipes.flatten.each do |pipe|
@@ -239,7 +242,7 @@ module Open
         begin
           Thread.current.report_on_exception = false
           Thread.current["name"] = "Pipe input #{Log.fingerprint sin} => #{Log.fingerprint sout}"
-          
+
           yield sin
 
           sin.close if close and not sin.closed? and not sin.aborted?

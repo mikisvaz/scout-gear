@@ -36,7 +36,8 @@ class WorkQueue
       begin
         Log.debug "Aborting worker #{@pid}"
         Process.kill "INT", @pid 
-      rescue Errno::ECHILD
+      rescue Errno::ECHILD 
+      rescue Errno::ESRCH
       end
     end
 

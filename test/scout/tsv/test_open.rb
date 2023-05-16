@@ -44,5 +44,51 @@ class TestOpenTraverse < Test::Unit::TestCase
     assert_equal 2, r.collect{|l| l.split("-").last}.uniq.length
     assert_equal "LINE", r.collect{|l| l.split("-").first}.first
   end
+
+  def test_into_stream
+    num_lines = 100
+    lines = num_lines.times.collect{|i| "line-#{i}" }
+
+    r = TSV.traverse lines, :into => :stream do |l|
+      l + "-" + Process.pid.to_s
+    end
+
+    assert_equal num_lines, r.read.split("\n").length
+  end
+
+  def test_into_stream_error
+    num_lines = 100
+    lines = num_lines.times.collect{|i| "line-#{i}" }
+
+    assert_raise ScoutException do
+      i = 0
+      r = TSV.traverse lines, :into => :stream, cpus: 3 do |l|
+        raise ScoutException if i > 10
+        i += 1
+        l + "-" + Process.pid.to_s
+      end
+
+      r.read
+    end
+  end
+
+  def test_into_dumper_error
+    num_lines = 100
+    lines = num_lines.times.collect{|i| "line-#{i}" }
+
+    assert_raise ScoutException do 
+      i = 0
+      dumper = TSV::Dumper.new :key_field => "Key", :fields => ["Value"], :type => :single
+      dumper.init
+      dumper = TSV.traverse lines, :into => dumper, :cpus => 3 do |l|
+        raise ScoutException if i > 10
+        i += 1
+        value = l + "-" + Process.pid.to_s
+
+        [i.to_s, value]
+      end
+      ppp dumper.stream.read
+    end
+  end
 end
 

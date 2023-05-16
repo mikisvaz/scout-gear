@@ -76,10 +76,12 @@ module Workflow
       end
     when 1
       task = args.first
+      options, task = task, nil if Hash === task
     end
     workflow = self if workflow.nil?
     options = {} if options.nil?
-    annotate_next_task :deps, [workflow, task.to_sym, options, block, args]
+    task = task.to_sym if task
+    annotate_next_task :deps, [workflow, task, options, block, args]
   end
 
   def input(*args)

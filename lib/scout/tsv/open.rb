@@ -18,6 +18,14 @@ module Open
   def self.traverse(obj, into: nil, cpus: nil, bar: nil, callback: nil, unnamed: true, **options, &block)
     cpus = nil if cpus == 1
 
+    if into == :stream
+      sout, sin = Open.pipe
+      ConcurrentStream.setup(sout, :pair => sin)
+      ConcurrentStream.setup(sin, :pair => sout)
+      self.traverse(obj, into: sin, cpus: cpus, bar: bar, callback: callback, unnamed: unnamed, **options, &block)
+      return sout
+    end
+
     if into || bar
       orig_callback = callback if callback
       bar = Log::ProgressBar.get_obj_bar(bar, obj)
@@ -33,7 +41,7 @@ module Open
           Thread.current["name"] = "Traverse into"
           error = false
           begin
-            self.traverse(obj, callback: callback, **options, &block)
+            self.traverse(obj, callback: callback, cpus: cpus, unnamed: unnamed, **options, &block)
             into.close if into.respond_to?(:close)
             bar.remove if bar
           rescue Exception
