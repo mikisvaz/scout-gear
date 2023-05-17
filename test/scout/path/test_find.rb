@@ -68,7 +68,6 @@ class TestPathFind < Test::Unit::TestCase
     p = Path.setup("/tmp/foo/bar")
     assert p.located?
     assert_equal_path p, p.find
-    
   end
 
   def test_custom

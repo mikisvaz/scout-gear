@@ -16,14 +16,16 @@ module Task
       str.puts
     end
 
+    deps = workflow ? workflow.recursive_deps(self.name) : self.deps if deps.nil?
     if deps and deps.any?
       seen = inputs.collect{|name,_| name }
       dep_inputs = {}
-      deps.each do |dep_workflow,task_name|
+      deps.each do |dep_workflow,task_name,options|
         next if task_name.nil?
         task = dep_workflow.tasks[task_name]
         next if task.inputs.nil?
         inputs = task.inputs.reject{|name, _| seen.include? name }
+        inputs = task.inputs.reject{|name, _| options.include? name }
         next unless inputs.any?
         dep = workflow.nil? || dep_workflow.name != workflow.name ? ["#{dep_workflow.name}", task_name.to_s] *"#" : task_name.to_s
         dep_inputs[dep] = inputs
@@ -109,25 +111,25 @@ end
 
 module Workflow
 
-  def dep_tree(task_name, seen = nil)
+  def dep_tree(task_name, seen = nil, seen_options = nil)
     @dep_tree ||= {}
     key = [self, task_name]
 
     return @dep_tree[key] if @dep_tree.include?(key)
     save = seen.nil?
     seen = Set.new if seen.nil?
+    seen_options = {} if seen_options.nil?
 
     dep_tree = {}
     task = self.tasks[task_name]
-    task.deps.each do |dep|
+    task.deps.each do |workflow, task, options|
       next if seen.include? dep
-      seen << dep
-      workflow, task, *rest = dep
+      seen << [workflow, task, options.merge(seen_options)]
       next if task.nil?
 
       key = [workflow, task]
 
-      dep_tree[key] = workflow.dep_tree(task, seen)
+      dep_tree[key] = workflow.dep_tree(task, seen, options.merge(seen_options))
     end if task.deps
 
     @dep_tree[key] = dep_tree if save

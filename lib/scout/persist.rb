@@ -49,6 +49,11 @@ module Persist
       else
         return yield(file) if block.arity == 1
         res = yield
+
+        if res.nil?
+          return Persist.load(file, type)
+        end
+
         begin
           Open.rm(file)
 

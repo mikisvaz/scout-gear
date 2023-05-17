@@ -28,7 +28,7 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, jobname, print_filepath = IndiferentHash.process_options options, :help, :provenance, :clean, :recursive_clean, :jobname, :print_filepath
+help, provenance, clean, recursive_clean, jobname, print_filepath = IndiferentHash.process_options options, :help, :provenance, :clean, :recursive_clean, :job_name, :print_filepath
 
 if help
   if defined? scout_usage
