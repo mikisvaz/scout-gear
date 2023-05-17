@@ -132,6 +132,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     }
     index.rb
     traverse.rb
+    attach.rb
     util.rb
     util=util{
      process.rb

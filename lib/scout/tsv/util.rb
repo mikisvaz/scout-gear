@@ -35,11 +35,11 @@ module TSV
 
   def with_unnamed
     begin
-      old_unnamed = unnamed
-      unnamed = true
+      old_unnamed = @unnamed
+      @unnamed = true
       yield
     ensure
-      unnamed = old_unnamed
+      @unnamed = old_unnamed
     end
   end
 

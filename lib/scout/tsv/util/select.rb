@@ -189,7 +189,7 @@ module TSV
 
   def reorder(key_field = nil, fields = nil, merge: true, one2one: :fill) 
     res = self.annotate({})
-    key_field_name, field_names = through key_field, fields, one2one: one2one do |k,v|
+    key_field_name, field_names = traverse key_field, fields, one2one: one2one do |k,v|
       if @type == :double && merge && res.include?(k)
         current = res[k]
         if merge == :concat
