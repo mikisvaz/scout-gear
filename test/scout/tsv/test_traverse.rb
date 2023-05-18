@@ -56,6 +56,36 @@ row2    AA    BB    Id33
     assert_equal %w(Id ValueA ValueB), field_names
   end
 
+  def test_tsv_traverse_all
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    AA    BB    Id33
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename, :persist => true)
+    end
+
+    all_values = []
+    tsv.traverse "ValueA", :all do |k,v|
+      all_values.concat(v)
+    end
+    assert_include all_values.flatten, "row1"
+    assert_include all_values.flatten, "a"
+    assert_include all_values.flatten, "aaa"
+
+    all_values = []
+    tsv.traverse "Id", :all do |k,v|
+      all_values.concat(v)
+    end
+    assert_include all_values.flatten, "row1"
+    assert_include all_values.flatten, "a"
+    assert_include all_values.flatten, "aaa"
+  end
+
   def test_tsv_traverse_list
     content =<<-'EOF'
 #: :sep=/\s+/#:type=:list
@@ -111,5 +141,6 @@ row2    A
     end
     assert_equal [["row1"]], res["a"]
   end
+
 end
 

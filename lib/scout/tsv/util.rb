@@ -13,9 +13,9 @@ module TSV
   def each(*args, &block)
     if block_given?
       super(*args) do |k,v|
-      NamedArray.setup(v, @fields) unless @unnamed || ! (Array === v)
-      block.call(k, v)
-    end
+        NamedArray.setup(v, @fields) unless @unnamed || ! (Array === v)
+        block.call(k, v)
+      end
     else
       super(*args)
     end

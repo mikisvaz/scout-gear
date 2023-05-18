@@ -15,7 +15,7 @@ module Open
     end
   end
 
-  def self.traverse(obj, into: nil, cpus: nil, bar: nil, callback: nil, unnamed: true, **options, &block)
+  def self.traverse(obj, into: nil, cpus: nil, bar: nil, callback: nil, unnamed: true, keep_open: false, **options, &block)
     cpus = nil if cpus == 1
 
     if into == :stream
@@ -28,7 +28,8 @@ module Open
 
     if into || bar
       orig_callback = callback if callback
-      bar = Log::ProgressBar.get_obj_bar(bar, obj)
+      bar = Log::ProgressBar.get_obj_bar(bar, obj) if bar
+      bar.init if bar
       callback = proc do |res|
         bar.tick if bar
         traverse_add into, res if into
@@ -42,7 +43,7 @@ module Open
           error = false
           begin
             self.traverse(obj, callback: callback, cpus: cpus, unnamed: unnamed, **options, &block)
-            into.close if into.respond_to?(:close)
+            into.close if ! keep_open && into.respond_to?(:close)
             bar.remove if bar
           rescue Exception
             into.abort($!) if into.respond_to?(:abort)
@@ -71,7 +72,7 @@ module Open
         queue.join
         bar.remove if bar
       rescue
-        bar.abort($!) if bar
+        bar.remove($!) if bar
         raise $!
       end
       return into
@@ -103,6 +104,12 @@ module Open
           callback.call res if callback
           nil
         end
+      when TSV::Parser
+        obj.traverse **options do |k,v|
+          res = block.call k, v
+          callback.call res if callback
+          nil
+        end
       else
         TSV.parse obj, **options do |k,v|
           res = block.call k, v
@@ -112,7 +119,7 @@ module Open
       end
       bar.remove if bar
     rescue
-      bar.abort($!) if bar
+      bar.error if bar
       raise $!
     end
 

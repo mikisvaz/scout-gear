@@ -172,6 +172,25 @@ k a|A b|B
     assert_equal [["k", [%w(b B)]]], values
   end
 
+  def test_parser_traverse_all
+    content =<<-EOF
+Key ValueA ValueB
+k a|A b|B
+    EOF
+    content = StringIO.new content
+
+    parser = TSV::Parser.new content, sep: " ", header_hash: ''
+
+    assert_equal "Key", parser.key_field
+
+    values = []
+    parser.traverse key_field: "ValueA", fields: :all, type: :double do |k,v|
+      values << v
+    end
+
+    assert_include values.flatten, 'a'
+  end
+
 
   def test_parse_persist_serializer
     content =<<-EOF
@@ -192,7 +211,5 @@ k 1 2
       TSV.parse content, sep: " ", header_hash: '', data: data, cast: :to_i, type: :list, serializer: :float_array
       assert_equal [1.0, 2.0], data["k"]
     end
-
   end
-
 end

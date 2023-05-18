@@ -2,11 +2,13 @@ require_relative 'meta_extension'
 require_relative 'tsv/util'
 require_relative 'tsv/parser'
 require_relative 'tsv/dumper'
+require_relative 'tsv/transformer'
 require_relative 'tsv/persist'
 require_relative 'tsv/index'
 require_relative 'tsv/path'
 require_relative 'tsv/traverse'
 require_relative 'tsv/open'
+require_relative 'tsv/attach'
 
 module TSV
   extend MetaExtension
@@ -31,6 +33,7 @@ module TSV
 
   def self.open(file, options = {})
     persist, type, grep, invert_grep = IndiferentHash.process_options options, :persist, :persist_type, :grep, :invert_grep, :persist => false, :persist_type => "HDB"
+    type = type.to_sym if type
     Persist.persist(file, type, options.merge(:persist => persist)) do |filename|
       data = filename ? ScoutCabinet.open(filename, true, type) : nil
       options[:data] = data if data

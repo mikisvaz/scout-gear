@@ -37,6 +37,10 @@ module NamedArray
     Array === selected ? res : res.first
   end
 
+  def identify_name(selected)
+    NamedArray.identify_name(fields, selected)
+  end
+
   def positions(fields)
     if Array ==  fields
       fields.collect{|field|
@@ -65,5 +69,9 @@ module NamedArray
       hash[field] = value
     end
     IndiferentHash.setup hash
+  end
+
+  def values_at(*positions)
+    super(*identify_name(positions))
   end
 end

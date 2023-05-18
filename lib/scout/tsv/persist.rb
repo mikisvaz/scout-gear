@@ -6,6 +6,8 @@ Persist.save_drivers[:tsv] = proc do |file,content|
              content
            elsif content.respond_to?(:stream)
              content.stream
+           elsif content.respond_to?(:dumper_stream)
+             content.dumper_stream
            else
              content
            end

@@ -21,7 +21,8 @@ module Persist
   def self.persistence_path(name, options = {})
     options = IndiferentHash.add_defaults options, :dir => Persist.cache_dir
     other_options = IndiferentHash.pull_keys options, :other
-    TmpFile.tmp_for_file(name, options, other_options)
+    persist_options = {}
+    TmpFile.tmp_for_file(name, options.merge(persist_options), other_options)
   end
 
   MEMORY_CACHE = {}

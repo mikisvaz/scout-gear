@@ -82,13 +82,14 @@ class Step
     run_dependencies
     @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
       begin
+        clear_info
         merge_info :status => :start, :start => Time.now,
           :pid => Process.pid, :pid_hostname => ENV["HOSTNAME"], 
           :inputs => inputs, :type => type,
           :dependencies => dependencies.collect{|d| d.path }
 
         @result = exec
-        @result = @result.respond_to?(:stream) ? @result.stream : @result
+        @result = @result.stream if @result.respond_to?(:stream)
         @result
       rescue Exception => e
         merge_info :status => :error, :exception => e

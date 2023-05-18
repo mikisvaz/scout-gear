@@ -118,13 +118,11 @@ module Open
           when String === content
             File.open(tmp_path, 'wb') do |f| f.write content end
           when (IO === content or StringIO === content or File === content)
-            Thread.handle_interrupt(Exception => :immediate) do
-              Open.write(tmp_path) do |f|
-                while block = content.read(BLOCK_SIZE)
-                  f.write block
-                  break if content.closed?
-                end 
-              end
+            Open.write(tmp_path) do |f|
+              while block = content.read(BLOCK_SIZE)
+                f.write block
+                break if content.closed?
+              end 
             end
           else
             File.open(tmp_path, 'wb') do |f|  end
@@ -149,7 +147,7 @@ module Open
         rescue Exception
           exception = (AbortedStream === content and content.exception) ? content.exception : $!
           Log.low "Exception in sensible_write: [#{Process.pid}] #{exception.message} -- #{ Log.color :blue, path }"
-          content.abort if content.respond_to? :abort
+          content.abort(exception) if content.respond_to? :abort
           Open.rm path if File.exist? path
           raise exception
         rescue
@@ -309,9 +307,16 @@ module Open
         stream.close unless stream.closed?
         in_pipes.first.close unless in_pipes.first.closed?
       rescue Aborted, Interrupt
-        stream.abort if stream.respond_to? :abort
-        out_pipes.each do |sout|
-          sout.abort if sout.respond_to? :abort
+        stream.abort if stream.respond_to?(:abort) && ! stream.aborted?
+        out_pipes.reverse.each do |sout|
+          sout.threads.delete(Thread.current)
+          begin
+            sout.abort($!) if sout.respond_to?(:abort) && ! sout.aborted?
+          rescue
+          end
+        end
+        in_pipes.each do |sin|
+          sin.close unless sin.closed?
         end
         Log.low "Tee aborting #{Log.fingerprint stream}"
         raise $!
@@ -332,10 +337,13 @@ module Open
         rescue
           Log.exception $!
         ensure
-          in_pipes.each do |sin|
-            sin.close unless sin.closed?
+          begin
+            in_pipes.each do |sin|
+              sin.close unless sin.closed?
+            end
+          ensure
+            raise $!
           end
-          raise $!
         end
       end
     end

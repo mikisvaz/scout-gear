@@ -19,6 +19,10 @@ class Step
     @info_load_time = Time.now
   end
 
+  def clear_info
+    save_info(@info = {})
+  end
+
   def info
     outdated = begin
                  @info_load_time && (mtime = Open.mtime(info_file)) && mtime > @info_load_time
@@ -36,7 +40,7 @@ class Step
   def merge_info(new_info)
     info = self.info
     new_info.each do |key,value|
-      report_status new_info[:status], new_info[:message] if key == :status
+      report_status new_info[:status], new_info[:messages] if key == :status
       if Exception === value
         begin
           Marshal.dump(value)
@@ -80,7 +84,7 @@ class Step
 
   def log(status, message = nil)
     if message
-      merge_info :status => status, :messages => [message]
+      merge_info :status => status, :messages => message
     else
       merge_info :status => status
     end

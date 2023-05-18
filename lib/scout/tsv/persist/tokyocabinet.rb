@@ -16,6 +16,7 @@ module ScoutCabinet
     dir = File.dirname(File.expand_path(path))
     Open.mkdir(dir) unless File.exist?(dir)
 
+    tokyocabinet_class = tokyocabinet_class.to_s if Symbol === tokyocabinet_class
     tokyocabinet_class = TokyoCabinet::HDB if tokyocabinet_class == "HDB" or tokyocabinet_class.nil?
     tokyocabinet_class = TokyoCabinet::BDB if tokyocabinet_class == "BDB"
 

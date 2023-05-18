@@ -2,12 +2,14 @@ require_relative 'parser'
 require_relative 'persist/fix_width_table'
 module TSV
   def self.index(tsv_file, target: 0, fields: nil, order: true, **kwargs)
-    persist, type = IndiferentHash.process_options kwargs,
-      :persist, :persist_type,
+    persist, type, persist_update = IndiferentHash.process_options kwargs,
+      :persist, :persist_type, :persist_update,
       :persist => false, :persist_type => "HDB"
     kwargs.delete :type
 
-    Persist.persist(tsv_file, type, kwargs.merge(:persist => persist, :persist_prefix => "Index")) do |filename|
+    fields = :all if fields.nil?
+
+    Persist.persist(tsv_file, type, kwargs.merge(persist: persist, update: persist_update, :persist_prefix => "Index")) do |filename|
       if filename
         index = ScoutCabinet.open(filename, true, type)
         TSV.setup(index, :type => :single)
@@ -19,7 +21,7 @@ module TSV
       dummy_data = TSV.setup({}, :key_field => "Key", :fields => ["Target"])
       if order
         tmp_index = {}
-        key_field, field_names = TSV.traverse tsv_file, key_field: target, fields: fields, type: :double, into: dummy_data, unnamed: true, **kwargs do |k,values|
+        key_field, field_names = Open.traverse tsv_file, key_field: target, fields: fields, type: :double, into: dummy_data, unnamed: true, **kwargs do |k,values|
           values.each_with_index do |list,i|
             list.each do |e|
               tmp_index[e] ||= []
@@ -32,12 +34,13 @@ module TSV
           index[e] = list.flatten.compact.uniq.first
         end
       else
-        key_field, field_names = TSV.traverse tsv_file, key_field: target, fields: fields, type: :flat, into: dummy_data, unnamed: true, **kwargs do |k,values|
+        key_field, field_names = Open.traverse tsv_file, key_field: target, fields: fields, type: :flat, into: dummy_data, unnamed: true, **kwargs do |k,values|
           values.each do |e|
             index[e] = k unless index.include?(e)
           end
         end
       end
+
 
       index.key_field = dummy_data.fields * ", "
       index.fields = [dummy_data.key_field]

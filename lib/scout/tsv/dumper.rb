@@ -45,31 +45,38 @@ module TSV
     end
 
 
-    attr_accessor :options
+    attr_accessor :options, :initialized, :type, :sep
     def initialize(options = {})
       @sep, @type = IndiferentHash.process_options options, 
         :sep, :type, 
         :sep => "\t", :type => :double
       @options = options
       @sout, @sin = Open.pipe
+      @initialized = false
+      @mutex = Mutex.new
       ConcurrentStream.setup(@sin, pair: @sout)
       ConcurrentStream.setup(@sout, pair: @sin)
     end
 
     def init(preamble: true)
       header = Dumper.header(@options.merge(type: @type, sep: @sep, preamble: preamble))
-      @sin.puts header if header and ! header.empty?
+      @mutex.synchronize do
+        @initialized = true
+        @sin.puts header if header and ! header.empty?
+      end
     end
 
     def add(key, value)
+      @mutex.synchronize do
 
-      case @type
-      when :single
-        @sin.puts key + @sep + value
-      when :list, :flat
-        @sin.puts key + @sep + value * @sep
-      when :double
-        @sin.puts key + @sep + value.collect{|v| v * "|" } * @sep
+        case @type
+        when :single
+          @sin.puts key + @sep + value
+        when :list, :flat
+          @sin.puts key + @sep + value * @sep
+        when :double
+          @sin.puts key + @sep + value.collect{|v| v * "|" } * @sep
+        end
       end
     end
 
@@ -85,9 +92,13 @@ module TSV
     def abort(exception=nil)
       @sin.abort(exception)
     end
+
+    def tsv(*args)
+      TSV.open(stream, *args)
+    end
   end
 
-  def stream(options = {})
+  def dumper_stream(options = {})
     preamble = IndiferentHash.process_options options, :preamble, :preamble => true
     dumper = TSV::Dumper.new self.extension_attr_hash.merge(options)
     dumper.init(preamble: preamble)
@@ -110,6 +121,6 @@ module TSV
   end
 
   def to_s(options = {})
-    stream(options).read
+    dumper_stream(options).read
   end
 end

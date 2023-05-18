@@ -38,7 +38,7 @@ module TSV
             when :flat
               items.collect{|i| i.split(sep2, -1) }.flatten
             when :double
-              items.collect{|i| i.split(sep2, -1) }
+              items.collect{|i| i.nil? ? [] : i.split(sep2, -1) }
             end
 
 
@@ -214,6 +214,9 @@ module TSV
 
     first_line = line
 
+    options[:type] = options[:type].to_sym if options[:type]
+    options[:cast] = options[:cast].to_sym if options[:cast]
+
     [options, key_field, fields, first_line, preamble]
   end
 
@@ -238,14 +241,22 @@ module TSV
       @options[:sep] = sep if @options[:sep].nil?
     end
 
+    def all_options
+      options.merge(:key_field => @key_field, :fields => @fields)
+    end
+
     def all_fields
       [@key_field] + @fields
     end
 
     def traverse(key_field: nil, fields: nil, filename: nil, namespace: nil,  **kwargs, &block)
+      kwargs[:type] ||=  self.options[:type] ||= :double
+      kwargs[:type] = kwargs[:type].to_sym if kwargs[:type]
+
       if fields
         if @fields
           all_field_names ||= [@key_field] + @fields
+          fields = all_field_names if fields == :all
           positions = NamedArray.identify_name(all_field_names, fields)
           kwargs[:positions] = positions
           field_names = all_field_names.values_at *positions
@@ -297,7 +308,6 @@ module TSV
         self
       end
     end
-
   end
 
   def self.parse(stream, fix: true, header_hash: "#", sep: "\t", filename: nil, namespace: nil, unnamed: false, serializer: nil, **kwargs, &block)

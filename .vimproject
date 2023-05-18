@@ -123,6 +123,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    tsv=tsv{
     parser.rb
     dumper.rb
+    transformer.rb
     persist.rb
     persist=persist{
      adapter.rb

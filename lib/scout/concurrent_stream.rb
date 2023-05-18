@@ -154,20 +154,11 @@ module ConcurrentStream
 
     @threads.each do |t| 
       next if t == Thread.current
-      exception = exception.nil? ? Aborting.new : exception
+      exception = exception.nil? ? Aborted.new : exception
       Log.debug "Aborting thread #{Log.fingerprint(t)} with exception: #{exception}"
       t.raise(exception)
+      t.join
     end 
-
-    @threads.each do |t|
-      next if t == Thread.current
-      begin
-        t.join
-      rescue Aborted
-      rescue Exception
-        Log.debug "Thread (#{name}) exception: #{$!.message}"
-      end
-    end
   end
 
   def abort_pids
@@ -236,11 +227,15 @@ module ConcurrentStream
       @stream_exception ||= $!
       raise @stream_exception
     ensure
-      begin
-        close unless closed?
-      rescue Exception
-        raise $! if ConcurrentStreamProcessFailed === $!
-      end if autojoin && ! closed? && (@stream_exception || eof?)
+      if ! @stream_exception && autojoin && ! closed?
+        begin
+          done = eof?
+        rescue Exception
+          self.abort($!)
+          raise $!
+        end
+        close if done
+      end
     end
   end
 

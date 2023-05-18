@@ -15,8 +15,9 @@ module TSV
     fields = fields_pos.dup if fields.nil?
     type = @type if type.nil?
     key_pos = self.identify_field(key_field)
+    fields = self.all_fields if fields == :all
     fields = [fields] unless fields.nil? || Array === fields
-    positions = fields.nil? ? nil : self.identify_field(fields)
+    positions = fields.nil? || fields == :all ? nil : self.identify_field(fields)
 
     if key_pos == :key
       key_name = @key_field
@@ -33,7 +34,7 @@ module TSV
       field_names = @fields
     elsif positions.nil? && key_pos != :key
       field_names = @fields.dup
-      field_names.delete_at key_pos
+      field_names.delete_at key_pos unless fields == :all
     elsif positions.include?(:key)
       field_names = positions.collect{|p| p == :key ? @key_field : @fields[p] }
     else

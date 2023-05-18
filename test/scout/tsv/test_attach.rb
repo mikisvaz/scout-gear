@@ -90,7 +90,7 @@ B3 row3   Id3
   end
 
 
-  def __test_attach_same_key
+  def test_attach_same_key
     content1 =<<-EOF
 #ID    ValueA    ValueB
 row1    a|aa|aaa    b
@@ -112,7 +112,7 @@ row3    B    Id3
       tsv2 = TSV.open(File.open(filename), type: :double, :sep => /\s+/)
     end
 
-    tsv1.attach_same_key tsv2, "OtherID"
+    tsv1.attach tsv2, fields: "OtherID"
 
     assert_equal %w(ValueA ValueB OtherID), tsv1.fields
     assert_equal %w(Id1 Id2), tsv1["row1"]["OtherID"]
@@ -121,7 +121,7 @@ row3    B    Id3
       tsv1 = TSV.open(File.open(filename), type: :double, :sep => /\s+/)
     end
 
-    tsv1.attach_same_key tsv2
+    tsv1.attach tsv2
 
     assert_equal %w(ValueA ValueB OtherID), tsv1.fields
 
@@ -134,10 +134,70 @@ row3    B    Id3
       tsv2 = TSV.open(File.open(filename), type: :double, :sep => /\s+/)
     end
 
-    tsv1.attach_same_key tsv2, "OtherID"
+    tsv1.attach tsv2, fields: "OtherID"
 
     assert_equal %w(ValueA ValueB OtherID), tsv1.fields
     assert_equal "Id1", tsv1["row1"]["OtherID"]
   end
-end
 
+  def test_attach_source_field
+    content1 =<<-EOF
+#Id    ValueA    ValueB
+row1    a|aa|aaa    b
+row2    A    B
+    EOF
+
+    content2 =<<-EOF
+#ValueB    OtherID
+b    Id1|Id2
+B    Id3
+    EOF
+
+    tsv1 = tsv2 = nil
+    TmpFile.with_file(content1) do |filename|
+      tsv1 = TSV.open(File.open(filename), type: :double, :sep => /\s+/)
+    end
+
+    TmpFile.with_file(content2) do |filename|
+      tsv2 = TSV.open(File.open(filename), type: :double, :sep => /\s+/)
+    end
+
+    tsv1.attach tsv2
+
+    assert_equal %w(ValueA ValueB OtherID), tsv1.fields
+    assert_equal %w(Id1 Id2), tsv1["row1"]["OtherID"]
+
+    TmpFile.with_file(content1) do |filename|
+      tsv1 = TSV.open(File.open(filename), type: :list, :sep => /\s+/)
+    end
+
+    tsv1.attach tsv2
+
+    assert_equal %w(ValueA ValueB OtherID), tsv1.fields
+    assert_equal "Id1", tsv1["row1"]["OtherID"]
+  end
+
+  def test_attach_transformer
+    content1 =<<-EOF
+#: :sep=" "
+#ID    ValueA    ValueB
+row1    a|aa|aaa    b
+row2    A    B
+    EOF
+
+    content2 =<<-EOF
+#: :sep=" "
+#ID    ValueB    OtherID
+row1    b    Id1|Id2
+row3    B    Id3
+    EOF
+
+    TmpFile.with_file(content1) do |filename1|
+      TmpFile.with_file(content2) do |filename2|
+        out = TSV.attach filename1, filename2
+        tsv = out.tsv
+        assert_equal %w(Id1 Id2), tsv["row1"]["OtherID"]
+      end
+    end
+  end
+end
