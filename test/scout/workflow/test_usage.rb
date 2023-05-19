@@ -45,18 +45,18 @@ class TestWorkflowUsage < Test::Unit::TestCase
   end
 
   def test_task_usage
-    assert_match "Desc2", UsageWorkflow.tasks[:step2].usage(UsageWorkflow)
-    assert_match "--array", UsageWorkflow.tasks[:step2].usage(UsageWorkflow)
-    assert_match "Desc2_fixed", UsageWorkflow.tasks[:step2_fixed].usage(UsageWorkflow)
-    assert_match "Desc3", UsageWorkflow.tasks[:step3].usage(UsageWorkflow)
-    assert_match "--array", UsageWorkflow.tasks[:step3].usage(UsageWorkflow)
+    assert_match /Desc2/, UsageWorkflow.tasks[:step2].usage(UsageWorkflow)
+    assert_match /--array/, UsageWorkflow.tasks[:step2].usage(UsageWorkflow)
+    assert_match /Desc2_fixed/, UsageWorkflow.tasks[:step2_fixed].usage(UsageWorkflow)
+    assert_match /Desc3/, UsageWorkflow.tasks[:step3].usage(UsageWorkflow)
+    assert_match /--array/, UsageWorkflow.tasks[:step3].usage(UsageWorkflow)
   end
 
   def test_task_input_fixed
-    assert_match "Desc2_fixed", UsageWorkflow.tasks[:step2_fixed].usage(UsageWorkflow)
-    refute_match "--array", UsageWorkflow.tasks[:step2_fixed].usage(UsageWorkflow)
-    assert_match "Desc3", UsageWorkflow.tasks[:step3_fixed].usage(UsageWorkflow)
-    refute_match "--array", UsageWorkflow.tasks[:step3_fixed].usage(UsageWorkflow)
+    assert_match /Desc2_fixed/, UsageWorkflow.tasks[:step2_fixed].usage(UsageWorkflow)
+    refute_match /--array/, UsageWorkflow.tasks[:step2_fixed].usage(UsageWorkflow)
+    assert_match /Desc3/, UsageWorkflow.tasks[:step3_fixed].usage(UsageWorkflow)
+    refute_match /--array/, UsageWorkflow.tasks[:step3_fixed].usage(UsageWorkflow)
   end
 end
 
