@@ -59,4 +59,19 @@ end
     assert_include File.open(TestResource.tmp.test.work.footest.bar.find).read, "OTHER"
     assert_include File.open(TestResource.tmp.test.work.footest.foo_bar.find).read, "OTHER"
   end
+
+  def test_produce_with_extension
+    dir = tmpdir.directory[__method__]
+    dir.pkgdir = Scout
+    list = %w(a b)
+
+    Scout.claim dir["foo.list"], :proc do
+      list
+    end
+
+    Misc.in_dir(dir) do
+      file = dir.foo
+      assert_equal list, file.list
+    end
+  end
 end

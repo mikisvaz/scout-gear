@@ -373,3 +373,18 @@ def sss(level, &block)
   end
 end
 
+def ccc(obj=nil, file = $stdout)
+  if block_given?
+    old_scout_debug_log = $scout_debug_log
+    $scout_debug_log = 'true'
+    begin
+      yield
+    ensure
+      $scout_debug_log = old_scout_debug_log
+    end
+  else
+    Log.log_obj_inspect(obj, :info, file) if $scout_debug_log
+  end
+end
+
+

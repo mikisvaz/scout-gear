@@ -92,7 +92,7 @@ class Step
         @result = @result.stream if @result.respond_to?(:stream)
         @result
       rescue Exception => e
-        merge_info :status => :error, :exception => e
+        merge_info :status => :error, :exception => e, :end => Time.now
         raise e
       ensure
         if ! (error? || aborted?)
@@ -149,9 +149,16 @@ class Step
     end
   end
 
+  def consume_all_streams
+    threads = [] 
+    while @result && streaming? && stream = self.stream
+      threads << Open.consume_stream(stream, true)
+    end
+    threads.each{|t| t.join }
+  end
+
   def join
-    io = self.stream if streaming?
-    Open.consume_stream(io, false) if io
+    consume_all_streams
     self
   end
 

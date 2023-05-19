@@ -178,7 +178,7 @@ module Open
     target = target.find if Path === target
 
     FileUtils.mkdir_p File.dirname(target) unless File.exist?(File.dirname(target))
-    FileUtils.rm target if File.exist?(target)
+    FileUtils.rm_rf target if File.exist?(target)
     FileUtils.cp_r source, target
   end
 
@@ -226,5 +226,10 @@ module Open
       Open.ln_s(source, target, options)
     end
     nil
+  end
+
+  def self.list(file)
+    file = file.produce_and_find if Path === file
+    Open.read(file).split("\n")
   end
 end

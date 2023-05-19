@@ -1,9 +1,9 @@
 require_relative 'transformer'
 module TSV
 
-  def self.attach(source, other, fields: nil, match_key: nil, other_key: nil, one2one: :fill, complete: false, insitu: true)
+  def self.attach(source, other, fields: nil, match_key: nil, other_key: nil, one2one: :fill, complete: false, insitu: true, persist_input: false)
     source = TSV::Transformer.new source unless TSV === source || TSV::Parser === source
-    other = TSV.open other unless TSV === other 
+    other = TSV.open other, persist: persist_input unless TSV === other 
 
     match_key = (source.all_fields & other.all_fields).first if match_key.nil?
     match_key = source.key_field if match_key.nil? 

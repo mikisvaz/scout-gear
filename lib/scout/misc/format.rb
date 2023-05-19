@@ -25,6 +25,18 @@ module Misc
     str
   end
 
+  CHAR_SENCONDS = ENV["SCOUT_NOCOLOR"] == "true" ? "sec" : "″"
+  def self.format_seconds_short(time)
+    if time < 0.0001
+      "%.5g" % time + CHAR_SENCONDS
+    elsif time < 60
+      "%.2g" % time + CHAR_SENCONDS
+    else
+      format_seconds(time)
+    end
+  end
+
+
   
   MAX_WIDTH = 100
   def self.format_paragraph(text, size = nil, indent = nil, offset = nil)

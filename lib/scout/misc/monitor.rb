@@ -41,4 +41,15 @@ module Misc
 
     res
   end
+
+  def self.exec_time(&block)
+    start = Time.now
+    eend = nil
+    begin
+      yield
+    ensure
+      eend = Time.now
+    end
+    eend - start
+  end
 end

@@ -93,6 +93,7 @@ module TmpFile
     end
   end
 
+  SLASH_REPLACE = '·'
   def self.tmp_for_file(file, tmp_options = {}, other_options = {})
     tmp_for_file = IndiferentHash.process_options tmp_options, :file
     return tmp_for_file unless tmp_for_file.nil?
@@ -100,9 +101,9 @@ module TmpFile
     prefix = IndiferentHash.process_options tmp_options, :prefix
 
     if prefix.nil?
-      perfile = file.to_s.gsub(/\//, '>') 
+      perfile = file.to_s.gsub(/\//, SLASH_REPLACE) 
     else
-      perfile = prefix.to_s + ":" + file.to_s.gsub(/\//, '>') 
+      perfile = prefix.to_s + ":" + file.to_s.gsub(/\//, SLASH_REPLACE) 
     end
 
     perfile.sub!(/\.b?gz$/,'')

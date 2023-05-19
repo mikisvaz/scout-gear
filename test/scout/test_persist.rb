@@ -156,6 +156,12 @@ class TestPersist < Test::Unit::TestCase
     end
   end
 
+  def test_path_prefix
+    Persist.persist('foo', :tsv, :prefix => "TSV") do |filename|
+      assert File.basename(filename).start_with? "TSV"
+    end
+  end
+
   def __test_speed
     times = 100_000
     TmpFile.with_file do |tmpfile|

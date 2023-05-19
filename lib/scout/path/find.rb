@@ -10,6 +10,7 @@ module Path
           file =~ /(?:scout|rbbt)\/(?:.*\/)?path\.rb/ or
           file =~ /(?:scout|rbbt)\/(?:.*\/)?path\/(?:find|refactor|util)\.rb/ or
           file =~ /(?:scout|rbbt)\/persist.rb/ or
+          file =~ /scout\/resource\/produce.rb/ or
           file =~ /modules\/rbbt-util/
       end
       file = file.sub(/\.rb[^\w].*/,'.rb')
@@ -188,4 +189,10 @@ module Path
       .select{|file| file.exist? }.uniq
   end
 
+  def find_with_extension(extension, *args)
+    found = self.find(*args)
+    return found if found.exists?
+    found_with_extension = self.set_extension(extension).find
+    found_with_extension.exists? ? found_with_extension : found
+  end
 end

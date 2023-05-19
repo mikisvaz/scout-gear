@@ -105,5 +105,15 @@ class TestPathFind < Test::Unit::TestCase
       assert Open.exist?(tmpdir.somefile)
     end
   end
+
+  def test_with_extension
+    dir = tmpdir.directory[__method__]
+    list = %w(a b)
+    Misc.in_dir(dir) do
+      file = dir.foo
+      Open.write(file.set_extension('list'), list * "\n")
+      assert_equal list, file.list
+    end
+  end
 end
 

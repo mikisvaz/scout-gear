@@ -93,16 +93,25 @@ module Open
           nil
         end
       when String
+        obj = obj.produce_and_find if Path === obj
         f = Open.open(obj)
         self.traverse(f, cpus: cpus, callback: callback, **options, &block)
       when Step
         raise obj.exception if obj.error?
         self.traverse(obj.stream, cpus: cpus, callback: callback, **options, &block)
       when IO
-        TSV.parse obj, **options do |k,v|
-          res = block.call k, v
-          callback.call res if callback
-          nil
+        if options[:type] == :array
+          while line = obj.gets
+            res = block.call line.strip
+            callback.call res if callback
+            nil
+          end
+        else
+          TSV.parse obj, **options do |k,v|
+            res = block.call k, v
+            callback.call res if callback
+            nil
+          end
         end
       when TSV::Parser
         obj.traverse **options do |k,v|

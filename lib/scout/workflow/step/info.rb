@@ -40,7 +40,19 @@ class Step
   def merge_info(new_info)
     info = self.info
     new_info.each do |key,value|
-      report_status new_info[:status], new_info[:messages] if key == :status
+      if key == :status
+        message = new_info[:messages]
+        if message.nil? && value == :done || value == :error || value == :aborted
+          start = info[:start]
+          eend = new_info[:end]
+          if start && eend
+            time = eend - start
+            time_str = Misc.format_seconds_short(time)
+            message = Log.color(:time, time_str)
+          end
+        end
+        report_status value, message 
+      end
       if Exception === value
         begin
           Marshal.dump(value)
@@ -76,13 +88,19 @@ class Step
   
   def report_status(status, message = nil)
     if message.nil?
-      Log.info Log.color(:status, status, true) + " " + Log.color(:path, path)
+      Log.info [Log.color(:status, status, true), Log.color(:task, task_name, true), Log.color(:path, path)] * " "
     else
-      Log.info Log.color(:status, status, true) + " " + Log.color(:path, path) + " " + message
+      Log.info [Log.color(:status, status, true), Log.color(:task, task_name, true), message, Log.color(:path, path)] * " "
     end
   end
 
-  def log(status, message = nil)
+  def log(status, message = nil, &block)
+    if block_given?
+      time = Misc.exec_time &block
+      time_str = Misc.format_seconds_short time
+      message = message.nil? ? Log.color(:time, time_str) : "#{Log.color :time, time_str} - #{ message }"
+    end
+
     if message
       merge_info :status => status, :messages => message
     else

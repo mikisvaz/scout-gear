@@ -1,8 +1,13 @@
 class Step
+  def rec_dependencies
+    rec_dependencies = dependencies.dup
+    dependencies.inject(rec_dependencies){|acc,d| acc.concat d.dependencies }
+  end
+
   def recursive_inputs
-    dependencies.inject(@inputs.annotate(@inputs.dup)) do |acc,dep|
-      acc.concat(dep.inputs) if dep.inputs
-      acc
+    recursive_inputs = @inputs.to_hash
+    dependencies.inject(recursive_inputs) do |acc,dep|
+      acc.merge(dep.recursive_inputs)
     end
   end
 
@@ -36,7 +41,6 @@ class Step
   def run_dependencies
     dependencies.each{|dep| dep.run unless dep.running? || dep.done? }
   end
-
 
   def self.wait_for_jobs(jobs)
     threads = []

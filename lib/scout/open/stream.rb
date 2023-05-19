@@ -56,6 +56,7 @@ module Open
 
         while c = io.read(BLOCK_SIZE)
           into << c if into
+          last_c = c if c
           break if io.closed?
         end
 
@@ -65,7 +66,7 @@ module Open
         into.close if into and into_close and not into.closed?
         block.call if block_given?
 
-        c
+        last_c
       rescue Aborted
         Thread.current["exception"] = true
         Log.low "Consume stream Aborted #{Log.fingerprint io} into #{into_path || into}"

@@ -156,4 +156,27 @@ module Path
     self.pkgdir.produce self if Resource === self.pkgdir
     return self
   end
+
+  def produce_with_extension(extension, *args)
+    begin
+      self.produce(*args)
+    rescue Exception
+      exception = $!
+      begin
+        self.set_extension(extension).produce(*args)
+      rescue Exception
+        raise exception
+      end
+    end
+  end
+
+  def produce_and_find(extension = nil, *args)
+    if extension
+      found = find_with_extension(extension, *args)
+      found.exists? ? found : produce_with_extension(extension, *args)
+    else
+      found = find
+      found.exists? ? found : produce(*args)
+    end
+  end
 end

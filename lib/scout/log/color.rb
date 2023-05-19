@@ -134,7 +134,7 @@ module Log
     attr_accessor :nocolor
   end
 
-  self.nocolor = ENV["RBBT_NOCOLOR"] == 'true'
+  self.nocolor = ENV["SCOUT_NOCOLOR"] == 'true'
 
   WHITE, DARK, GREEN, YELLOW, RED = Color::SOLARIZED.values_at :base0, :base00, :green, :yellow, :magenta
 
@@ -152,6 +152,9 @@ module Log
     :start => cyan,
     :done => green,
     :error => red,
+    :time => cyan,
+    :task => yellow,
+    :workflow => yellow,
   })
   HIGHLIGHT = "\033[1m"
   
