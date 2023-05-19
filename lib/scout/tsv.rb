@@ -9,6 +9,7 @@ require_relative 'tsv/path'
 require_relative 'tsv/traverse'
 require_relative 'tsv/open'
 require_relative 'tsv/attach'
+require_relative 'tsv/change_id'
 
 module TSV
   extend MetaExtension
@@ -34,6 +35,7 @@ module TSV
   def self.open(file, options = {})
     persist, type, grep, invert_grep = IndiferentHash.process_options options, :persist, :persist_type, :grep, :invert_grep, :persist => false, :persist_type => "HDB"
     type = type.to_sym if type
+    file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
     Persist.persist(file, type, options.merge(:persist => persist, :prefix => "Tsv")) do |filename|
       data = filename ? ScoutCabinet.open(filename, true, type) : nil
       options[:data] = data if data

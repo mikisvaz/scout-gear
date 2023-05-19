@@ -1,9 +1,21 @@
 #require_relative '../../../modules/rbbt-util/lib/rbbt/tsv/manipulate'
 #Log.warn "USING OLD RBBT CODE: #{__FILE__}"
 require_relative 'traverse'
+require_relative 'util/filter'
 require_relative 'util/process'
 require_relative 'util/select'
+require_relative 'util/unzip'
 module TSV
+  def self.identify_field(key_field, fields, name)
+    return :key if name == :key || key_field.start_with?(name.to_s)
+    name.collect!{|n| key_field == n ? :key : n } if Array === name
+    NamedArray.identify_name(fields, name)
+  end
+
+  def identify_field(name)
+    TSV.identify_field(@key_field, @fields, name)
+  end
+
   def [](key, *rest)
     v = super(key, *rest)
     NamedArray.setup(v, @fields, key) unless @unnamed || ! (Array === v)
@@ -33,10 +45,10 @@ module TSV
     end
   end
 
-  def with_unnamed
+  def with_unnamed(unnamed = true)
     begin
       old_unnamed = @unnamed
-      @unnamed = true
+      @unnamed = unnamed
       yield
     ensure
       @unnamed = old_unnamed
@@ -53,7 +65,7 @@ module TSV
     end
 
     filename = @filename
-    filename = "No filename" if filename.nil? || filename.empty?
+    filename = "No filename" if filename.nil? || String === filename && filename.empty?
     filename.find if Path === filename 
     filename = File.basename(filename) + " [" + File.basename(persistence_path) + "]" if respond_to?(:persistence_path) and persistence_path
 
@@ -75,6 +87,10 @@ Example:
   def all_fields
     return [] if @fields.nil?
     [@key_field] + @fields
+  end
+
+  def all_options
+    self.extension_attr_hash
   end
 
   def fingerprint

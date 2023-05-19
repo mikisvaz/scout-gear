@@ -1,32 +1,8 @@
 module TSV
   class Dumper
-    def self.header_lines(key_field, fields, entry_hash = nil)
-      if Hash === entry_hash 
-        sep = entry_hash[:sep] ? entry_hash[:sep] : "\t"
-        preamble = entry_hash[:preamble]
-        header_hash = entry_hash[:header_hash]
-      end
-
-      header_hash = "#" if header_hash.nil?
-
-      preamble = "#: " << Misc.hash2string(entry_hash.merge(:key_field => nil, :fields => nil)) << "\n" if preamble.nil? and entry_hash and entry_hash.values.compact.any?
-
-      str = "" 
-      str << preamble.strip << "\n" if preamble and not preamble.empty?
-      if fields
-        if fields.empty?
-          str << header_hash << (key_field || "ID").to_s << "\n" 
-        else
-          str << header_hash << (key_field || "ID").to_s << sep << (fields * sep) << "\n" 
-        end
-      end
-
-      str
-    end
-
     def self.header(options={})
-      key_field, fields, sep, header_hash, preamble = IndiferentHash.process_options options, 
-        :key_field, :fields, :sep, :header_hash, :preamble,
+      key_field, fields, sep, header_hash, preamble, unnamed = IndiferentHash.process_options options, 
+        :key_field, :fields, :sep, :header_hash, :preamble, :unnamed,
         :sep => "\t", :header_hash => "#", :preamble => true
 
       if fields.nil? || key_field.nil?
@@ -75,7 +51,7 @@ module TSV
         when :list, :flat
           @sin.puts key + @sep + value * @sep
         when :double
-          @sin.puts key + @sep + value.collect{|v| v * "|" } * @sep
+          @sin.puts key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep
         end
       end
     end

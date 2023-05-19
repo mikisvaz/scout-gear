@@ -121,6 +121,11 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    }
    tsv.rb
    tsv=tsv{
+    util.rb
+    util=util{
+     process.rb
+     select.rb
+    }
     parser.rb
     dumper.rb
     transformer.rb
@@ -134,11 +139,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     index.rb
     traverse.rb
     attach.rb
-    util.rb
-    util=util{
-     process.rb
-     select.rb
-    }
+    change_id.rb
     path.rb
     open.rb
    }
@@ -390,6 +391,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
 
      tsv.rb
      tsv=tsv{
+      refactor.rb
       parser.rb
       dumper.rb
 

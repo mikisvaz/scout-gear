@@ -8,6 +8,8 @@ module NamedArray
       case field
       when nil
         0
+      when Range
+        field
       when Integer
         field
       when Symbol
@@ -27,6 +29,8 @@ module NamedArray
           next identify_names(names, field.to_i)
         end
         pos = names.index{|name| name.start_with?(field) }
+        next pos if pos
+        pos = names.index{|name| String === name && name.include?('(' + field + ')') }
         next pos if pos
         nil
       else
@@ -73,5 +77,45 @@ module NamedArray
 
   def values_at(*positions)
     super(*identify_name(positions))
+  end
+
+  def self._zip_fields(array, max = nil)
+    return [] if array.nil? or array.empty? or (first = array.first).nil?
+
+    max = array.collect{|l| l.length }.max if max.nil?
+
+    rest = array[1..-1].collect{|v|
+      v.length == 1 & max > 1 ? v * max : v
+    }
+
+    first = first * max if first.length == 1 and max > 1
+
+    first.zip(*rest)
+  end
+
+  def self.zip_fields(array)
+    if array.length < 10000
+      _zip_fields(array)
+    else
+      zipped_slices = []
+      max = array.collect{|l| l.length}.max
+      array.each_slice(10000) do |slice|
+        zipped_slices << _zip_fields(slice, max)
+      end
+      new = zipped_slices.first
+      zipped_slices[1..-1].each do |rest|
+        rest.each_with_index do |list,i|
+          new[i].concat list
+        end
+      end
+      new
+    end
+  end
+
+  def self.add_zipped(source, new)
+    source.zip(new).each do |s,n|
+      s << n
+    end
+    source
   end
 end

@@ -1,15 +1,5 @@
 require_relative 'parser'
 module TSV
-  def self.identify_field(key_field, fields, name)
-    return :key if name == :key || key_field.start_with?(name.to_s)
-    name.collect!{|n| key_field == n ? :key : n } if Array === name
-    NamedArray.identify_name(fields, name)
-  end
-
-  def identify_field(name)
-    TSV.identify_field(@key_field, @fields, name)
-  end
-
   def traverse(key_field_pos = :key, fields_pos = nil, type: nil, one2one: false, unnamed: false, key_field: nil, fields: nil, &block)
     key_field = key_field_pos if key_field.nil?
     fields = fields_pos.dup if fields.nil?
@@ -44,94 +34,96 @@ module TSV
     key_index = positions.index :key if positions
     positions.delete :key if positions
 
-    each do |key,values|
-      values = [values] if @type == :single
-      if positions.nil?
-        if key_pos != :key
-          values = values.dup
-          key = values.delete_at(key_pos)
-        end
-      else 
-        orig_key = key
-        key = values[key_pos] if key_pos != :key 
+    with_unnamed unnamed do
+      each do |key,values|
+        values = [values] if @type == :single
+        if positions.nil?
+          if key_pos != :key
+            values = values.dup
+            key = values.delete_at(key_pos)
+          end
+        else 
+          orig_key = key
+          key = values[key_pos] if key_pos != :key 
 
-        values = values.values_at(*positions)
-        if key_index
-          if @type == :double
-            values.insert key_index, [orig_key]
-          else
-            values.insert key_index, orig_key
+          values = values.values_at(*positions)
+          if key_index
+            if @type == :double
+              values.insert key_index, [orig_key]
+            else
+              values.insert key_index, orig_key
+            end
           end
         end
-      end
 
-      if Array === key 
-        if @type == :double && one2one
-          if one2one == :fill
-            key.each_with_index do |key_i,i|
-              if type == :double
-                v_i = values.collect{|v| [v[i] || v.first] }
-              else
-                v_i = values.collect{|v| v[i] || v.first }
+        if Array === key 
+          if @type == :double && one2one
+            if one2one == :fill
+              key.each_with_index do |key_i,i|
+                if type == :double
+                  v_i = values.collect{|v| [v[i] || v.first] }
+                else
+                  v_i = values.collect{|v| v[i] || v.first }
+                end
+                yield key_i, v_i
               end
-              yield key_i, v_i
+            else
+              key.each_with_index do |key_i,i|
+                if type == :double
+                  v_i = values.collect{|v| [v[i]] }
+                else
+                  v_i = values.collect{|v| v[i] }
+                end
+                yield key_i, v_i
+              end
             end
           else
-            key.each_with_index do |key_i,i|
+            key.each_with_index do |key_i, i|
               if type == :double
-                v_i = values.collect{|v| [v[i]] }
-              else
-                v_i = values.collect{|v| v[i] }
+                yield key_i, values
+              elsif type == :list
+                yield key_i, values.collect{|v| v[i] }
+              elsif type == :flat
+                yield key_i, values.flatten
+              elsif type == :single
+                yield key_i, values.first
               end
-              yield key_i, v_i
             end
           end
         else
-          key.each_with_index do |key_i, i|
-            if type == :double
-              yield key_i, values
-            elsif type == :list
-              yield key_i, values.collect{|v| v[i] }
-            elsif type == :flat
-              yield key_i, values.flatten
-            elsif type == :single
-              yield key_i, values.first
+          if type == @type
+            if type == :single
+              yield key, values.first
+            else
+              yield key, values
             end
-          end
-        end
-      else
-        if type == @type
-          if type == :single
-            yield key, values.first
           else
-            yield key, values
-          end
-        else
-          case [type, @type]
-          when [:double, :list]
-            yield key, values.collect{|v| [v] }
-          when [:double, :flat]
-            yield key, [values]
-          when [:double, :single]
-            yield key, [values]
-          when [:list, :double]
-            yield key, values.collect{|v| v.first }
-          when [:list, :flat]
-            yield key, [values.first]
-          when [:list, :single]
-            yield key, values
-          when [:flat, :double]
-            yield key, values.flatten
-          when [:flat, :list]
-            yield key, values.flatten
-          when [:flat, :single]
-            yield key, values
-          when [:single, :double]
-            yield key, values.flatten.first
-          when [:single, :list]
-            yield key, values.first
-          when [:single, :flat]
-            yield key, values.first
+            case [type, @type]
+            when [:double, :list]
+              yield key, values.collect{|v| [v] }
+            when [:double, :flat]
+              yield key, [values]
+            when [:double, :single]
+              yield key, [values]
+            when [:list, :double]
+              yield key, values.collect{|v| v.first }
+            when [:list, :flat]
+              yield key, [values.first]
+            when [:list, :single]
+              yield key, values
+            when [:flat, :double]
+              yield key, values.flatten
+            when [:flat, :list]
+              yield key, values.flatten
+            when [:flat, :single]
+              yield key, values
+            when [:single, :double]
+              yield key, values.flatten.first
+            when [:single, :list]
+              yield key, values.first
+            when [:single, :flat]
+              yield key, values.first
+            end
           end
         end
       end

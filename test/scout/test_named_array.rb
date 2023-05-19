@@ -21,5 +21,16 @@ ValueB (Entity type)
     assert_equal 1, a[:a]
     assert_equal nil, a[:c]
   end
+
+  def test_zip_fields
+    a = [%w(a b), %w(1 1)]
+    assert_equal [%w(a 1), %w(b 1)], NamedArray.zip_fields(a)
+  end
+
+  def test_add_zipped
+    a = [%w(a b), %w(1 1)]
+    NamedArray.add_zipped a, %w(c 1)
+    assert_equal [%w(a b c), %w(1 1 1)], a
+  end
 end
 

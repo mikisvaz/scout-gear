@@ -249,6 +249,11 @@ module TSV
       [@key_field] + @fields
     end
 
+    def identify_field(name)
+      TSV.identify_field(@key_field, @fields, name)
+    end
+
+
     def traverse(key_field: nil, fields: nil, filename: nil, namespace: nil,  **kwargs, &block)
       kwargs[:type] ||=  self.options[:type] ||= :double
       kwargs[:type] = kwargs[:type].to_sym if kwargs[:type]

@@ -5,7 +5,9 @@ module TSV
     def initialize(parser, dumper = nil, unnamed: false)
       if TSV::Parser === parser
         @parser = parser
-      else 
+      elsif TSV === parser
+        @parser = parser
+      else
         @parser = TSV::Parser.new parser
       end
       @unnamed = unnamed
@@ -60,7 +62,7 @@ module TSV
     def traverse(*args, **kwargs, &block)
       kwargs[:into] = @dumper
       @dumper.init unless @dumper.initialized
-      TSV.traverse(@parser, *args, **kwargs) do |k,v|
+      Open.traverse(@parser, *args, **kwargs) do |k,v|
         NamedArray.setup(v, @parser.fields, k) unless @unnamed
         block.call k, v
       end

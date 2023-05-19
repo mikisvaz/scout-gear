@@ -1,17 +1,31 @@
 require_relative '../open'
 require_relative '../work_queue'
+
+module MultipleResult
+  def self.setup(obj)
+    obj.extend MultipleResult
+    obj
+  end
+end
+
 module Open
   def self.traverse_add(into, res)
-    case into
-    when defined?(TSV::Dumper) && TSV::Dumper
-      into.add *res
-    when TSV, Hash
-      key, value = res
-      into[key] = value
-    when Array, Set
-      into << res
-    when IO, StringIO
-      into.puts res
+    if Array === res && MultipleResult === res
+      res.each do |_res|
+        traverse_add into, _res
+      end
+    else
+      case into
+      when defined?(TSV::Dumper) && TSV::Dumper
+        into.add *res
+      when TSV, Hash
+        key, value = res
+        into[key] = value
+      when Array, Set
+        into << res
+      when IO, StringIO
+        into.puts res
+      end
     end
   end
 
@@ -32,7 +46,7 @@ module Open
       bar.init if bar
       callback = proc do |res|
         bar.tick if bar
-        traverse_add into, res if into
+        traverse_add into, res if into && ! res.nil?
         orig_callback.call res if orig_callback
       end
 
@@ -50,7 +64,7 @@ module Open
             bar.remove($!) if bar
           end
         end
-        Thread.pass until into_thread
+        Thread.pass until into_thread["name"]
         return into
       end
     end

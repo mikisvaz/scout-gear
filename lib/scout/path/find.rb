@@ -13,6 +13,7 @@ module Path
           file =~ /scout\/resource\/produce.rb/ or
           file =~ /modules\/rbbt-util/
       end
+      return nil if file.nil?
       file = file.sub(/\.rb[^\w].*/,'.rb')
     end
 
@@ -39,7 +40,7 @@ module Path
       sub('{SUBPATH}', path._subpath).
       sub('{BASENAME}', File.basename(path)).
       sub('{PATH}', path).
-      sub('{LIBDIR}', path.libdir || (path.pkgdir.respond_to?(:libdir) && path.pkgdir.libdir) || Path.caller_lib_dir).
+      sub('{LIBDIR}', path.libdir || (path.pkgdir.respond_to?(:libdir) && path.pkgdir.libdir) || Path.caller_lib_dir || "NOLIBDIR").
       sub('{MAPNAME}', map_name.to_s).
       sub('{REMOVE}/', '').
       sub('{REMOVE}', '').gsub(/\/+/,'/')

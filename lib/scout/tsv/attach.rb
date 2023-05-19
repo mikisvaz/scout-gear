@@ -9,7 +9,6 @@ module TSV
     match_key = source.key_field if match_key.nil? 
     other_key = match_key if other_key.nil?
 
-
     match_key = :key if match_key == source.key_field
     other_key = :key if other_key == other.key_field
 
@@ -19,7 +18,7 @@ module TSV
       source.with_unnamed do
 
         if other_key != :key || fields
-          fields = other.all_fields - [other_key, source.key_field]
+          fields = other.all_fields - [other_key, source.key_field] if fields.nil?
           other = other.reorder other_key, fields, one2one: one2one
         else
           fields = other.fields - [source.key_field, other_key]
