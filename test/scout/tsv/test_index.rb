@@ -48,19 +48,30 @@ row2    a    b    id3
 #: :sep=/\s+/#:type=:double#:merge=:concat
 #Id    ValueA    ValueB    OtherID
 row1    a|aa|aaa    b    Id1|Id2
-row2    A    B    Id3|a
+row2    A|b    B    Id3|a
 row2    a    b    id3
     EOF
 
     TmpFile.with_file(content) do |filename|
       tsv = TSV.open(filename)
+      index = TSV.index(tsv, :target => "ValueB")
+      assert_equal 'b', index["a"]
+      assert_equal 'B', index["B"]
+      assert_equal 'b', index["b"]
+
+      index = tsv.index(:target => "ValueB")
+      assert_equal 'b', index["a"]
+      assert_equal 'B', index["B"]
+      assert_equal 'b', index["b"]
+
+
       index = TSV.index(tsv, :target => "ValueB", :fields => "OtherID")
       assert_equal 'B', index["a"]
       assert_nil index["B"]
 
       index = tsv.index(:target => "ValueB", :fields => "OtherID")
       assert_equal 'B', index["a"]
-      assert_nil index["B"]
+      assert_nil  index["B"]
     end
   end
 
@@ -74,7 +85,7 @@ row2    A    B    Id3|a
 row2    a    b    id3
     EOF
     tsv = TmpFile.with_file(content) do |filename|
-      index = TSV.index(filename, :target => "ValueB", :persist => true)
+      index = TSV.index(filename, :target => "ValueB", :persist => true, bar: true)
       assert_equal 'b', index["row1"]
       assert_equal 'b', index["a"]
       assert_equal 'b', index["aaa"]

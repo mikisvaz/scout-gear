@@ -1,6 +1,6 @@
 module TSV
 
-  def self.unzip(source, field, target: nil, sep: ":", delete: true, type: :list, merge: false, one2one: true)
+  def self.unzip(source, field, target: nil, sep: ":", delete: true, type: :list, merge: false, one2one: true, bar: nil)
     source = TSV::Parser.new source if String === source
 
     field_pos = source.identify_field(field)
@@ -27,7 +27,9 @@ module TSV
 
     transformer = TSV::Transformer.new source, target, unnamed: true
 
-    transformer.traverse unnamed: true, one2one: one2one do |k,v|
+    bar = "Unzip #{new_key_field}" if TrueClass === bar
+
+    transformer.traverse unnamed: true, one2one: one2one, bar: bar do |k,v|
       if source.type == :double
         if one2one
           res = NamedArray.zip_fields(v).collect do |_v|

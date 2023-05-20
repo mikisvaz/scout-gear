@@ -162,7 +162,7 @@ B    Id3
       tsv2 = TSV.open(File.open(filename), type: :double, :sep => /\s+/)
     end
 
-    tsv1.attach tsv2
+    tsv1.attach tsv2, bar: true
 
     assert_equal %w(ValueA ValueB OtherID), tsv1.fields
     assert_equal %w(Id1 Id2), tsv1["row1"]["OtherID"]
@@ -194,7 +194,31 @@ row3    B    Id3
 
     TmpFile.with_file(content1) do |filename1|
       TmpFile.with_file(content2) do |filename2|
-        out = TSV.attach filename1, filename2, target: :stream
+        out = TSV.attach filename1, filename2, target: :stream, bar: false
+        tsv = out.tsv
+        assert_equal %w(Id1 Id2), tsv["row1"]["OtherID"]
+      end
+    end
+  end
+
+  def test_attach_flexible_names
+    content1 =<<-EOF
+#: :sep=" "
+#ID    ValueA    ValueB
+row1    a|aa|aaa    b
+row2    A    B
+    EOF
+
+    content2 =<<-EOF
+#: :sep=" "
+#Identifiers(ID) OtherID
+row1        Id1|Id2
+row3        Id3
+    EOF
+
+    TmpFile.with_file(content1) do |filename1|
+      TmpFile.with_file(content2) do |filename2|
+        out = TSV.attach filename1, filename2, target: :stream, bar: false
         tsv = out.tsv
         assert_equal %w(Id1 Id2), tsv["row1"]["OtherID"]
       end

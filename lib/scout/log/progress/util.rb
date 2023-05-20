@@ -29,7 +29,7 @@ module Log
 
     def self.new_bar(max, options = {})
       options, max = max, nil if Hash === max
-      max = options[:max] if max.nil?
+      max = options[:max] if options && max.nil?
       cleanup_bars
       BAR_MUTEX.synchronize do
         Log::LAST.replace "new_bar" if Log::LAST == "progress"
@@ -82,7 +82,7 @@ module Log
     end
 
     def self.with_bar(max = nil, options = {})
-      bar = new_bar(max, options)
+      bar = options.include?(:bar) ? options[:bar] : new_bar(max, options)
       begin
         error = false
         keep = false
@@ -98,69 +98,73 @@ module Log
     end
 
     def self.guess_obj_max(obj)
-    begin
-      case obj
-      when (defined? Step and Step)
-        if obj.done?
-          path = obj.path
-          path = path.find if path.respond_to? :find
-          if File.exist? path
-            CMD.cmd("wc -l '#{path}'").read.to_i 
+      begin
+        case obj
+        when (defined? Step and Step)
+          if obj.done?
+            path = obj.path
+            path = path.find if path.respond_to? :find
+            if File.exist? path
+              CMD.cmd("wc -l '#{path}'").read.to_i 
+            else
+              nil
+            end
           else
             nil
           end
-        else
-          nil
+        when TSV
+          obj.length
+        when Array, Hash
+          obj.size
+        when File
+          return nil if Open.gzip?(obj.filename) or Open.bgzip?(obj.filename) or Open.remote?(obj.filename)
+          CMD.cmd("wc -l '#{obj.filename}'").read.to_i
+        when Path, String
+          obj = obj.find if Path === obj
+          if File.exist? obj
+            return nil if Open.gzip?(obj) or Open.bgzip?(obj)
+            CMD.cmd("wc -l '#{obj}'").read.to_i
+          else
+            nil
+          end
         end
-      when TSV
-        obj.length
-      when Array, Hash
-        obj.size
-      when File
-        return nil if Open.gzip?(obj) or Open.bgzip?(obj)
-        CMD.cmd("wc -l '#{obj.path}'").read.to_i
-      when Path, String
-        obj = obj.find if Path === obj
-        if File.exist? obj
-          return nil if Open.gzip?(obj) or Open.bgzip?(obj)
-          CMD.cmd("wc -l '#{obj}'").read.to_i
-        else
-          nil
-        end
+      rescue Exception
+        nil
       end
-    rescue Exception
-      Log.exception $!
-      nil
     end
-  end
 
-  def self.get_obj_bar(bar, obj)
-    case bar
-    when String
-      max = guess_obj_max(obj)
-      Log::ProgressBar.new_bar(max, {:desc => bar}) 
-    when TrueClass
-      max = guess_obj_max(obj)
-      Log::ProgressBar.new_bar(max, nil) 
-    when Numeric
-      max = guess_obj_max(obj)
-      Log::ProgressBar.new_bar(bar) 
-    when Hash
-      max = IndiferentHash.process_options(bar, :max) || max
-      Log::ProgressBar.new_bar(max, bar) 
-    when Log::ProgressBar
-      bar.max ||= guess_obj_max(obj)
-      bar
-    else
-      if (defined? Step and Step === bar)
+    def self.get_obj_bar(obj, bar = nil)
+      return nil if bar.nil? || bar == false
+      case bar
+      when String
         max = guess_obj_max(obj)
-        Log::ProgressBar.new_bar(max, {:desc => bar.status, :file => bar.file(:progress)}) 
-      else
+        Log::ProgressBar.new_bar(max, {:desc => bar}) 
+      when TrueClass
+        max = guess_obj_max(obj)
+        Log::ProgressBar.new_bar(max) 
+      when Numeric
+        max = guess_obj_max(obj)
+        Log::ProgressBar.new_bar(bar) 
+      when Hash
+        max = IndiferentHash.process_options(bar, :max) || max
+        Log::ProgressBar.new_bar(max, bar) 
+      when Log::ProgressBar
+        bar.max ||= guess_obj_max(obj)
         bar
+      else
+        if (defined? Step and Step === bar)
+          max = guess_obj_max(obj)
+          Log::ProgressBar.new_bar(max, {:desc => bar.status, :file => bar.file(:progress)}) 
+        else
+          bar
+        end
       end
     end
-  end
-  end
 
+    def self.with_obj_bar(obj, bar = true, &block)
+      bar = get_obj_bar(obj, bar)
+      with_bar nil, bar: bar, &block
+    end
+  end
 end
 

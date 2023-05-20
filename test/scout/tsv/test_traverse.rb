@@ -30,17 +30,25 @@ row2    AA    BB    Id33
     assert_equal ["Id3", "B"], res["row2"]
 
     res = {}
-    tsv.traverse "OtherID", %w(Id ValueB), one2one: true do |k,v|
+    tsv.traverse "OtherID", %w(Id ValueB), one2one: :strict do |k,v|
       res[k] = v
     end
     assert_equal [[nil], %w(BB)], res["Id33"]
+
+    res = {}
+    tsv.traverse "OtherID", %w(Id ValueB), one2one: :strict, type: :list do |k,v|
+      res[k] = v
+    end
+    assert_equal ["row2", "B"], res["Id3"]
+    assert_equal [nil, "BB"], res["Id33"]
 
     res = {}
     tsv.traverse "OtherID", %w(Id ValueB), one2one: true, type: :list do |k,v|
       res[k] = v
     end
     assert_equal ["row2", "B"], res["Id3"]
-    assert_equal [nil, "BB"], res["Id33"]
+    assert_equal ["row2", "BB"], res["Id33"]
+
 
     tsv.traverse "OtherID", %w(Id ValueB), one2one: false, type: :list do |k,v|
       res[k] = v
@@ -140,6 +148,27 @@ row2    A
       res[k] = v
     end
     assert_equal [["row1"]], res["a"]
+  end
+
+  def test_traverse_reorder_one2one
+    content =<<-'EOF'
+#: :sep=" "
+#ID    ValueA    ValueB
+row1    A1|A11    B1|B11
+row2    A2|A22    B2|B22
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename, :persist => true)
+    end
+
+    res = {}
+    tsv.traverse "ValueA", one2one: true do |k,v|
+      res[k] = v
+    end
+
+    assert_include res["A2"][0], "row2"
+
   end
 
 end

@@ -90,7 +90,9 @@ module TSV
       case
       when (Array === method and (key == :key or key_field == key))
         with_unnamed do
-          new[key] = self[key] if invert ^ (self.include? key)
+          keys.each do |key|
+            new[key] = self[key] if invert ^ (method.include? key)
+          end
         end
       when Array === method
         with_unnamed do
@@ -185,7 +187,7 @@ module TSV
     new
   end
 
-  def reorder(key_field = nil, fields = nil, merge: true, one2one: :fill) 
+  def reorder(key_field = nil, fields = nil, merge: true, one2one: true) 
     res = self.annotate({})
     key_field_name, field_names = traverse key_field, fields, one2one: one2one do |k,v|
       if @type == :double && merge && res.include?(k)

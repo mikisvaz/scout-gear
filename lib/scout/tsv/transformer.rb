@@ -1,6 +1,6 @@
 module TSV
   class Transformer
-    attr_accessor :unnamed, :dumper
+    attr_accessor :unnamed, :parser, :dumper
 
     def initialize(parser, dumper = nil, unnamed: false)
       if TSV::Parser === parser
@@ -52,6 +52,7 @@ module TSV
     end
 
     def all_fields
+      return nil if fields.nil?
       [key_field] + fields
     end
 
@@ -65,6 +66,7 @@ module TSV
 
     def traverse(*args, **kwargs, &block)
       kwargs[:into] = @dumper
+      kwargs[:bar] = "Transform #{Log.fingerprint @parser} into #{Log.fingerprint @target}" if TrueClass === kwargs[:bar]
       @dumper.init if @dumper.respond_to?(:init) && ! @dumper.initialized
       Log.debug "Transform #{Log.fingerprint @parser} into #{Log.fingerprint @dumper}"
       Open.traverse(@parser, *args, **kwargs) do |k,v|
@@ -75,6 +77,7 @@ module TSV
 
     def each(*args, **kwargs, &block)
       kwargs[:into] = @dumper
+      kwargs[:bar] = "Transform #{Log.fingerprint @parser} into #{Log.fingerprint @target}" if TrueClass === kwargs[:bar]
       @dumper.init if @dumper.respond_to?(:init) && ! @dumper.initialized
       Open.traverse(@parser, *args, **kwargs) do |k,v|
         NamedArray.setup(v, @parser.fields, k) unless @unnamed

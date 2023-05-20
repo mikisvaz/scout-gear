@@ -6,14 +6,14 @@ require_relative 'util/process'
 require_relative 'util/select'
 require_relative 'util/unzip'
 module TSV
-  def self.identify_field(key_field, fields, name)
-    return :key if name == :key || key_field.start_with?(name.to_s)
+  def self.identify_field(key_field, fields, name, strict: nil)
+    return :key if name == :key || (! strict && NamedArray.field_match(key_field, name))
     name.collect!{|n| key_field == n ? :key : n } if Array === name
-    NamedArray.identify_name(fields, name)
+    NamedArray.identify_name(fields, name, strict: strict)
   end
 
-  def identify_field(name)
-    TSV.identify_field(@key_field, @fields, name)
+  def identify_field(name, strict: nil)
+    TSV.identify_field(@key_field, @fields, name, strict: strict)
   end
 
   def [](key, *rest)
@@ -27,6 +27,7 @@ module TSV
   end
 
   def zip_new(key, values, insitu: :lax)
+    values = values.collect{|v| Array === v ? v : [v] } unless Array === values.first
     if current_values = self[key]
       if insitu == :lax
         self[key] = NamedArray.add_zipped(current_values, values)

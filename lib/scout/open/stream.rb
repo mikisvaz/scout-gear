@@ -336,7 +336,6 @@ module Open
           end
           Log.low "Tee exception #{Log.fingerprint stream}"
         rescue
-          Log.exception $!
         ensure
           begin
             in_pipes.each do |sin|
@@ -437,5 +436,69 @@ module Open
     end
   end
 
+  def self.process_stream(s)
+    begin
+      yield s
+      s.close if s.respond_to?(:close) && ! s.closed?
+      s.join if s.respond_to?(:join)
+    rescue
+      s.abort($!) if s.respond_to? :abort
+      raise $!
+    end
+  end
+
+
+  def self.collapse_stream(s, line: nil, sep: "\t", header: nil, &block)
+    sep ||= "\t"
+    Open.open_pipe do |sin|
+      sin.puts header if header
+      process_stream(s) do |s|
+        line ||= s.gets
+
+        current_parts = []
+        while line 
+          key, *parts = line.chomp.split(sep, -1)
+          case
+          when key.nil?
+          when current_parts.nil?
+            current_parts = parts
+            current_key = key
+          when current_key == key
+            parts.each_with_index do |part,i|
+              if current_parts[i].nil?
+                current_parts[i] = "|" << part
+              else
+                current_parts[i] = current_parts[i] << "|" << part
+              end
+            end
+
+            (parts.length..current_parts.length-1).to_a.each do |pos|
+              current_parts[pos] = current_parts[pos] << "|" << ""
+            end
+          when current_key.nil?
+            current_key = key
+            current_parts = parts
+          when current_key != key
+            if block_given?
+              res = block.call(current_parts)
+              sin.puts [current_key, res] * sep
+            else
+              sin.puts [current_key, current_parts].flatten * sep
+            end 
+            current_key = key
+            current_parts = parts
+          end
+          line = s.gets
+        end
+
+        if block_given?
+          res = block.call(current_parts)
+          sin.puts [current_key, res] * sep
+        else
+          sin.puts [current_key, current_parts].flatten * sep
+        end unless current_key.nil?
+      end
+    end
+  end
 
 end

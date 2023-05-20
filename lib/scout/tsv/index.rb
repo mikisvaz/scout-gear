@@ -1,7 +1,8 @@
 require_relative 'parser'
+require_relative 'transformer'
 require_relative 'persist/fix_width_table'
 module TSV
-  def self.index(tsv_file, target: 0, fields: nil, order: true, **kwargs)
+  def self.index(tsv_file, target: 0, fields: nil, order: true, bar: nil, **kwargs)
     persist, type, persist_update = IndiferentHash.process_options kwargs,
       :persist, :persist_type, :persist_update,
       :persist => false, :persist_type => "HDB"
@@ -9,7 +10,7 @@ module TSV
 
     fields = :all if fields.nil?
 
-    Persist.persist(tsv_file, type, kwargs.merge(persist: persist, update: persist_update, :persist_prefix => "Index")) do |filename|
+    Persist.persist(tsv_file, type, kwargs.merge(target: target, fields: fields, persist: persist, update: persist_update, :prefix => "Index")) do |filename|
       if filename
         index = ScoutCabinet.open(filename, true, type)
         TSV.setup(index, :type => :single)
@@ -18,11 +19,15 @@ module TSV
         index = TSV.setup({}, :type => :single)
       end
 
-      dummy_data = TSV.setup({}, :key_field => "Key", :fields => ["Target"])
+      bar = "Index #{Log.fingerprint tsv_file} target #{Log.fingerprint target}" if TrueClass === bar
+
       if order
         tmp_index = {}
-        key_field, field_names = Open.traverse tsv_file, key_field: target, fields: fields, type: :double, into: dummy_data, unnamed: true, **kwargs do |k,values|
+        include_self = fields == :all || (Array === fields) && fields.include?(target)
+        target_key_field, source_field_names = Open.traverse tsv_file, key_field: target, fields: fields, type: :double, unnamed: true, bar: bar, **kwargs do |k,values|
+          tmp_index[k] ||= [[k]] if include_self
           values.each_with_index do |list,i|
+            i += 1 if include_self
             list.each do |e|
               tmp_index[e] ||= []
               tmp_index[e][i] ||= []
@@ -33,17 +38,24 @@ module TSV
         tmp_index.each do |e,list|
           index[e] = list.flatten.compact.uniq.first
         end
+
+        index.key_field = source_field_names * ","
+        index.fields = [target_key_field]
+
+        tmp_index = {}
+
       else
-        key_field, field_names = Open.traverse tsv_file, key_field: target, fields: fields, type: :flat, into: dummy_data, unnamed: true, **kwargs do |k,values|
+        target_key_field, source_field_names =  Open.traverse tsv_file, key_field: target, fields: fields, type: :flat, unnamed: true, bar: bar, **kwargs do |k,values|
           values.each do |e|
             index[e] = k unless index.include?(e)
           end
         end
+
+        index.key_field = source_field_names * ","
+        index.fields = [target_key_field]
       end
 
 
-      index.key_field = dummy_data.fields * ", "
-      index.fields = [dummy_data.key_field]
       index
     end
   end
@@ -58,7 +70,7 @@ module TSV
       :persist => false, :persist_type => :fwt
     kwargs.delete :type
 
-    Persist.persist(tsv_file, type, kwargs.merge(:persist => persist, :persist_prefix => "Index")) do |filename|
+    Persist.persist(tsv_file, type, kwargs.merge(:persist => persist, :prefix => "RangeIndex")) do |filename|
 
       max_key_size = 0
       index_data = []

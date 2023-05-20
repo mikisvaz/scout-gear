@@ -49,9 +49,10 @@ module TSV
     [key, items]
   end
 
-  def self.parse_stream(stream, data: nil, source_type: nil, type: :list, merge: true, one2one: false, fix: true, bar: false, first_line: nil, **kargs, &block)
+  def self.parse_stream(stream, data: nil, source_type: nil, type: :list, merge: true, one2one: false, fix: true, bar: false, first_line: nil, field_names: nil, **kargs, &block)
     begin
-      bar = Log::ProgressBar.new_bar(bar) if bar
+      bar = "Parsing #{Log.fingerprint stream}" if TrueClass === bar
+      bar = Log::ProgressBar.get_obj_bar(stream, bar) if bar
 
       source_type = type if source_type.nil?
 
@@ -67,6 +68,10 @@ module TSV
             line = Misc.fixutf8(line)
           end
           bar.tick if bar
+          if type == :array || type == :line
+            block.call line
+            next
+          end
           key, items = parse_line(line, type: source_type, **kargs)
 
           if Array === key
@@ -125,7 +130,7 @@ module TSV
               end
 
             if block_given?
-              res = block.call(key, these_items)
+              res = block.call(key, these_items, field_names)
               data[key] = res unless res.nil? || FalseClass === data
               next
             end
@@ -311,12 +316,12 @@ module TSV
       kwargs[:source_type] = @options[:type]
       kwargs[:data] = false if kwargs[:data].nil?
 
-      data = TSV.parse_stream(@stream, first_line: @first_line, fix: @fix, **kwargs, &block)
+      data = TSV.parse_stream(@stream, first_line: @first_line, fix: @fix, field_names: @fields, **kwargs, &block)
 
       if data
         TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type)
       else
-        self
+        [self.key_field, self.fields]
       end
     end
 
@@ -369,6 +374,7 @@ module TSV
     data.filename = filename
     data.namespace = namespace
     data.unnamed = unnamed
+    data.save_extension_attr_hash if data.respond_to?(:save_extension_attr_hash)
     data
   end
 end

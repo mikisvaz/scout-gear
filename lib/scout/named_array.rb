@@ -3,7 +3,17 @@ module NamedArray
   extend MetaExtension
   extension_attr :fields, :key
 
-  def self.identify_name(names, selected)
+  def self.field_match(field, name)
+    if (String === field) && (String === name)
+      field == name || 
+        field.start_with?(name) || field.include?("(" + name + ")") ||
+        name.start_with?(field) || name.include?("(" + field + ")")
+    else
+      field == name
+    end
+  end
+
+  def self.identify_name(names, selected, strict: false)
     res = (Array === selected ? selected : [selected]).collect do |field|
       case field
       when nil
@@ -28,9 +38,8 @@ module NamedArray
         if field =~ /^\d+$/
           next identify_names(names, field.to_i)
         end
-        pos = names.index{|name| name.start_with?(field) }
-        next pos if pos
-        pos = names.index{|name| String === name && name.include?('(' + field + ')') }
+        next pos if strict
+        pos = names.index{|name| field_match(field, name) }
         next pos if pos
         nil
       else
@@ -114,7 +123,7 @@ module NamedArray
 
   def self.add_zipped(source, new)
     source.zip(new).each do |s,n|
-      s.concat n
+      s.concat(n)
     end
     source
   end

@@ -334,63 +334,65 @@ row1 A B C
     assert_equal %w(## ## ## #Row row1 row2 row3), sorted.read.split("\n").collect{|l| l.split(" ").first}
   end
 
-  #  def test_collapse_stream
-  #    text=<<-EOF
-  #row1 A B C
-  #row1 a b c
-  #row2 AA BB CC
-  #row2 aa bb cc
-  #    EOF
-  #
-  #    s = StringIO.new text
-  #    tsv = TSV.open Misc.collapse_stream(s,nil, " "), :sep => " " 
-  #    assert_equal ["A", "a"], tsv["row1"][0]
-  #    assert_equal ["BB", "bb"], tsv["row2"][1]
-  #  end
-  #
-  #  def test_collapse_sum
-  #    text=<<-EOF
-  #row1 12
-  #row1 4
-  #row2 10
-  #row2 6
-  #    EOF
-  #
-  #    s = StringIO.new text
-  #    stream = Misc.collapse_stream(s,nil, " ") do |parts|
-  #      next nil if parts.empty?
-  #      parts.first.split("|").collect{|p| p.to_f}.inject(0){|acc,e| acc += e}.to_s
-  #    end
-  #    tsv = TSV.open  stream, :sep => " " 
-  #    ppp tsv.to_s
-  #  end
-  #
-  #  def test_collapse_stream_gap
-  #    text=<<-EOF
-  #row2 AA BB 
-  #row2 aa bb cc
-  #    EOF
-  #
-  #    s = StringIO.new text
-  #    assert Misc.collapse_stream(s, nil, " ").read =~  /\|cc$/
-  #    
-  #    text=<<-EOF
-  #row2 aa bb cc
-  #row2 AA BB 
-  #    EOF
-  #
-  #    s = StringIO.new text
-  #    assert Misc.collapse_stream(s, nil, " ").read =~  /cc\|$/
-  #
-  #    text=<<-EOF
-  #row2 AA BB
-  #row2 aa bb cc
-  #    EOF
-  #
-  #    s = StringIO.new text
-  #    assert Misc.collapse_stream(s, nil, " ").read =~  /\|cc$/
-  #
-  #  end
+  def test_collapse_stream
+    text=<<-EOF
+row1 A B C
+row1 a b c
+row2 AA BB CC
+row2 aa bb cc
+    EOF
+
+    s = StringIO.new text
+    stream = Open.collapse_stream(s, sep: " ")
+    txt = stream.read
+    assert_include txt, "A|a"
+    assert_include txt, "B|b"
+    assert_include txt, "C|c"
+  end
+
+
+  def test_collapse_sum
+    text=<<-EOF
+row1 12
+row1 4
+row2 10
+row2 6
+    EOF
+
+    s = StringIO.new text
+    stream = Open.collapse_stream(s, sep: " ") do |parts|
+      next nil if parts.empty?
+      parts.first.split("|").collect{|p| p.to_f}.inject(0){|acc,e| acc += e}.to_s
+    end
+    assert_include stream.read, "row1 16"
+  end
+
+
+  def test_collapse_stream_gap
+    text=<<-EOF
+row2 AA BB 
+row2 aa bb cc
+    EOF
+
+    s = StringIO.new text
+    assert Open.collapse_stream(s, sep: " ").read =~  /\|cc$/
+    
+    text=<<-EOF
+row2 aa bb cc
+row2 AA BB 
+    EOF
+
+    s = StringIO.new text
+    assert Open.collapse_stream(s, sep: " ").read =~  /cc\|$/
+
+    text=<<-EOF
+row2 AA BB
+row2 aa bb cc
+    EOF
+
+    s = StringIO.new text
+    assert Open.collapse_stream(s, sep: " ").read =~  /\|cc$/
+  end
   #
   #
   #  def test_paste_stream
@@ -433,7 +435,7 @@ row1 A B C
   #    s = StringIO.new text
   #    sorted = Misc.sort_stream(s)
   #    assert_equal %w(## ## ## #Row row2 row3 row1), text.split("\n").collect{|l| l.split(" ").first}
-#    assert_equal %w(## ## ## #Row row1 row2 row3), sorted.read.split("\n").collect{|l| l.split(" ").first}
+  #    assert_equal %w(## ## ## #Row row1 row2 row3), sorted.read.split("\n").collect{|l| l.split(" ").first}
 #  end
 #
 #  def test_sort_long_stream

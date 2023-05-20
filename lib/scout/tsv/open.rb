@@ -46,7 +46,7 @@ module Open
 
     if into || bar
       orig_callback = callback if callback
-      bar = Log::ProgressBar.get_obj_bar(bar, obj) if bar
+      bar = Log::ProgressBar.get_obj_bar(obj, bar) if bar
       bar.init if bar
       callback = proc do |res|
         bar.tick if bar
@@ -97,60 +97,54 @@ module Open
     end
 
     begin
-      case obj
-      when TSV
-        obj.traverse options[:key_field], options[:fields], unnamed: unnamed, **options do |k,v|
-          res = block.call(k, v)
-          callback.call res if callback
-          nil
-        end
-      when Array
-        obj.each do |line|
-          res = block.call(line)
-          callback.call res if callback
-          nil
-        end
-      when String
-        obj = obj.produce_and_find if Path === obj
-        f = Open.open(obj)
-        self.traverse(f, cpus: cpus, callback: callback, **options, &block)
-      when Step
-        raise obj.exception if obj.error?
-        self.traverse(obj.stream, cpus: cpus, callback: callback, **options, &block)
-      when IO
-        if options[:type] == :array
-          while line = obj.gets
-            res = block.call line.strip
-            callback.call res if callback
-            nil
-          end
-        else
-          TSV.parse obj, **options do |k,v|
-            res = block.call k, v
-            callback.call res if callback
-            nil
-          end
-        end
-      when TSV::Parser
-        obj.traverse **options do |k,v|
-          res = block.call k, v
-          callback.call res if callback
-          nil
-        end
-      else
-        TSV.parse obj, **options do |k,v|
-          res = block.call k, v
-          callback.call res if callback
-          nil
-        end
-      end
+      res = case obj
+            when TSV
+              #obj.traverse options[:key_field], options[:fields], unnamed: unnamed, **options do |k,v,f|
+              obj.traverse  unnamed: unnamed, **options do |k,v,f|
+                res = block.call(k, v, f)
+                callback.call res if callback
+                nil
+              end
+            when Array
+              obj.each do |line|
+                res = block.call(line)
+                callback.call res if callback
+                nil
+              end
+            when String
+              obj = obj.produce_and_find if Path === obj
+              f = Open.open(obj)
+              self.traverse(f, cpus: cpus, callback: callback, **options, &block)
+            when Step
+              raise obj.exception if obj.error?
+              self.traverse(obj.stream, cpus: cpus, callback: callback, **options, &block)
+            when IO
+              parser = TSV::Parser.new obj
+              parser.traverse **options do |k,v,f|
+                res = block.call k,v,f
+                callback.call res if callback
+                nil
+              end
+            when TSV::Parser
+              obj.traverse **options do |k,v,f|
+                res = block.call k, v, f
+                callback.call res if callback
+                nil
+              end
+            else
+              TSV.parse obj, **options do |k,v|
+                res = block.call k, v
+                callback.call res if callback
+                nil
+              end
+            end
       bar.remove if bar
     rescue
       bar.error if bar
       raise $!
     end
 
-    into
+    into || res
   end
 end
 
@@ -158,4 +152,28 @@ module TSV
   def self.traverse(*args, **kwargs, &block)
     Open.traverse(*args, **kwargs, &block)
   end
+
+  def self.process_stream(stream, header_hash: "#", &block)
+    sout = Open.open_pipe do |sin|
+      while line = stream.gets 
+        break unless line.start_with?(header_hash)
+        sin.puts line
+      end
+      yield sin, line
+    end
+  end
+
+  def self.collapse_stream(stream, *args, **kwargs, &block)
+    stream = stream.stream if stream.respond_to?(:stream)
+    self.process_stream(stream) do |sin, line|
+      collapsed = Open.collapse_stream(stream, line: line)
+      Open.consume_stream(collapsed, false, sin)
+    end
+  end
+
+  def collapse_stream(*args, **kwargs, &block)
+    TSV.collapse_stream(self.dumper_stream, *args, **kwargs, &block)
+  end
+
+
 end

@@ -45,11 +45,11 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     color_class.rb
     fingerprint.rb
     progress.rb
-    trap.rb
     progress=progress{
      report.rb
      util.rb
     }
+    trap.rb
    }
    tmpfile.rb
    simple_opt.rb

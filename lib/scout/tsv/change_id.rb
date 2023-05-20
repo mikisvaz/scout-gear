@@ -1,16 +1,19 @@
 module TSV
-  def self.change_key(source, new_key_field, identifiers: nil, one2one: false, stream: false)
+  def self.change_key(source, new_key_field, identifiers: nil, one2one: false, stream: false, keep: false, persist_identifiers: nil)
     source = TSV::Parser.new source if String === source
-    if source.identify_field(new_key_field).nil?
+    if identifiers && source.identify_field(new_key_field, strict: true).nil?
       identifiers = identifiers.nil? ? source.identifiers : identifiers
-      new = source.attach(identifiers, fields: [new_key_field], insitu: false).change_key(new_key_field)
+      new = source.attach(identifiers, fields: [new_key_field], insitu: false, one2one: true, persist_input: persist_identifiers)
+      new = new.change_key(new_key_field, keep: keep, stream: stream, one2one: one2one)
       return new
     end
 
+    fields = source.fields.dup - [new_key_field]
+    fields.unshift source.key_field if keep
     transformer = TSV::Transformer.new source
     transformer.key_field = new_key_field
-    transformer.fields = [source.key_field] + source.fields - [new_key_field]
-    transformer.traverse key_field: new_key_field, one2one: one2one do |k,v|
+    transformer.fields = fields
+    transformer.traverse key_field: new_key_field, fields: fields, one2one: one2one, unnamed: true do |k,v|
       [k, v]
     end
 

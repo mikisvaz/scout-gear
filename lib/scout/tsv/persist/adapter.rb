@@ -47,6 +47,7 @@ module TSVAdapter
       end
 
       def load_value(str)
+        return nil if str.nil?
         serializer.load(str)
       end
 
@@ -70,9 +71,9 @@ module TSVAdapter
     end
 
     if k[0] == EXTENSION_ATTR_HASH_KEY
-      k.slice(1,k.length-1)
+      k.slice(1,k.length)
     elsif k[-1] == EXTENSION_ATTR_HASH_KEY
-      k.slice(0,k.length-2)
+      k.slice(0,k.length-1)
     else
       k - [EXTENSION_ATTR_HASH_KEY]
     end

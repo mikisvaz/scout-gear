@@ -22,7 +22,7 @@ row4    a    a    id3
     tsv = TmpFile.with_file(content) do |filename|
       TSV.open(filename, :persist => false)
     end
-
+    
     TmpFile.with_file(content2) do |filename|
       TSV.open(filename, :data => tsv)
     end
@@ -41,8 +41,13 @@ row2    a    a    id3
     EOF
 
     tsv = TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :persist => true)
+      tsv.close
+      Persist::CONNECTIONS.clear
       TSV.open(filename, :persist => true)
     end
+
+    assert_equal "Id", tsv.key_field
 
     assert tsv.respond_to?(:persistence_class)
     assert_equal TokyoCabinet::HDB, tsv.persistence_class

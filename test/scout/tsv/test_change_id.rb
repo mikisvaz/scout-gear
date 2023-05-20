@@ -13,10 +13,14 @@ row2    A2|A22    B2|B22
 
     tsv = TSV.open StringIO.new(content1)
 
-    res = tsv.change_key "ValueA"
+    res = tsv.change_key "ValueA", keep: true
     assert_equal ["row1"], res["A1"]["ID"]
     assert_equal ["row1"], res["A11"]["ID"]
     assert_equal ["row2"], res["A2"]["ID"]
+
+    res = tsv.change_key "ValueA", keep: false, one2one: true
+    assert_equal ["B1"], res["A1"]["ValueB"]
+    assert_equal ["B11"], res["A11"]["ValueB"]
   end
 
   def test_simple_reorder_file
@@ -28,13 +32,13 @@ row2    A2|A22    B2|B22
     EOF
 
     TmpFile.with_file(content1) do |file1|
-      res = TSV.change_key file1, "ValueA"
+      res = TSV.change_key file1, "ValueA", keep: true
       assert_equal ["row1"], res["A1"]["ID"]
       assert_equal ["row1"], res["A11"]["ID"]
       assert_equal ["row2"], res["A2"]["ID"]
       assert_equal ["B1","B11"], res["A1"]["ValueB"]
 
-      res = TSV.change_key file1, "ValueA", one2one: true
+      res = TSV.change_key file1, "ValueA", one2one: true, keep: true
       assert_equal ["row1"], res["A1"]["ID"]
       assert_equal ["row1"], res["A11"]["ID"]
       assert_equal ["row2"], res["A2"]["ID"]
@@ -61,7 +65,7 @@ row2    C2|C22    D2|D22
     tsv = TSV.open StringIO.new(content1)
     identifiers = TSV.open StringIO.new(identifiers_content)
 
-    res = tsv.change_key "ValueC", identifiers: identifiers
+    res = tsv.change_key "ValueC", identifiers: identifiers, keep: true
     assert_equal ["row1"], res["C1"]["ID"]
     assert_equal ["row1"], res["C11"]["ID"]
     assert_equal ["row2"], res["C2"]["ID"]
