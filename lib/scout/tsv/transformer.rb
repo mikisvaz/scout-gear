@@ -12,19 +12,19 @@ module TSV
       end
       @unnamed = unnamed
       if dumper.nil?
-        @dumper = TSV::Dumper.new(@parser.all_options)
+        @dumper = TSV::Dumper.new(@parser)
         @dumper.sep = "\t"
       else
         @dumper = dumper
       end
     end
 
-    def fields=(fields)
-      @dumper.options[:fields] = fields
+    def key_field=(key_field)
+      @dumper.key_field = key_field
     end
 
-    def key_field=(key_field)
-      @dumper.options[:key_field] = key_field
+    def fields=(fields)
+      @dumper.fields = fields
     end
 
     def type=(type)
@@ -44,15 +44,19 @@ module TSV
     end
 
     def key_field
-      @dumper.options[:key_field]
+      @dumper.key_field
     end
 
     def fields
-      @dumper.options[:fields]
+      @dumper.fields
     end
 
     def all_fields
       [key_field] + fields
+    end
+
+    def options
+      @dumper.options
     end
 
     def identify_field(name)
@@ -61,7 +65,8 @@ module TSV
 
     def traverse(*args, **kwargs, &block)
       kwargs[:into] = @dumper
-      @dumper.init unless @dumper.initialized
+      @dumper.init if @dumper.respond_to?(:init) && ! @dumper.initialized
+      Log.debug "Transform #{Log.fingerprint @parser} into #{Log.fingerprint @dumper}"
       Open.traverse(@parser, *args, **kwargs) do |k,v|
         NamedArray.setup(v, @parser.fields, k) unless @unnamed
         block.call k, v
@@ -70,7 +75,7 @@ module TSV
 
     def each(*args, **kwargs, &block)
       kwargs[:into] = @dumper
-      @dumper.init unless @dumper.initialized
+      @dumper.init if @dumper.respond_to?(:init) && ! @dumper.initialized
       Open.traverse(@parser, *args, **kwargs) do |k,v|
         NamedArray.setup(v, @parser.fields, k) unless @unnamed
         block.call k, v
@@ -97,7 +102,17 @@ module TSV
     end
 
     def tsv(*args)
-      TSV.open(stream, *args)
+      TSV === @dumper ? @dumper : TSV.open(stream, *args)
     end
   end
+
+  def to_list
+    transformer = Transformer.new self
+    transformer.type = :list
+    transformer.traverse do |k,v|
+      [k, v.collect{|v| v.first }]
+    end
+    transformer.tsv
+  end
 end
+

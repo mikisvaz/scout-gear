@@ -8,7 +8,7 @@ module Log
 
   def self.no_bar
     @@no_bar = false unless defined?(@@no_bar)
-    @@no_bar || ENV["RBBT_NO_PROGRESS"] == "true"
+    @@no_bar || ENV["SCOUT_NO_PROGRESS"] == "true"
   end
 
   class ProgressBar

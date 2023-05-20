@@ -20,7 +20,11 @@ module Open
         into.add *res
       when TSV, Hash
         key, value = res
-        into[key] = value
+        if into.type == :double
+          into.zip_new key, value, insitu: false
+        else
+          into[key] = value
+        end
       when Array, Set
         into << res
       when IO, StringIO

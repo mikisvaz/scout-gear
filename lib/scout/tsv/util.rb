@@ -22,6 +22,28 @@ module TSV
     v
   end
 
+  def options
+    extension_attr_hash
+  end
+
+  def zip_new(key, values, insitu: :lax)
+    if current_values = self[key]
+      if insitu == :lax
+        self[key] = NamedArray.add_zipped(current_values, values)
+      elsif insitu
+        NamedArray.add_zipped(current_values, values)
+      else
+        self[key] = NamedArray.add_zipped(current_values.dup, values)
+      end
+    else
+      if insitu && insitu != :lax
+        self[key] = values.dup
+      else
+        self[key] = values
+      end
+    end
+  end
+
   def each(*args, &block)
     if block_given?
       super(*args) do |k,v|
@@ -89,7 +111,7 @@ Example:
     [@key_field] + @fields
   end
 
-  def all_options
+  def options
     self.extension_attr_hash
   end
 

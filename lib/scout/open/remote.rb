@@ -81,6 +81,10 @@ module Open
     end
   end
 
+  def self.download(url, file)
+    CMD.cmd_log(:wget, "'#{url}' -O '#{file}'")
+  end
+
   def self.digest_url(url, options = {})
     params = [url, options.values_at("--post-data", "--post-data="), (options.include?("--post-file")? Open.read(options["--post-file"]).split("\n").sort * "\n" : "")]
     Misc.digest([url, params])

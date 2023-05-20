@@ -1,10 +1,16 @@
 require_relative 'log/color'
 require_relative 'log/fingerprint'
 require_relative 'log/progress'
+require_relative 'log/trap'
 
 require 'io/console'
 
 module Log
+  class << self
+    attr_accessor :severity
+    attr_writer :tty_size, :logfile
+  end
+
   SEVERITY_NAMES ||= begin
                        names = %w(DEBUG LOW MEDIUM HIGH INFO WARN ERROR NONE ) 
                        names.each_with_index do |name,i|
@@ -12,11 +18,35 @@ module Log
                        end
                        names
                      end
-
-  class << self
-    attr_accessor :severity
-    attr_writer :tty_size, :logfile
+  def self.default_severity
+    @@default_severity ||= begin
+                             file = File.join(ENV["HOME"], '.scout/etc/log_severity')
+                             if File.exist? file
+                               File.open(file) do |f|
+                                 SEVERITY_NAMES.index f.read.strip
+                               end
+                             else
+                               INFO
+                             end
+                           end
+    @@default_severity
   end
+
+  case ENV['SCOUT_LOG'] 
+  when 'DEBUG' 
+    self.severity = DEBUG
+  when 'LOW' 
+    self.severity = LOW
+  when 'MEDIUM' 
+    self.severity = MEDIUM
+  when 'HIGH' 
+    self.severity = HIGH
+  when nil
+    self.severity = default_severity
+  else
+    self.severity = default_severity
+  end
+
 
 
   def self.tty_size
@@ -187,7 +217,7 @@ module Log
   def self.exception(e)
     stack = caller
     backtrace = e.backtrace || []
-    if ENV["RBBT_ORIGINAL_STACK"] == 'true'
+    if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
       error([e.class.to_s, e.message].compact * ": " )
       error("BACKTRACE [#{Process.pid}]: " << Log.last_caller(stack) << "\n" + color_stack(backtrace)*"\n")
     else
@@ -243,7 +273,7 @@ module Log
   end
 
   def self.stack(stack)
-    if ENV["RBBT_ORIGINAL_STACK"] == 'true'
+    if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
       STDERR.puts Log.color :magenta, "Stack trace [#{Process.pid}]: " << Log.last_caller(caller)
       color_stack(stack).each do |line|
         STDERR.puts line
@@ -279,21 +309,6 @@ module Log
     Log.debug "STACK_COUNTS:\n" + $stack_counts.sort_by{|line,c| c}.reverse.collect{|line,c| [c, line] * " - "}[0..total] * "\n"
     $stack_counts = {}
     res
-  end
-
-  case ENV['RBBT_LOG'] 
-  when 'DEBUG' 
-    self.severity = DEBUG
-  when 'LOW' 
-    self.severity = LOW
-  when 'MEDIUM' 
-    self.severity = MEDIUM
-  when 'HIGH' 
-    self.severity = HIGH
-  when nil
-    self.severity = INFO
-  else
-    self.severity = ENV['RBBT_LOG'].to_i
   end
 end
 

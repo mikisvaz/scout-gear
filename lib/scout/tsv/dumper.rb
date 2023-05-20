@@ -23,6 +23,7 @@ module TSV
 
     attr_accessor :options, :initialized, :type, :sep
     def initialize(options = {})
+      options = options.options.merge(sep: nil) if TSV::Parser === options || TSV === options
       @sep, @type = IndiferentHash.process_options options, 
         :sep, :type, 
         :sep => "\t", :type => :double
@@ -33,6 +34,28 @@ module TSV
       ConcurrentStream.setup(@sin, pair: @sout)
       ConcurrentStream.setup(@sout, pair: @sin)
     end
+
+    def key_field
+      @options[:key_field]
+    end
+    
+    def fields
+      @options[:fields]
+    end
+
+    def key_field=(key_field)
+      @options[:key_field] = key_field
+    end
+    
+    def fields=(fields)
+      @options[:fields] = fields
+    end
+
+    def all_fields
+      return nil if fields.nil?
+      [key_field] + fields
+    end
+
 
     def init(preamble: true)
       header = Dumper.header(@options.merge(type: @type, sep: @sep, preamble: preamble))
@@ -71,6 +94,18 @@ module TSV
 
     def tsv(*args)
       TSV.open(stream, *args)
+    end
+
+    def fingerprint
+      "Dumper:{"<< Log.fingerprint(self.all_fields|| []) << "}"
+    end
+
+    def digest_str
+      fingerprint
+    end
+
+    def inspect
+      fingerprint
     end
   end
 

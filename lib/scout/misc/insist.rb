@@ -32,7 +32,7 @@ module Misc
       end
       raise $!
     rescue Exception
-      Log.exception $! if ENV["RBBT_LOG_INSIST"] == 'true'
+      Log.exception $! if ENV["SCOUT_LOG_INSIST"] == 'true'
       if msg
         Log.warn("Insisting after exception: #{$!.class} #{$!.message} -- #{msg}")
       elsif FalseClass === msg

@@ -114,7 +114,7 @@ module NamedArray
 
   def self.add_zipped(source, new)
     source.zip(new).each do |s,n|
-      s << n
+      s.concat n
     end
     source
   end

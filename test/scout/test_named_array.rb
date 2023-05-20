@@ -29,8 +29,9 @@ ValueB (Entity type)
 
   def test_add_zipped
     a = [%w(a b), %w(1 1)]
-    NamedArray.add_zipped a, %w(c 1)
-    assert_equal [%w(a b c), %w(1 1 1)], a
+    NamedArray.add_zipped a, [%w(c), %w(1)]
+    NamedArray.add_zipped a, [%w(d), %w(1)]
+    assert_equal [%w(a b c d), %w(1 1 1 1)], a
   end
 end
 

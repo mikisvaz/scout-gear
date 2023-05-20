@@ -1,35 +1,59 @@
 module TSV
 
-  def self.unzip(source, field, sep: ":", delete: true, stream: false, type: :list, merge: false)
-    transformer = TSV::Transformer.new source, unnamed: true
+  def self.unzip(source, field, target: nil, sep: ":", delete: true, type: :list, merge: false, one2one: true)
+    source = TSV::Parser.new source if String === source
 
-    field_pos = transformer.identify_field(field)
-    new_fields = transformer.fields.dup
+    field_pos = source.identify_field(field)
+    new_fields = source.fields.dup
     field_name = new_fields[field_pos]
     new_fields.delete_at(field_pos) if delete
-    new_key_field = [transformer.key_field, field_name] * sep
-
+    new_key_field = [source.key_field, field_name] * sep
     type = :double if merge
 
-    transformer.fields = new_fields
-    transformer.key_field = new_key_field
-    transformer.type = type
+    stream = target == :stream
 
-    transformer.traverse unnamed: true do |k,v|
+    target = case target
+             when :stream
+               TSV::Dumper.new(source.options.merge(sep: "\t"))
+             when nil
+               TSV.setup({})
+             else
+               target
+             end
+               
+    target.fields = new_fields
+    target.key_field = new_key_field
+    target.type = type
+
+    transformer = TSV::Transformer.new source, target, unnamed: true
+
+    transformer.traverse unnamed: true, one2one: one2one do |k,v|
       if source.type == :double
-        res = NamedArray.zip_fields(v).collect do |_v|
-          field_value = _v[field_pos]
+        if one2one
+          res = NamedArray.zip_fields(v).collect do |_v|
+            field_value = _v[field_pos]
 
-          if delete
-            new_values = _v.dup
-            new_values.delete_at field_pos
-          else
-            new_values = _v
+            if delete
+              new_values = _v.dup
+              new_values.delete_at field_pos
+            else
+              new_values = _v
+            end
+
+            new_key = [k,field_value] * sep
+            new_values = new_values.collect{|e| [e] } if transformer.type == :double
+            [new_key, new_values]
           end
+        else
+          all_values = v.collect{|e| e.dup }
+          all_values.delete_at field_pos if delete
+          res = NamedArray.zip_fields(v).collect do |_v|
+            field_value = _v[field_pos]
 
-          new_key = [k,field_value] * sep
-          new_values = new_values.collect{|e| [e] } if transformer.type == :double
-          [new_key, new_values]
+            new_key = [k,field_value] * sep
+            new_values = all_values if transformer.type == :double
+            [new_key, new_values]
+          end
         end
         
         MultipleResult.setup(res)

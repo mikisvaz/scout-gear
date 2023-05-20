@@ -90,9 +90,7 @@ module TSV
       case
       when (Array === method and (key == :key or key_field == key))
         with_unnamed do
-          Annotated.purge(method).each{|key| 
-            new[key] = self[key] if invert ^ (self.include? key)
-          }
+          new[key] = self[key] if invert ^ (self.include? key)
         end
       when Array === method
         with_unnamed do

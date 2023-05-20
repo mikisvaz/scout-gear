@@ -116,10 +116,10 @@ class Step
     end if step.dependencies
 
     str = ""
-    str = " " * offset + this_step_msg if ENV["RBBT_ORIGINAL_STACK"] == 'true'
+    str = " " * offset + this_step_msg if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
 
     step.dependencies.dup.tap{|l| 
-      l.reverse! if ENV["RBBT_ORIGINAL_STACK"] == 'true'
+      l.reverse! if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
     }.each do |dep|
       path = dep.path
       new = ! seen.include?(path)
@@ -142,7 +142,7 @@ class Step
       end
     end if step.dependencies
 
-    str += (" " * offset) + this_step_msg unless ENV["RBBT_ORIGINAL_STACK"] == 'true'
+    str += (" " * offset) + this_step_msg unless ENV["SCOUT_ORIGINAL_STACK"] == 'true'
 
     str
   end

@@ -136,13 +136,13 @@ module TSV
               current = data[key]
               if merge == :concat
                 these_items.each_with_index do |new,i|
-                  next if new.empty?
+                  new = [nil] if new.empty?
                   current[i].concat(new)
                 end
               else
                 merged = []
                 these_items.each_with_index do |new,i|
-                  next if new.empty?
+                  new = [nil] if new.empty?
                   merged[i] = current[i] + new
                 end
                 data[key] = merged
@@ -169,7 +169,7 @@ module TSV
   def self.parse_header(stream, fix: true, header_hash: '#', sep: "\t")
     raise "Closed stream" if IO === stream && stream.closed?
 
-    options = {}
+    opts = {}
     preamble = []
 
     # Get line
@@ -181,7 +181,7 @@ module TSV
 
     # Process options line
     if line and (String === header_hash && m = line.match(/^#{header_hash}: (.*)/))
-      options = IndiferentHash.string2hash m.captures.first.chomp
+      opts = IndiferentHash.string2hash m.captures.first.chomp
       line = stream.gets
       if line && fix
         if Proc === fix
@@ -193,7 +193,7 @@ module TSV
     end
 
     # Determine separator
-    sep = options[:sep] if options[:sep]
+    sep = opts[:sep] if opts[:sep]
 
     # Process fields line
     preamble << line if line
@@ -214,10 +214,10 @@ module TSV
 
     first_line = line
 
-    options[:type] = options[:type].to_sym if options[:type]
-    options[:cast] = options[:cast].to_sym if options[:cast]
+    opts[:type] = opts[:type].to_sym if opts[:type]
+    opts[:cast] = opts[:cast].to_sym if opts[:cast]
 
-    [options, key_field, fields, first_line, preamble]
+    [opts, key_field, fields, first_line, preamble]
   end
 
   KEY_PARAMETERS = begin
@@ -229,8 +229,8 @@ module TSV
                    end
 
   class Parser
-    attr_accessor :stream, :options, :key_field, :fields, :first_line, :preamble
-    def initialize(file, fix: true, header_hash: "#", sep: "\t")
+    attr_accessor :stream, :options, :key_field, :fields, :type, :first_line, :preamble
+    def initialize(file, fix: true, header_hash: "#", sep: "\t", type: :double)
       if IO === file
         @stream = file
       else
@@ -239,23 +239,29 @@ module TSV
       @fix = fix
       @options, @key_field, @fields, @first_line, @preamble = TSV.parse_header(@stream, fix:fix, header_hash:header_hash, sep:sep)
       @options[:sep] = sep if @options[:sep].nil?
-    end
-
-    def all_options
-      options.merge(:key_field => @key_field, :fields => @fields)
+      @options.merge!(:key_field => @key_field, :fields => @fields)
+      @type = type
     end
 
     def all_fields
+      return nil if @fields.nil?
       [@key_field] + @fields
+    end
+
+    def key_field=(key_field)
+      @options[:key_field] = @key_field = key_field
+    end
+    
+    def fields=(fields)
+      @options[:fields] = @fields = fields
     end
 
     def identify_field(name)
       TSV.identify_field(@key_field, @fields, name)
     end
 
-
     def traverse(key_field: nil, fields: nil, filename: nil, namespace: nil,  **kwargs, &block)
-      kwargs[:type] ||=  self.options[:type] ||= :double
+      kwargs[:type] ||=  self.options[:type] ||= @type
       kwargs[:type] = kwargs[:type].to_sym if kwargs[:type]
 
       if fields
@@ -312,6 +318,18 @@ module TSV
       else
         self
       end
+    end
+
+    def fingerprint
+      "Parser:{"<< Log.fingerprint(self.all_fields|| []) << "}"
+    end
+
+    def digest_str
+      fingerprint
+    end
+
+    def inspect
+      fingerprint
     end
   end
 

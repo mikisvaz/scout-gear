@@ -79,6 +79,16 @@ row2    A2|A22    B2|B22
     end
   end
 
+  def test_to_list
+    content =<<-EOF
+#: :sep=" "
+#ID    ValueA    ValueB
+row1    A1|A11    B1|B11
+row2    A2|A22    B2|B22
+    EOF
 
+    tsv = TSV.open(content)
+    assert_equal "A1", tsv.to_list["row1"]["ValueA"]
+    assert_equal "B2", tsv.to_list["row2"]["ValueB"]
+  end
 end
-

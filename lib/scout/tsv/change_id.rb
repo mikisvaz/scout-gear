@@ -28,7 +28,7 @@ module TSV
 
     new_fields = source.fields.dup
     new_fields[new_fields.index(source_id)] = new_id
-    return source.attach(identifiers, fields: [new_id], insitu: insitu).slice new_fields
+    return source.attach(identifiers, fields: [new_id], insitu: insitu).slice(new_fields)
   end
 
   def change_id(*args, **kwargs)

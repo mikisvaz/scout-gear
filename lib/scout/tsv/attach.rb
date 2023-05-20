@@ -1,13 +1,25 @@
 require_relative 'transformer'
 module TSV
 
-  def self.attach(source, other, fields: nil, match_key: nil, other_key: nil, one2one: :fill, complete: false, insitu: true, persist_input: false)
+  def self.attach(source, other, target: nil, fields: nil, match_key: nil, other_key: nil, one2one: :fill, complete: false, insitu: true, persist_input: false)
     source = TSV::Transformer.new source unless TSV === source || TSV::Parser === source
+
     other = TSV.open other, persist: persist_input unless TSV === other 
 
     match_key = (source.all_fields & other.all_fields).first if match_key.nil?
     match_key = source.key_field if match_key.nil? 
     other_key = match_key if other_key.nil?
+
+    if TSV::Transformer === source
+      source.dumper = case target
+                      when :stream
+                        TSV::Dumper.new(source.options.merge(sep: "\t"))
+                      when nil
+                        TSV.setup({}, **source.options.dup)
+                      else
+                        target
+                      end
+    end
 
     match_key = :key if match_key == source.key_field
     other_key = :key if other_key == other.key_field
@@ -18,7 +30,9 @@ module TSV
       source.with_unnamed do
 
         if other_key != :key || fields
-          fields = other.all_fields - [other_key, source.key_field] if fields.nil?
+          other_key_name = other_key == :key ? other.key_field : other_key
+          other_key_name = other.fields[other_key_name] if Integer === other_key
+          fields = other.all_fields - [other_key_name, source.key_field] if fields.nil?
           other = other.reorder other_key, fields, one2one: one2one
         else
           fields = other.fields - [source.key_field, other_key]

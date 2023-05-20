@@ -194,7 +194,7 @@ row3    B    Id3
 
     TmpFile.with_file(content1) do |filename1|
       TmpFile.with_file(content2) do |filename2|
-        out = TSV.attach filename1, filename2
+        out = TSV.attach filename1, filename2, target: :stream
         tsv = out.tsv
         assert_equal %w(Id1 Id2), tsv["row1"]["OtherID"]
       end
