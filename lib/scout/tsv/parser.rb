@@ -12,7 +12,7 @@ module TSV
     end
   end
 
-  def self.parse_line(line, type: :list, key: 0, positions: nil, sep: "\t", sep2: "|", cast: nil)
+  def self.parse_line(line, type: :list, key: 0, positions: nil, sep: "\t", sep2: "|", cast: nil, select: nil, field_names: nil)
     items = line.split(sep, -1)
 
     if positions.nil? && key == 0
@@ -46,6 +46,8 @@ module TSV
       items = cast_value(items, cast)
     end
 
+    return nil if select && ! TSV.select(items[0], items[1..-1], select, fields: field_names)
+
     [key, items]
   end
 
@@ -53,6 +55,7 @@ module TSV
     begin
       bar = "Parsing #{Log.fingerprint stream}" if TrueClass === bar
       bar = Log::ProgressBar.get_obj_bar(stream, bar) if bar
+      bar.init if bar
 
       source_type = type if source_type.nil?
 
@@ -72,7 +75,10 @@ module TSV
             block.call line
             next
           end
-          key, items = parse_line(line, type: source_type, **kargs)
+
+          key, items = parse_line(line, type: source_type, field_names: field_names, **kargs)
+
+          next if key.nil?
 
           if Array === key
             keys = key
@@ -161,13 +167,25 @@ module TSV
               end
             end
           end
+        rescue Exception
+          stream.abort($!) if stream.respond_to?(:abort)
+          raise $!
         ensure
-          line = stream.gets
+          if stream.closed?
+            line = nil
+          else
+            line = stream.gets 
+          end
         end
       end
       data
     ensure
-      Log::ProgressBar.remove_bar(bar) if bar
+      if stream.stream_exception
+        bar.remove(stream.stream_exception)
+      else
+        bar.remove
+      end if bar
+      stream.join if stream.respond_to?(:join)
     end
   end
 

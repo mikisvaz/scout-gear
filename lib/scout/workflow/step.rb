@@ -11,7 +11,7 @@ require_relative 'step/progress'
 class Step 
 
   attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies
-  def initialize(path, inputs = nil, dependencies = nil, id = nil, &task) 
+  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, &task) 
     @path = path
     @inputs = inputs
     @dependencies = dependencies
@@ -27,7 +27,7 @@ class Step
 
   def inputs
     @inputs ||= begin
-                  if Open.exists?(info_file)
+                  if info_file && Open.exists?(info_file)
                     info[:inputs]
                   else
                     []
@@ -76,7 +76,7 @@ class Step
   end
 
   attr_reader :result
-  def run
+  def run(stream = false)
     return @result || self.load if done?
     prepare_dependencies
     run_dependencies
@@ -116,7 +116,18 @@ class Step
         end
       end
     end
-    @result
+
+    if stream
+      @result
+    else
+      if IO === @result || @result.respond_to?(:stream)
+        join
+        @result = nil
+        self.load
+      else
+        @result
+      end
+    end
   end
 
   def done?
@@ -154,7 +165,14 @@ class Step
     while @result && streaming? && stream = self.stream
       threads << Open.consume_stream(stream, true)
     end
-    threads.each{|t| t.join }
+    threads.each do |t| 
+      begin
+      t.join 
+      rescue
+        threads.each{|t| t.raise(Aborted); t.join }
+        raise $!
+      end
+    end
   end
 
   def join

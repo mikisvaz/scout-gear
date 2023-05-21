@@ -75,7 +75,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     end
     assert_equal times/2, lines.length
 
-    stream = step2.run
+    stream = step2.run(true)
     assert step1.streaming?
     assert step2.streaming?
 
@@ -137,7 +137,7 @@ class TestWorkflowStep < Test::Unit::TestCase
 
     step3.recursive_clean
 
-    stream = step3.run
+    stream = step3.run(true)
     out = []
     while l = stream.gets
       out << l
@@ -218,7 +218,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     step4.dependencies = [step2, step3]
 
     lines = []
-    io = step4.run
+    io = step4.run(true)
     Log::ProgressBar.with_bar severity: 0 do |b|
       while line = io.gets
         b.tick

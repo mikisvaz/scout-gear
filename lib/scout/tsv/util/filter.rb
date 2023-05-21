@@ -299,5 +299,14 @@ module TSV
       FileUtils.rm f
     end
   end
+
+  def with_filters(filters, &block)
+    filter
+    begin
+      filters.each{|field,value| add_filter field, value }
+    ensure
+      reset_filters
+    end
+  end
 end
 

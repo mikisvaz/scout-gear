@@ -1,4 +1,70 @@
 module TSV
+  def self.select(key, values, method, fields: nil, field: nil, invert: false, &block)
+    return ! select(key, values, method, field: field, invert: false, &block) if invert
+
+    return yield(key, values) if method.nil? && block_given
+
+    if Hash === method
+      if method.include?(:invert)
+        method = method.dup
+        invert = method.delete(:invert)
+        return select(key, values, method, fields: fields, field: field, invert: invert, &block)
+      end
+      field = method.keys.first
+      value = method[field]
+      return select(key, values, value, fields: fields, field: field, invert: invert, &block)
+    end
+
+    if field
+      field = fields.index(field) if fields && String === field
+      set = field == :key ? [key] : values[field]
+    else
+      set = [key, values]
+    end
+
+    if Array === set
+      set.flatten!
+    else
+      set = [set]
+    end
+
+    case method
+    when Array
+      (method & set).any?
+    when Regexp
+      set.select{|v| v =~ method }.any?
+    when Symbol
+      set.first.send(method)
+    when Numeric
+      set.size > method
+    when String
+      if block_given?
+        field = method
+        field = fields.index?(field) if fields && String === field
+        case 
+        when block.arity == 1
+          if (method == key_field or method == :key)
+            yield(key)
+          else
+            yield(values[method])
+          end
+        when block.arity == 2
+          if (method == key_field or method == :key)
+            yield(key, key)
+          else
+            yield(key, values[method])
+          end
+        end
+      elsif m = method.match(/^([<>]=?)(.*)/)
+        set.select{|v| v.to_f.send($1, $2.to_f) }.any?
+      else
+        set.select{|v| v == method }.any?
+      end
+    when Proc
+      set.select{|v| method.call(v) }.any?
+    end
+  end
+
   def select(method = nil, invert = false, &block)
     new = TSV.setup({}, :key_field => key_field, :fields => fields, :type => type, :filename => filename, :identifiers => identifiers)
 
@@ -33,7 +99,7 @@ module TSV
           new[key] = values if invert ^ ([key,values].flatten.select{|v| v =~ method}.any?)
         end
       end
-    when (String === method || Symbol === method)
+    when ((String === method) || (Symbol === method))
       if block_given?
         case 
         when block.arity == 1
@@ -88,7 +154,7 @@ module TSV
       key  = method.keys.first
       method = method.values.first
       case
-      when (Array === method and (key == :key or key_field == key))
+      when ((Array === method) and (key == :key or key_field == key))
         with_unnamed do
           keys.each do |key|
             new[key] = self[key] if invert ^ (method.include? key)
@@ -125,7 +191,7 @@ module TSV
           end
         end
 
-      when (String === method and method =~ /name:(.*)/)
+      when ((String === method) and (method =~ /name:(.*)/))
         name = $1
         old_unnamed = self.unnamed
         self.unnamed = false
@@ -185,36 +251,5 @@ module TSV
       end
     end
     new
-  end
-
-  def reorder(key_field = nil, fields = nil, merge: true, one2one: true) 
-    res = self.annotate({})
-    key_field_name, field_names = traverse key_field, fields, one2one: one2one do |k,v|
-      if @type == :double && merge && res.include?(k)
-        current = res[k]
-        if merge == :concat
-          v.each_with_index do |new,i|
-            next if new.empty?
-            current[i].concat(new)
-          end
-        else
-          merged = []
-          v.each_with_index do |new,i|
-            next if new.empty?
-            merged[i] = current[i] + new
-          end
-          res[k] = merged
-        end
-      else
-        res[k] = v
-      end
-    end
-    res.key_field = key_field_name
-    res.fields = field_names
-    res
-  end
-
-  def slice(fields)
-    reorder :key, fields
   end
 end

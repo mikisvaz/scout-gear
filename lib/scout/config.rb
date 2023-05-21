@@ -148,7 +148,7 @@ module Scout::Config
   end
 
   def self.process_config(config)
-    if Misc.is_filename?(config) && File.exist?(config)
+    if Path.is_filename?(config) && File.exist?(config)
       Scout::Config.load_file(config)
     elsif Scout.etc.config_profile[config].exists?
       Scout::Config.load_file(Scout.etc.config_profile[config].find)

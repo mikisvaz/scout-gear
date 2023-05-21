@@ -20,7 +20,9 @@ module ScoutCabinet
     tokyocabinet_class = TokyoCabinet::HDB if tokyocabinet_class == "HDB" or tokyocabinet_class.nil?
     tokyocabinet_class = TokyoCabinet::BDB if tokyocabinet_class == "BDB"
 
-    database = Persist::CONNECTIONS[path] ||= tokyocabinet_class.new
+    # Hack - Ignore warning: undefining the allocator of T_DATA class
+    # TokyoCabinet::HDB_data
+    database = Log.ignore_stderr do Persist::CONNECTIONS[path] ||= tokyocabinet_class.new end
 
     if big and not Open.exists?(path)
       database.tune(nil,nil,nil,tokyocabinet_class::TLARGE | tokyocabinet_class::TDEFLATE) 

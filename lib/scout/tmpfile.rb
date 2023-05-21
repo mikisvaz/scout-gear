@@ -98,13 +98,15 @@ module TmpFile
     tmp_for_file = IndiferentHash.process_options tmp_options, :file
     return tmp_for_file unless tmp_for_file.nil?
 
-    prefix = IndiferentHash.process_options tmp_options, :prefix
+    prefix, key = IndiferentHash.process_options tmp_options, :prefix, :key
 
     if prefix.nil?
       perfile = file.to_s.gsub(/\//, SLASH_REPLACE) 
     else
       perfile = prefix.to_s + ":" + file.to_s.gsub(/\//, SLASH_REPLACE) 
     end
+
+    perfile += "[#{ key }]" if key
 
     perfile.sub!(/\.b?gz$/,'')
 
@@ -117,7 +119,7 @@ module TmpFile
     persistence_dir = IndiferentHash.process_options(tmp_options, :dir) || TmpFile.tmpdir 
     Path.setup(persistence_dir) unless Path === persistence_dir
 
-    filename = perfile.gsub(/\s/,'_').gsub(/\//,'>')
+    filename = perfile.gsub(/\s/,'_').gsub(/\//, SLASH_REPLACE)
     clean_options = other_options.dup
     clean_options.delete :unnamed
     clean_options.delete "unnamed"

@@ -126,6 +126,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     util=util{
      process.rb
      select.rb
+     process.rb
+     unzip.rb
+     reorder.rb
     }
     parser.rb
     dumper.rb

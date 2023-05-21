@@ -85,11 +85,14 @@ module Open
       self.traverse(obj, **options) do |*args|
         queue.write args
       end
+
       queue.close
+
+      queue.join
+
       begin
-        queue.join
         bar.remove if bar
-      rescue
+      rescue Exception
         bar.remove($!) if bar
         raise $!
       end

@@ -36,7 +36,7 @@ module TSV
     persist, type, grep, invert_grep = IndiferentHash.process_options options, :persist, :persist_type, :grep, :invert_grep, :persist => false, :persist_type => "HDB"
     type = type.to_sym if type
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
-    Persist.persist(file, type, options.merge(:persist => persist, :prefix => "Tsv")) do |filename|
+    Persist.persist(file, type, options.merge(:persist => persist, :prefix => "Tsv", :other_options => options)) do |filename|
       data = filename ? ScoutCabinet.open(filename, true, type) : nil
       options[:data] = data if data
       options[:filename] = file

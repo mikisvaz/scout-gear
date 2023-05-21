@@ -1,6 +1,7 @@
 class Step
   SERIALIZER = :marshal
   def info_file
+    return nil if @path.nil?
     @info_file ||= begin
                      info_file = @path + ".info"
                      @path.annotate info_file if Path === @path

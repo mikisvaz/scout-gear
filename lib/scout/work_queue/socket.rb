@@ -3,7 +3,7 @@ require 'scout/semaphore'
 require 'scout/exceptions'
 class WorkQueue
   class Socket
-    attr_accessor :sread, :swrite, :write_sem, :read_sem, :cleaned
+    attr_accessor :sread, :swrite, :write_sem, :read_sem, :cleaned, :exception
     def initialize(serializer = nil)
       @sread, @swrite = Open.pipe
 
@@ -110,6 +110,12 @@ class WorkQueue
         raise res if ClosedStream === res
         res
       end
+    end
+
+    def abort(exception)
+      @exception = exception
+      close_write
+      close_read
     end
 
     alias write push

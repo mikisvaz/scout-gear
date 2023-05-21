@@ -103,18 +103,19 @@ class TestWorkQueue < Test::Unit::TestCase
       res << out
     end
 
-    pid = Process.fork do
-      reps.times do |i|
-        q.write i
+    Log.with_severity 7 do
+      pid = Process.fork do
+        reps.times do |i|
+          q.write i
+        end
       end
-    end
 
-    Process.waitpid pid
-    q.close
+      Process.waitpid pid
 
-    assert_raise ScoutException do
-      q.join
-      t.join
+      assert_raise ScoutException do
+        q.join
+        t.join
+      end
     end
   end
 
@@ -128,20 +129,22 @@ class TestWorkQueue < Test::Unit::TestCase
 
     res = []
     q.process do |out|
-      raise ScoutException if rand < 0.01
+      raise ScoutException 
       res << out
     end
 
-    pid = Process.fork do
-      reps.times do |i|
-        q.write i
+    Log.with_severity 7 do
+      pid = Process.fork do
+        reps.times do |i|
+          q.write i
+        end
+        q.close
       end
-      q.close
-    end
 
-    assert_raise ScoutException do
-      q.join
-      t.join
+      assert_raise ScoutException do
+        q.join
+        t.join
+      end
     end
   end
 end

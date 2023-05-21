@@ -171,5 +171,31 @@ row2    A2|A22    B2|B22
 
   end
 
+  def test_traverse_select
+    content =<<-'EOF'
+#: :sep=" "
+#ID    ValueA    ValueB
+row1    A1|A11    B1|B11
+row2    A2|A22    B2|B22
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :persist => true, select: "B1")
+
+      assert_equal %w(row1), tsv.keys
+
+      tsv = TSV.open(filename, :persist => true, select: "B2")
+
+      assert_equal %w(row2), tsv.keys
+
+      tsv = TSV.open(filename, :persist => true, select: "B1")
+
+      assert_equal %w(row1), tsv.keys
+
+      tsv = TSV.open(filename, :persist => true, select: "B2")
+
+      assert_equal %w(row2), tsv.keys
+    end
+  end
 end
 

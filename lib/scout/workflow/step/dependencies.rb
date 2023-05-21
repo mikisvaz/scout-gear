@@ -39,7 +39,7 @@ class Step
   end
 
   def run_dependencies
-    dependencies.each{|dep| dep.run unless dep.running? || dep.done? }
+    dependencies.each{|dep| dep.run(true) unless dep.running? || dep.done? }
   end
 
   def self.wait_for_jobs(jobs)

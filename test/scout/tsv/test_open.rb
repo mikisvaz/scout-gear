@@ -130,5 +130,38 @@ row2 aa bb cc
     assert_equal ["BB", "bb"], tsv["row2"][1]
   end
 
+  def test_cpus_error_dumper
+    num_lines = 100
+    lines = num_lines.times.collect{|i| "line-#{i}" }
+
+    dumper =  TSV::Dumper.new :key_field => "Key", :fields => ["Field"], type: :single
+    dumper.init
+    assert_raise ScoutException do
+      Log.with_severity 0 do
+        i = 0
+        TSV.traverse lines, :into => dumper, cpus: 3 do |l|
+          raise ScoutException if i > 10
+          i += 1
+          [Process.pid.to_s, l + "-" + Process.pid.to_s]
+        end
+
+      end
+      ppp dumper.stream.read
+    end
+  end
+
+  def test_step_travese_cpus
+
+    size = 1000
+    step = Step.new tmpdir.step[__method__] do
+      lines = size.times.collect{|i| "line-#{i}" }
+      Open.traverse lines, :type => :array, :into => :stream, :cpus => 3 do |line|
+        line.reverse
+      end
+    end
+    step.type = :array
+
+    assert_equal size, step.run.length
+  end
 end
 

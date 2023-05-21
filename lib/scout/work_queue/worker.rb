@@ -27,8 +27,10 @@ class WorkQueue
         rescue Interrupt
         rescue Exception
           output.write WorkerException.new($!, Process.pid)
-          Kernel.exit -1
+          Process.exit! -1
+        ensure
         end
+        Process.exit! 0
       end
     end
 

@@ -4,6 +4,7 @@ require_relative 'traverse'
 require_relative 'util/filter'
 require_relative 'util/process'
 require_relative 'util/select'
+require_relative 'util/reorder'
 require_relative 'util/unzip'
 module TSV
   def self.identify_field(key_field, fields, name, strict: nil)

@@ -141,7 +141,11 @@ module ConcurrentStream
       close unless closed?
     ensure
       @joined = true
-      lock.unlock if lock and lock.locked?
+      begin
+        lock.unlock if lock && lock.locked?
+      rescue 
+        Log.exception $!
+      end
       raise stream_exception if stream_exception
     end
   end

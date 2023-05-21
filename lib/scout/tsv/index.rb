@@ -3,14 +3,14 @@ require_relative 'transformer'
 require_relative 'persist/fix_width_table'
 module TSV
   def self.index(tsv_file, target: 0, fields: nil, order: true, bar: nil, **kwargs)
-    persist, type, persist_update = IndiferentHash.process_options kwargs,
-      :persist, :persist_type, :persist_update,
+    persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
+      :persist, :persist_type, :persist_update, :data_persist,
       :persist => false, :persist_type => "HDB"
     kwargs.delete :type
 
     fields = :all if fields.nil?
 
-    Persist.persist(tsv_file, type, kwargs.merge(target: target, fields: fields, persist: persist, update: persist_update, :prefix => "Index")) do |filename|
+    Persist.persist(tsv_file, type, kwargs.merge(target: target, fields: fields, persist: persist, update: persist_update, :prefix => "Index", :other_options => kwargs)) do |filename|
       if filename
         index = ScoutCabinet.open(filename, true, type)
         TSV.setup(index, :type => :single)
@@ -18,6 +18,8 @@ module TSV
       else
         index = TSV.setup({}, :type => :single)
       end
+
+      tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
 
       bar = "Index #{Log.fingerprint tsv_file} target #{Log.fingerprint target}" if TrueClass === bar
 
@@ -65,16 +67,18 @@ module TSV
   end
 
   def self.range_index(tsv_file, start_field = nil, end_field = nil, key_field: :key, **kwargs)
-    persist, type = IndiferentHash.process_options kwargs,
-      :persist, :persist_type,
+    persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
+      :persist, :persist_type, :persist_update, :data_persist,
       :persist => false, :persist_type => :fwt
     kwargs.delete :type
 
-    Persist.persist(tsv_file, type, kwargs.merge(:persist => persist, :prefix => "RangeIndex")) do |filename|
+    Persist.persist(tsv_file, type, kwargs.merge(:persist => persist, :prefix => "RangeIndex", :other_options => kwargs, update: persist_update)) do |filename|
+
+      tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
 
       max_key_size = 0
       index_data = []
-      TSV.traverse tsv_file, key_field: key_field, fields: [start_field, end_field] do |key, values|
+      TSV.traverse tsv_file, key_field: key_field, fields: [start_field, end_field], **kwargs do |key, values|
         key_size = key.length
         max_key_size = key_size if key_size > max_key_size
 
@@ -98,6 +102,43 @@ module TSV
 
   def range_index(*args, **kwargs, &block)
     TSV.range_index(self, *args, **kwargs, &block)
+  end
+
+  def self.pos_index(tsv_file, pos_field = nil, key_field: :key, **kwargs)
+    persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
+      :persist, :persist_type, :persist_update, :data_persist,
+      :persist => false, :persist_type => :fwt
+    kwargs.delete :type
+
+    Persist.persist(tsv_file, type, kwargs.merge(:persist => persist, update: persist_update, :prefix => "RangeIndex", :other_options => kwargs)) do |filename|
+
+      tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
+
+      max_key_size = 0
+      index_data = []
+      TSV.traverse tsv_file, key_field: key_field, fields: [pos_field], type: :single, cast: :to_i, **kwargs do |key, pos|
+        key_size = key.length
+        max_key_size = key_size if key_size > max_key_size
+
+        if Array === pos
+          pos.zip(end_pos).each do |p|
+            index_pos << [key, p]
+          end
+        else
+          index_data << [key, pos]
+        end
+      end
+
+      filename = :memory if filename.nil?
+      index = FixWidthTable.get(filename, max_key_size, false)
+      index.add_point index_data
+      index.read
+      index
+    end
+  end
+
+  def pos_index(*args, **kwargs, &block)
+    TSV.pos_index(self, *args, **kwargs, &block)
   end
 
 

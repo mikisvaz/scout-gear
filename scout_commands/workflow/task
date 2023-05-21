@@ -50,7 +50,7 @@ job.clean if clean
 if provenance
   puts Step.prov_report(job)
 else
-  job.run unless job.done?
+  job.run(true) unless job.done?
 
   if print_filepath
     job.join

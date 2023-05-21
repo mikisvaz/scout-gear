@@ -46,7 +46,11 @@ class WorkQueue
   end
 
   def process(&callback)
-    @reader = Thread.new do |parent|
+    @workers.each do |w| 
+      w.process @input, @output, &@worker_proc
+    end
+
+    @reader = Thread.new(Thread.current) do |parent|
       begin
         Thread.current.report_on_exception = false
         Thread.current["name"] = "Output reader #{Process.pid}"
@@ -71,18 +75,15 @@ class WorkQueue
       rescue DoneProcessing
       rescue Aborted
       rescue WorkerException
-        Log.error "Exception in worker #{obj.pid} in queue #{Process.pid}: #{obj.message}"
+        Log.error "Exception in worker #{obj.pid} in queue #{Process.pid}: #{obj.worker_exception.message}"
         self.abort
+        @input.abort obj.worker_exception
         raise obj.worker_exception
       rescue
         Log.error "Exception processing output in queue #{Process.pid}: #{$!.message}"
         self.abort
         raise $!
       end
-    end
-
-    @workers.each do |w| 
-      w.process @input, @output, &@worker_proc
     end
 
     Thread.pass until @reader["name"]
@@ -104,7 +105,13 @@ class WorkQueue
   end
 
   def write(obj)
-    @input.write obj
+    begin
+      @input.write obj
+    rescue Exception
+      raise $! unless @input.exception
+    ensure
+      raise @input.exception if @input.exception
+    end
   end
 
   def abort
@@ -117,7 +124,7 @@ class WorkQueue
   def close
     @closed = true
     @worker_mutex.synchronize{ @workers.length }.times do
-      @input.write DoneProcessing.new()
+      @input.write DoneProcessing.new() unless @input.closed_write?
     end
   end
 

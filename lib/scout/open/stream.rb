@@ -112,6 +112,7 @@ module Open
         FileUtils.mkdir_p File.dirname(tmp_path) unless File.directory?(File.dirname(tmp_path))
         FileUtils.rm_f tmp_path if File.exist? tmp_path
         begin
+          Log.debug "Start sensible write: [#{Process.pid}] -- #{ Log.color :blue, path }"
 
           case
           when block_given?
@@ -141,6 +142,7 @@ module Open
           content.join if content.respond_to?(:join) and not Path === content and not (content.respond_to?(:joined?) && content.joined?)
 
           Open.notify_write(path) 
+          Log.debug "Done sensible write: [#{Process.pid}] -- #{ Log.color :blue, path }"
         rescue Aborted
           Log.low "Aborted sensible_write -- #{ Log.reset << Log.color(:blue, path) }"
           content.abort if content.respond_to? :abort

@@ -118,6 +118,27 @@ g:         ____
     end
   end
 
+  def test_pos_index
+    data =<<-EOF
+# 012345678901234567890
+#ID:Range
+a:   ______
+b: ______
+c:    _______
+d:  ____
+e:    ______
+f:             ___
+g:         ____
+    EOF
+    TmpFile.with_file(data) do |datafile|
+      tsv = load_segment_data(datafile)
+      f   = tsv.pos_index("Start", :persist => true)
+
+      assert_equal %w(), f[0].sort
+      assert_equal %w(a c d e), f[(2..4)].sort
+    end
+  end
+
   def test_range_index_persistent
     data =<<-EOF
 # 012345678901234567890

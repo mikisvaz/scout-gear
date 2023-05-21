@@ -313,6 +313,8 @@ class FixWidthTable
       acc.concat(new)
     end
   end
+
+  alias length size
 end
 
 Persist.save_drivers[:fwt] = proc do |file, content|
