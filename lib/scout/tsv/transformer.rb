@@ -97,6 +97,7 @@ module TSV
     end
 
     def []=(key, value)
+      @dumper.init if @dumper.respond_to?(:init) && ! @dumper.initialized
       @dumper.add key, value
     end
 
