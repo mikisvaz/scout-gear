@@ -112,8 +112,6 @@ module Open
         FileUtils.mkdir_p File.dirname(tmp_path) unless File.directory?(File.dirname(tmp_path))
         FileUtils.rm_f tmp_path if File.exist? tmp_path
         begin
-          Log.debug "Start sensible write: [#{Process.pid}] -- #{ Log.color :blue, path }"
-
           case
           when block_given?
             File.open(tmp_path, 'wb', &block)
@@ -142,14 +140,14 @@ module Open
           content.join if content.respond_to?(:join) and not Path === content and not (content.respond_to?(:joined?) && content.joined?)
 
           Open.notify_write(path) 
-          Log.debug "Done sensible write: [#{Process.pid}] -- #{ Log.color :blue, path }"
+          Log.debug "Done sensible write: [#{Process.pid}] -- #{ path }"
         rescue Aborted
-          Log.low "Aborted sensible_write -- #{ Log.reset << Log.color(:blue, path) }"
+          Log.low "Aborted sensible_write -- #{ Log.reset << path }"
           content.abort if content.respond_to? :abort
           Open.rm path if File.exist? path
         rescue Exception
           exception = (AbortedStream === content and content.exception) ? content.exception : $!
-          Log.low "Exception in sensible_write: [#{Process.pid}] #{exception.message} -- #{ Log.color :blue, path }"
+          Log.low "Exception in sensible_write: [#{Process.pid}] #{exception.message} -- #{ path }"
           content.abort(exception) if content.respond_to? :abort
           Open.rm path if File.exist? path
           raise exception

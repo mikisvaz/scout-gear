@@ -116,7 +116,7 @@ module Open
   end
 
   def self.rm(file)
-    FileUtils.rm(file) if File.exist?(file) or Open.broken_link?(file)
+    FileUtils.rm(file) if File.exist?(file) || Open.broken_link?(file)
   end
 
   def self.rm_rf(file)

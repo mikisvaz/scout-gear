@@ -86,17 +86,17 @@ module Open
         queue.write args
       end
 
-      queue.close
-
-      queue.join
-
       begin
+        queue.close
+
+        queue.join
+
         bar.remove if bar
+        return into
       rescue Exception
         bar.remove($!) if bar
         raise $!
       end
-      return into
     end
 
     begin

@@ -318,7 +318,7 @@ unless(defined?($__lockfile__) or defined?(Lockfile))
                     @refresher.kill 
                   end 
                 rescue
-                    @refresher.kill 
+                  @refresher.kill 
                 end if @refresher and @refresher.status
                 @refresher = nil
               ensure

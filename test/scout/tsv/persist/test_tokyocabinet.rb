@@ -38,7 +38,7 @@ row2    a    a    id3
     assert_equal %w(a aa aaa), tsv_loaded["row1"][0]
   end
 
-  def _test_custom_load
+  def test_custom_load
     tsv = TSV.setup({}, :type => :double, :key_field => "Key", :fields => %w(Field1 Field2))
 
     size = 100_000
@@ -95,7 +95,7 @@ row2    a    a    id3
     end
   end
 
-  def _test_float_array
+  def test_float_array
     content =<<-EOF
 #Id    ValueA    ValueB    OtherID
 row1   0.2   0.3 0

@@ -3,7 +3,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 
 require 'scout/tsv'
 class TestTSVSelect < Test::Unit::TestCase
-  def _test_select
+  def test_select
     content =<<-'EOF'
 #: :sep=/\s+/#:type=:double
 #Id    ValueA    ValueB    OtherID
@@ -23,7 +23,7 @@ row2    AA    BB    Id33
     assert_equal ['row2'], s.keys
   end
 
-  def _test_reorder
+  def test_reorder
     content =<<-'EOF'
 #: :sep=/\s+/#:type=:double
 #Id    ValueA    ValueB    OtherID
@@ -41,7 +41,7 @@ row2    A1|A3    B1|B3    Id1|Id3
     assert_equal %w(row2), r["Id3"]["Id"]
   end
 
-  def _test_reorder_list
+  def test_reorder_list
     content =<<-'EOF'
 #: :sep=/\s+/#:type=:list
 #Id    ValueA    ValueB    OtherID
@@ -59,7 +59,7 @@ row2    A1    B1    Id1
     assert_equal "row2", r["B1"]["Id"]
   end
 
-  def _test_reorder_single
+  def test_reorder_single
     content =<<-'EOF'
 #: :sep=/\s+/#:type=:single
 #Id    ValueA

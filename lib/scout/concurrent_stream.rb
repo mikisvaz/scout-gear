@@ -156,8 +156,12 @@ module ConcurrentStream
     name += " - file:#{filename}" if filename
     Log.low "Aborting threads (#{name}) - #{@threads.collect{|t| Log.fingerprint(t) } * ", "}"
 
-    @threads.each do |t| 
+    threads = @threads.dup
+    @threads.clear
+    threads.each do |t| 
       next if t == Thread.current
+      next if t["aborted"]
+      t["aborted"] = true
       exception = exception.nil? ? Aborted.new : exception
       Log.debug "Aborting thread #{Log.fingerprint(t)} with exception: #{exception}"
       t.raise(exception)

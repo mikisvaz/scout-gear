@@ -114,8 +114,7 @@ class WorkQueue
 
     def abort(exception)
       @exception = exception
-      close_write
-      close_read
+      @swrite.close unless closed_write?
     end
 
     alias write push

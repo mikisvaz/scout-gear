@@ -49,14 +49,15 @@ module Persist
       if Open.exist?(file) && ! update
         Persist.load(file, type)
       else
-        return yield(file) if block.arity == 1
-        res = yield
-
-        if res.nil?
-          return Persist.load(file, type)
-        end
-
         begin
+          file = file.find
+          return yield(file) if block.arity == 1
+          res = yield
+
+          if res.nil?
+            return Persist.load(file, type)
+          end
+
           Open.rm(file)
 
           if IO === res || StringIO === res
@@ -80,8 +81,15 @@ module Persist
             res = pres unless pres.nil?
           end
         rescue
+          Thread.handle_interrupt(Exception => :never) do
+            if Open.exist?(file)
+              Log.debug "Failed persistence #{file} - erasing"
+              Open.rm file
+            else
+              Log.debug "Failed persistence #{file}"
+            end
+          end
           raise $! unless options[:canfail]
-          Log.debug "Could not persist #{type} on #{file}"
         end
         res
       end
