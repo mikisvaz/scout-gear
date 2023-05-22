@@ -33,17 +33,17 @@ module Persist
     return yield if FalseClass === persist_options[:persist]
     file = persist_options[:path] || options[:path] || persistence_path(name, options)
 
-    lockfile = persist_options[:lockfile] || options[:lockfile] || Persist.persistence_path(file + '.persist', {:dir => Persist.lock_dir})
-
-    update = options[:update] || persist_options[:update]
-    update = Open.mtime(update) if Path === update
-    update = Open.mtime(file) >= update ? false : true if Time === update
-
     if type == :memory
       repo = options[:memory] || options[:repo] || MEMORY_CACHE
       repo[file] ||= yield
       return repo[file]
     end
+
+    update = options[:update] || persist_options[:update]
+    update = Open.mtime(update) if Path === update
+    update = Open.mtime(file) >= update ? false : true if Time === update
+
+    lockfile = persist_options[:lockfile] || options[:lockfile] || Persist.persistence_path(file + '.persist', {:dir => Persist.lock_dir})
 
     Open.lock lockfile do |lock|
       if Open.exist?(file) && ! update
@@ -96,8 +96,9 @@ module Persist
     end
   end
 
-  def self.memory(name, *args, &block)
-    self.persist(name, :memory, *args, &block)
+  def self.memory(name, options = {}, &block)
+    options[:persist_path] ||= options[:path] ||= [name, options[:key]].compact * ":"
+    self.persist(name, :memory, options, &block)
   end
 
 end

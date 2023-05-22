@@ -1,22 +1,5 @@
 scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
-
- work=. filter="*"{
-  lib=lib/scout{
-   log.rb
-   concurrent_stream.rb
-   work_queue.rb
-   work_queue/worker.rb
-   work_queue/socket.rb
-   open/stream.rb
-   open/lock.rb
-   open/lock/lockfile.rb
-   persist.rb
-   tsv/open.rb
-  }
- }
-
-
  bin=bin filter="*"{
   scout
  }

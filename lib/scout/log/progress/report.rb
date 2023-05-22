@@ -229,7 +229,7 @@ module Log
       done_msg << Log.color(:magenta, " · " << desc)      
       print(io, Log.up_lines(@depth) << done_msg << Log.down_lines(@depth)) 
 
-      File.rm file if file and File.exist?(file)
+      FileUtils.rm file if file and File.exist?(file)
 
       begin
         @callback.call self

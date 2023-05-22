@@ -359,7 +359,8 @@ module TSV
   def self.parse(stream, fix: true, header_hash: "#", sep: "\t", filename: nil, namespace: nil, unnamed: false, serializer: nil, **kwargs, &block)
     parser = TSV::Parser.new stream, fix: fix, header_hash: header_hash, sep: sep
 
-    cast = parser.options[:cast] || kwargs[:cast]
+    cast = kwargs[:cast]
+    cast = parser.options[:cast] if cast.nil?
     type = kwargs[:type] ||=  parser.options[:type] ||= :double
     if (data = kwargs[:data]) && data.respond_to?(:persistence_class)
       TSV.setup(data, type: type)
