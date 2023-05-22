@@ -1,3 +1,5 @@
+require 'matrix'
+
 module TSV
   def reorder(key_field = nil, fields = nil, merge: true, one2one: true) 
     res = self.annotate({})
@@ -28,5 +30,38 @@ module TSV
 
   def slice(fields)
     reorder :key, fields
+  end
+
+  def transpose_list(key_field="Unkown ID")
+    new_fields = keys.dup
+    new = self.annotate({})
+    TSV.setup(new, :key_field => key_field, :fields => new_fields, :type => type, :filename => filename, :identifiers => identifiers)
+
+    m = Matrix.rows values 
+    new_rows = m.transpose.to_a
+
+    fields.zip(new_rows) do |key,row|
+      new[key] = row
+    end
+
+    new
+  end
+
+  def transpose_double(key_field = "Unkown ID")
+    sep = "-!SEP--#{rand 10000}!-"
+    tmp = self.to_list{|v| v * sep}
+    new = tmp.transpose_list(key_field)
+    new.to_double{|v| v.split(sep)}
+  end
+
+  def transpose(key_field = "Unkown ID")
+    case type
+    when :single, :flat
+      self.to_list.transpose_list key_field
+    when :list
+      transpose_list key_field
+    when :double
+      transpose_double key_field
+    end
   end
 end
