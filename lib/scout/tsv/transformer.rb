@@ -118,5 +118,15 @@ module TSV
     end
     transformer.tsv
   end
+
+  def to_single
+    transformer = Transformer.new self
+    transformer.type = :single
+    transformer.traverse do |k,v|
+      v = v.first while Array === v
+      [k, v]
+    end
+    transformer.tsv
+  end
 end
 
