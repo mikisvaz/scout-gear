@@ -1,7 +1,7 @@
 class Step
   def rec_dependencies
     rec_dependencies = dependencies.dup
-    dependencies.inject(rec_dependencies){|acc,d| acc.concat d.dependencies }
+    dependencies.inject(rec_dependencies){|acc,d| acc.concat d.rec_dependencies }
   end
 
   def recursive_inputs
@@ -21,6 +21,10 @@ class Step
   def prepare_dependencies
     inverse_dep = {}
     dependencies.each{|dep| 
+      if dep.present? && ! dep.updated? 
+        Log.debug "Clean outdated #{dep.path}"
+        dep.clean
+      end
       next if dep.done?
       if dep.dependencies
         dep.dependencies.each do |d|
@@ -40,6 +44,10 @@ class Step
 
   def run_dependencies
     dependencies.each{|dep| dep.run(true) unless dep.running? || dep.done? }
+  end
+
+  def abort_dependencies
+    dependencies.each{|dep| dep.abort if dep.running? }
   end
 
   def self.wait_for_jobs(jobs)

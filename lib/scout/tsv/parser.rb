@@ -15,7 +15,7 @@ module TSV
   def self.parse_line(line, type: :list, key: 0, positions: nil, sep: "\t", sep2: "|", cast: nil, select: nil, field_names: nil)
     items = line.split(sep, -1)
 
-    return nil if select && ! TSV.select(items[0], items[1..-1], select, fields: field_names)
+    return nil if select && ! TSV.select(items[0], items[1..-1], select, fields: field_names, type: type, sep: sep2)
 
     if positions.nil? && key == 0
       key = items.shift
@@ -64,7 +64,7 @@ module TSV
       line = first_line || stream.gets
       while line
         begin
-          line.strip!
+          line.chomp!
           if Proc === fix
             line = fix.call line
           elsif fix

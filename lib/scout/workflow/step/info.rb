@@ -128,4 +128,12 @@ class Step
   def exception
     info[:exception]
   end
+
+  def marshal_dump
+    @path
+  end
+
+  def marshal_load(path)
+    Step.new path
+  end
 end

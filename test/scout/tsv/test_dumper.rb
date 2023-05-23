@@ -29,7 +29,6 @@ a\t1|11\t2|22
   end
 
   def test_raise
-    sss 0
     dumper = TSV::Dumper.new :key_field => "Key", :fields => %w(Field1 Field2), :type => :double
     dumper.init
     t = Thread.new do

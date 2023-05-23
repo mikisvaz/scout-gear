@@ -74,5 +74,21 @@ row3    a    C    Id4
       assert_equal %w(Id1 Id3 Id4),  tsv.transpose("Values")["vID"]
     end
   end
+
+  def test_column
+    content =<<-EOF
+#Id    ValueA    ValueB ValueC
+rowA    A|AA    B|BB  C|CC
+rowa    a|aa    b|BB  C|CC
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/, :type => :double)
+      tsv = tsv.column("ValueA", cast: :downcase)
+      assert_equal %w(a aa), tsv["rowA"]
+      assert_equal %w(a aa), tsv["rowa"]
+    end
+  end
+
 end
 

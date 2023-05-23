@@ -99,14 +99,12 @@ module TmpFile
     return tmp_for_file unless tmp_for_file.nil?
 
     if prefix.nil?
-      perfile = file.to_s
+      perfile = file.to_s.sub(/\.b?gz$/,'')
     else
-      perfile = prefix.to_s + ":" + file.to_s
+      perfile = prefix.to_s + ":" + file.to_s.sub(/\.b?gz$/,'')
     end
 
     perfile += "[#{ key }]" if key
-
-    perfile.sub!(/\.b?gz$/,'')
 
     if other_options.include? :filters
       other_options[:filters].each do |match,value|

@@ -12,4 +12,14 @@ module Misc
       end
     end
   end
+
+  def self.with_env(var, value, &block)
+    old_value = ENV[var]
+    begin
+      ENV[var] = value
+      yield
+    ensure
+      ENV[var] = old_value
+    end
+  end
 end

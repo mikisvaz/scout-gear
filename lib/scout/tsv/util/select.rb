@@ -1,6 +1,6 @@
 module TSV
-  def self.select(key, values, method, fields: nil, field: nil, invert: false, &block)
-    return ! select(key, values, method, field: field, invert: false, &block) if invert
+  def self.select(key, values, method, fields: nil, field: nil, invert: false, type: nil, sep: nil, &block)
+    return ! select(key, values, method, field: field, invert: false, type: type, sep: sep, &block) if invert
 
     return yield(key, values) if method.nil? && block_given
 
@@ -8,18 +8,18 @@ module TSV
       if method.include?(:invert)
         method = method.dup
         invert = method.delete(:invert)
-        return select(key, values, method, fields: fields, field: field, invert: invert, &block)
+        return select(key, values, method, fields: fields, field: field, invert: invert, type: type, sep: sep, &block)
       end
       field = method.keys.first
       value = method[field]
-      return select(key, values, value, fields: fields, field: field, invert: invert, &block)
+      return select(key, values, value, fields: fields, field: field, invert: invert, type: type, sep: sep, &block)
     end
 
     if field
       field = fields.index(field) if fields && String === field
-      set = field == :key ? [key] : values[field]
+      set = field == :key ? [key] : (type == :double ? values[field].split(sep) : values[field])
     else
-      set = [key, values]
+      set = [key, (type == :double ? values.collect{|v| v.split(sep) } : values)]
     end
 
     if Array === set
@@ -248,6 +248,16 @@ module TSV
             new[key] = self[key] if invert ^ (values.flatten.select{|v| method.call(v)}.length > 0)
           end
         end
+      end
+    end
+    new
+  end
+
+  def subset(keys)
+    new = self.annotate({})
+    self.with_unnamed do
+      keys.each do |k|
+        new[k] = self[k] if self.include?(k)
       end
     end
     new

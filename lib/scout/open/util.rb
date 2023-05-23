@@ -160,7 +160,7 @@ module Open
     begin
       if File.symlink?(file) || File.stat(file).nlink > 1
         if File.exist?(file + '.info') && defined?(Step)
-          done = Step::INFO_SERIALIZER.load(Open.open(file + '.info'))[:done]
+          done = Persist.load(file + '.info', Step::SERIALIZER)[:done]
           return done if done
         end
 

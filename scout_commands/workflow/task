@@ -4,6 +4,9 @@ require 'scout'
 
 $0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
 
+ENV["SCOUT_NO_STREAM"] = "true" if ARGV.include? "--nostream"
+ENV["SCOUT_UPDATE"] = "true" if ARGV.include? "--update"
+
 options = SOPT.setup <<EOF
 
 Run a workflow job
@@ -11,11 +14,14 @@ Run a workflow job
 $ #{$0} [<options>] <workflow> <task>
 
 -h--help Print this help
+--nostream Disable job streaming
+--update Update jobs with newer dependencies
 -jn--job_name* Name to use as job identifier
 -pf--print_filepath Print the file path
 -prov--provenance Print the step provenance
 -cl--clean Clean the last step
 -rcl--recursive_clean Clean all steps
+-ct--clean_task* Clean a particular task
 EOF
 
 workflow_name, task_name = ARGV
@@ -28,7 +34,8 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, jobname, print_filepath = IndiferentHash.process_options options, :help, :provenance, :clean, :recursive_clean, :job_name, :print_filepath
+help, provenance, clean, recursive_clean, clean_task, jobname, print_filepath = IndiferentHash.process_options options, 
+  :help, :provenance, :clean, :recursive_clean, :clean_task, :job_name, :print_filepath
 
 if help
   if defined? scout_usage
@@ -46,6 +53,24 @@ job = workflow.job(task_name, jobname, job_options)
 
 job.recursive_clean if recursive_clean
 job.clean if clean
+
+if clean_task 
+  ENV["SCOUT_UPDATE"] = 'true'
+  clean_task.split(",").each do |clean_task|
+    if clean_task.include? "#"
+      clean_workflow, clean_task = clean_task.split("#")
+    end
+
+    job.rec_dependencies.each do |dep|
+      next unless dep.task_name.to_s == clean_task.to_s
+      next unless clean_workflow.nil? || clean_workflow == dep.workflow.to_s
+      dep.clean 
+      dep.set_info :status, :cleaned
+    end
+
+    job.clean if job.task_name.to_s == clean_task.to_s
+  end
+end
 
 if provenance
   puts Step.prov_report(job)

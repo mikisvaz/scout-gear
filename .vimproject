@@ -102,6 +102,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     step.rb
     step=step{
      info.rb
+     status.rb
      load.rb
      file.rb
      config.rb
@@ -317,6 +318,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
 
      workflow.rb
      workflow=workflow{
+      refactor.rb
       annotate.rb
 
       definition.rb

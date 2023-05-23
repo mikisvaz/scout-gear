@@ -40,7 +40,7 @@ module Misc
   end
 
   def self.digest(obj)
-    str = Misc.digest_str(obj)
+    str = String === obj ? obj : Misc.digest_str(obj)
     Digest::MD5.hexdigest(str)
   end
 

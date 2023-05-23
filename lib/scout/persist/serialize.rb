@@ -47,6 +47,7 @@ module Persist
   def self.deserialize(serialized, type)
     type = type.to_sym if String === type
     type = SERIALIZER if type == :serializer
+
     case type
     when nil, :string, :file, :stream, :select, :folder
       serialized
@@ -100,9 +101,18 @@ module Persist
         return save_drivers[type].call(file, content)
       end
     end
-    serialized = serialize(content, type)
-    Open.sensible_write(file, serialized, :force => true)
-    return nil
+
+    if type == :binary
+      content.force_encoding("ASCII-8BIT") if content.respond_to? :force_encoding
+      Open.open(path, :mode => 'wb') do |f|
+        f.puts content
+      end
+      content
+   else
+      serialized = serialize(content, type)
+      Open.sensible_write(file, serialized, :force => true)
+      return nil
+    end
   end
 
   def self.load(file, type = :serializer)
@@ -119,6 +129,8 @@ module Persist
     end
 
     case type
+    when :binary
+      Open.read(file, :mode => 'rb')
     when :yaml
       Open.yaml(file)
     when :json

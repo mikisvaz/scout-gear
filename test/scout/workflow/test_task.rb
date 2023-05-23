@@ -281,5 +281,32 @@ class TestTask < Test::Unit::TestCase
     assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
   end
 
+  def test_non_default_inputs
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :input1, :integer, "", 1
+      input :input2, :integer, "", 0
+      task :step1 => :string do |i1,i2| i1 + i2 end
+
+      dep :step1, :input2 => 1
+      task :step2 => :string do |i| step(:step1).load end
+
+      dep :step2
+      task :step3 => :string do |i| step(:step1).load end
+    end
+
+    job = wf.job(:step3, :input1 => 1)
+    assert_equal Task::DEFAULT_NAME, job.name
+    assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
+    assert_equal 2, job.run
+
+    job = wf.job(:step3, :input1 => 2)
+    assert_equal 3, job.run
+
+
+    job = wf.job(:step3)
+    assert_equal Task::DEFAULT_NAME, job.name
+    assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
+  end
+
 end
 

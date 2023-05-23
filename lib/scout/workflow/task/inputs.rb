@@ -1,10 +1,9 @@
 require_relative '../../named_array'
 module Task
-  def format_input(value, type, options = {})
-    return value if IO === value || StringIO === value
+  def self.format_input(value, type, options = {})
+    return value if IO === value || StringIO === value || Step === value
 
-    value = value.load if Step === value
-    if String === value && ! [:path, :file, :folder].include?(type) 
+    if String === value && ! [:path, :file, :folder].include?(type) && (options.nil? || (! options[:noload] || options[:stream]))
       if Open.exists?(value) && ! Open.directory?(value)
         Persist.load(value, type) 
       else
@@ -13,7 +12,7 @@ module Task
     else
       if m = type.to_s.match(/(.*)_array/)
         if Array === value
-          value.collect{|v| format_input(v, m[1].to_sym, options) }
+          value.collect{|v| self.format_input(v, m[1].to_sym, options) }
         end
       else
         value
@@ -40,7 +39,7 @@ module Task
       name, type, desc, value, options = p
       input_names << name
       provided = Hash === provided_inputs ? provided_inputs[name] : provided_inputs[i]
-      provided = format_input(provided, type, options || {})
+      provided = Task.format_input(provided, type, options || {})
       if ! provided.nil? && provided != value
         non_default_inputs << name.to_sym
         input_array << provided
@@ -56,8 +55,8 @@ module Task
 
   def process_inputs(provided_inputs = {})
     input_array, non_default_inputs = assign_inputs provided_inputs
-    digest = Misc.digest(input_array)
-    [input_array, non_default_inputs, digest]
+    digest_str = Misc.digest_str(input_array)
+    [input_array, non_default_inputs, digest_str]
   end
 
   def save_file_input(orig_file, directory)

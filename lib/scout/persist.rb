@@ -50,7 +50,7 @@ module Persist
         Persist.load(file, type)
       else
         begin
-          file = file.find
+          file = file.find if Path === file
           return yield(file) if block.arity == 1
           res = yield
 

@@ -139,7 +139,11 @@ module Log
 
     sev_str = severity.to_s
 
-    prefix = time << color(severity) << "["  << sev_str << "]" << color(0)
+    if ENV["SCOUT_DEBUG_PID"] == "true"
+      prefix = time << "["  << Process.pid.to_s << "]" << color(severity) << "["  << sev_str << "]" << color(0)
+    else
+      prefix = time << color(severity) << "["  << sev_str << "]" << color(0)
+    end
     message = "" << highlight << message << color(0) if severity >= INFO
     str = prefix << " " << message.to_s
 

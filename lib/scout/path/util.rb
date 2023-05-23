@@ -81,4 +81,22 @@ module Path
   def set_extension(extension)
     self.annotate(self + ".#{extension}")
   end
+
+  # Is 'file' newer than 'path'? return non-true if path is newer than file
+  def self.newer?(path, file, by_link = false)
+    return true if not Open.exists?(file)
+    path = path.find if Path === path
+    file = file.find if Path === file
+    if by_link
+      patht = File.exist?(path) ? File.lstat(path).mtime : nil
+      filet = File.exist?(file) ? File.lstat(file).mtime : nil
+    else
+      patht = Open.mtime(path)
+      filet = Open.mtime(file)
+    end
+    return true if patht.nil? || filet.nil?
+    diff = patht - filet
+    return diff if diff < 0
+    return false
+  end
 end

@@ -272,7 +272,7 @@ module CMD
         sout.close unless sout.closed?
 
         status = wait_thr.value
-        if not status.success? and not no_fail
+        if status && ! status.success? && ! no_fail
           if !err.empty?
             raise ProcessFailed.new pid, "#{cmd} failed with error status #{status.exitstatus}.\n#{err}"
           else

@@ -5,10 +5,10 @@ module TSV
         :key_field, :fields, :sep, :header_hash, :preamble, :unnamed,
         :sep => "\t", :header_hash => "#", :preamble => true
 
-      if fields.nil? || key_field.nil?
+      if fields.nil?
         fields_str = nil
       else
-        fields_str = "#{header_hash}#{key_field}#{sep}#{fields*sep}"
+        fields_str = "#{header_hash}#{key_field || "Id"}#{sep}#{fields*sep}"
       end
 
       if preamble && options.values.compact.any?
@@ -68,9 +68,10 @@ module TSV
     def add(key, value)
       @mutex.synchronize do
 
+        key = key.to_s unless String === key
         case @type
         when :single
-          @sin.puts key + @sep + value
+          @sin.puts key + @sep + value.to_s
         when :list, :flat
           @sin.puts key + @sep + value * @sep
         when :double
@@ -112,11 +113,11 @@ module TSV
   def dumper_stream(options = {})
     preamble = IndiferentHash.process_options options, :preamble, :preamble => true
     dumper = TSV::Dumper.new self.extension_attr_hash.merge(options)
-    dumper.init(preamble: preamble)
     t = Thread.new do 
       begin
         Thread.current.report_on_exception = true
         Thread.current["name"] = "Dumper thread"
+        dumper.init(preamble: preamble)
         self.each do |k,v|
           dumper.add k, v
         end

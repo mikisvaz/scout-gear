@@ -1,9 +1,11 @@
 require 'matrix'
 
 module TSV
-  def reorder(key_field = nil, fields = nil, merge: true, one2one: true) 
+  def reorder(key_field = nil, fields = nil, merge: true, one2one: true, **kwargs) 
     res = self.annotate({})
-    key_field_name, field_names = traverse key_field, fields, one2one: one2one do |k,v|
+    res.type = kwargs[:type] if kwargs.include?(:type)
+    kwargs[:one2one] = one2one
+    key_field_name, field_names = traverse key_field, fields, **kwargs do |k,v|
       if @type == :double && merge && res.include?(k)
         current = res[k]
         if merge == :concat
@@ -28,8 +30,20 @@ module TSV
     res
   end
 
-  def slice(fields)
-    reorder :key, fields
+  def slice(fields, **kwargs)
+    reorder :key, fields, **kwargs
+  end
+
+  def column(field, **kwargs)
+    new_type = case type
+               when :double, :flat
+                 :flat
+               else
+                 :single
+               end
+
+    kwargs[:type] = new_type
+    slice(field, **kwargs)
   end
 
   def transpose_list(key_field="Unkown ID")

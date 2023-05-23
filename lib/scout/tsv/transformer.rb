@@ -111,22 +111,31 @@ module TSV
   end
 
   def to_list
-    transformer = Transformer.new self
+    res = self.annotate({})
+    transformer = Transformer.new self, res
     transformer.type = :list
     transformer.traverse do |k,v|
-      [k, v.collect{|v| v.first }]
+      case self.type
+      when :single
+        [k, [v]]
+      when :double
+        [k, v.collect{|v| v.first }]
+      when :flat
+        [k, v.slice(0,1)]
+      end
     end
-    transformer.tsv
+    res
   end
 
   def to_single
-    transformer = Transformer.new self
+    res = self.annotate({})
+    transformer = Transformer.new self, res
     transformer.type = :single
     transformer.traverse do |k,v|
       v = v.first while Array === v
       [k, v]
     end
-    transformer.tsv
+    res
   end
 end
 

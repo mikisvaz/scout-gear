@@ -1,6 +1,7 @@
 require_relative '../path'
 require_relative '../persist'
 require_relative 'step/info'
+require_relative 'step/status'
 require_relative 'step/load'
 require_relative 'step/file'
 require_relative 'step/dependencies'
@@ -10,12 +11,13 @@ require_relative 'step/progress'
 
 class Step 
 
-  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies
-  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, &task) 
+  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs
+  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, &task) 
     @path = path
     @inputs = inputs
     @dependencies = dependencies
     @id = id
+    @non_default_inputs = non_default_inputs
     @task = task
     @mutex = Mutex.new
     @tee_copies = 1
@@ -72,7 +74,35 @@ class Step
   end
 
   def exec
+
+    if inputs 
+      if Task === task
+        types = task.inputs.collect{|name,type| type }
+        new_inputs = inputs.zip(types).collect{|input,info|  
+          type, desc, default, options = info
+          next input unless Step === input
+          input.join if input.streaming?
+          Task.format_input(input.join.path, type, options)
+        }
+      else
+        new_inputs = inputs.collect{|input|  
+          Step === input ? input.load : input
+        }
+      end
+      inputs = new_inputs
+    end
+
     @result = self.instance_exec(*inputs, &task)
+  end
+
+  def tmp_path
+    @tmp_path ||= begin
+                    basename = File.basename(@path)
+                    dirname = File.dirname(@path)
+                    tmp_path = File.join(dirname, '.' + basename)
+                    @path.setup(tmp_path) if Path === @path
+                    tmp_path
+                  end
   end
 
   attr_reader :result
@@ -80,19 +110,29 @@ class Step
     return @result || self.load if done?
     prepare_dependencies
     run_dependencies
-    @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
+    @result = 
       begin
-        clear_info
-        merge_info :status => :start, :start => Time.now,
-          :pid => Process.pid, :pid_hostname => ENV["HOSTNAME"], 
-          :inputs => inputs, :type => type,
-          :dependencies => dependencies.collect{|d| d.path }
+        Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
+          clear_info
+          merge_info :status => :start, :start => Time.now,
+            :pid => Process.pid, :pid_hostname => ENV["HOSTNAME"], 
+            :inputs => inputs, :type => type,
+            :dependencies => dependencies.collect{|d| d.path }
 
-        @result = exec
-        @result = @result.stream if @result.respond_to?(:stream)
-        @result
+
+          @result = exec
+
+          if @result.nil? && File.exist?(self.tmp_path) && ! File.exist?(self.path)
+            Open.mv self.tmp_path, self.path
+          else
+            @result = @result.stream if @result.respond_to?(:stream)
+          end
+
+          @result
+        end
       rescue Exception => e
         merge_info :status => :error, :exception => e, :end => Time.now
+        abort_dependencies
         raise e
       ensure
         if ! (error? || aborted?)
@@ -115,9 +155,8 @@ class Step
           end
         end
       end
-    end
 
-    if stream
+    if stream && ENV["SCOUT_NO_STREAM"].nil?
       @result
     else
       if IO === @result || @result.respond_to?(:stream)
@@ -167,7 +206,7 @@ class Step
     end
     threads.each do |t| 
       begin
-      t.join 
+        t.join 
       rescue
         threads.each{|t| t.raise(Aborted); t.join }
         raise $!
@@ -189,23 +228,6 @@ class Step
     return @result unless @result.nil? || streaming?
     join
     done? ? Persist.load(path, type) : exec
-  end
-
-  def clean
-    @take_stream = nil 
-    @result = nil
-    @info = nil
-    @info_load_time = nil
-    Open.rm path if Open.exist?(path)
-    Open.rm info_file if Open.exist?(info_file)
-    Open.rm_rf files_dir if Open.exist?(files_dir)
-  end
-
-  def recursive_clean
-    dependencies.each do |dep|
-      dep.recursive_clean
-    end
-    clean
   end
 
   def step(task_name)

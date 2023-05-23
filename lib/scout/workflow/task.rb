@@ -49,6 +49,7 @@ module Task
       task = step_options.delete(:task) if step_options.include?(:task)
       workflow = step_options.delete(:workflow) if step_options.include?(:workflow)
       id = step_options.delete(:id) if step_options.include?(:id)
+      id = step_options.delete(:jobname) if step_options.include?(:jobname)
 
       step_inputs = step_options.include?(:inputs)? step_options.delete(:inputs) : step_options
       step_inputs = IndiferentHash.add_defaults step_inputs, definition_options
@@ -67,13 +68,13 @@ module Task
 
     # Helper function
     find_dep_non_default_inputs = proc do |dep,definition_options,step_inputs={}|
-      assigned_inputs, dep_non_default_inputs = dep.task.assign_inputs(dep.inputs)
-      if NamedArray === assigned_inputs
-        dep_non_default_inputs.reject! do |name|
-          definition_options.include?(name) && 
-            (definition_options[name] == assigned_inputs[name] ||
-             definition_options[name] == step_inputs[name])
-        end
+      dep_non_default_inputs = dep.non_default_inputs
+      dep_non_default_inputs.select do |name|
+        step_inputs.include?(name)  
+      end
+      dep_non_default_inputs.reject! do |name|
+        definition_options.include?(name) && 
+          (definition_options[name] != :placeholder || definition_options[name] != dep.inputs[name])
       end
 
       dep_non_default_inputs
@@ -148,15 +149,14 @@ module Task
     provided_inputs = {} if provided_inputs.nil?
     id = DEFAULT_NAME if id.nil?
 
-    inputs, non_default_inputs, input_digest = process_inputs provided_inputs
+    inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs
 
     dependencies = dependencies(id, provided_inputs, non_default_inputs)
 
     non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
 
     if non_default_inputs.any?
-      hash = Misc.digest(:inputs => input_digest, :dependencies => dependencies)
-      Log.debug "Hash #{name} - #{hash}: #{Log.fingerprint(:inputs => inputs, :non_default_inputs => non_default_inputs, :dependencies => dependencies)}"
+      hash = Misc.digest(:inputs => input_digest_str, :dependencies => dependencies)
       name = [id, hash] * "_"
     else
       name = id
@@ -183,9 +183,13 @@ module Task
     path = path.set_extension(extension) if extension
 
     Persist.memory(path) do 
-      Log.low "Creating job #{path} #{Log.fingerprint inputs} #{Log.fingerprint dependencies}"
+      if hash
+        Log.debug "ID #{self.name} #{id} - #{hash}: #{Log.fingerprint(:input_digest => input_digest_str, :non_default_inputs => non_default_inputs, :dependencies => dependencies)}"
+      else
+        Log.debug "ID #{self.name} #{id} - Clean"
+      end
       NamedArray.setup(inputs, @inputs.collect{|i| i[0] }) if @inputs
-      Step.new path.find, inputs, dependencies, id, &self
+      Step.new path.find, inputs, dependencies, id, non_default_inputs, &self
     end
   end
 end

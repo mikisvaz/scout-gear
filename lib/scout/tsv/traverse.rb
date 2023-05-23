@@ -63,7 +63,7 @@ module TSV
             end
           end
 
-          TSV.cast_value(values, cast) if cast
+          values = TSV.cast_value(values, cast) if cast
 
           if Array === key 
             if @type == :double && one2one
