@@ -21,7 +21,9 @@ module TSV
 
       tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
 
-      bar = "Index #{Log.fingerprint tsv_file} target #{Log.fingerprint target}" if TrueClass === bar
+      log_msg = "Index #{Log.fingerprint tsv_file} target #{Log.fingerprint target}"
+      Log.low log_msg
+      bar = log_msg if TrueClass === bar
 
       if order
         tmp_index = {}
@@ -66,7 +68,7 @@ module TSV
     TSV.index(self, *args, **kwargs, &block)
   end
 
-  def self.range_index(tsv_file, start_field = nil, end_field = nil, key_field: :key, **kwargs)
+  def self.range_index(tsv_file, start_field = nil, end_field = nil, key_field: :key, bar: nil, **kwargs)
     persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
       :persist, :persist_type, :persist_update, :data_persist,
       :persist => false, :persist_type => :fwt
@@ -79,9 +81,13 @@ module TSV
 
       tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
 
+      log_msg = "RangeIndex #{Log.fingerprint tsv_file} #{[start_field, end_field]*"-"}"
+      Log.low log_msg
+      bar = log_msg if TrueClass === bar
+
       max_key_size = 0
       index_data = []
-      TSV.traverse tsv_file, key_field: key_field, fields: [start_field, end_field], **kwargs do |key, values|
+      TSV.traverse tsv_file, key_field: key_field, fields: [start_field, end_field], bar: bar, **kwargs do |key, values|
         key_size = key.length
         max_key_size = key_size if key_size > max_key_size
 
@@ -103,11 +109,7 @@ module TSV
     end
   end
 
-  def range_index(*args, **kwargs, &block)
-    TSV.range_index(self, *args, **kwargs, &block)
-  end
-
-  def self.pos_index(tsv_file, pos_field = nil, key_field: :key, **kwargs)
+  def self.pos_index(tsv_file, pos_field = nil, key_field: :key, bar: nil, **kwargs)
     persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
       :persist, :persist_type, :persist_update, :data_persist,
       :persist => false, :persist_type => :fwt
@@ -120,9 +122,13 @@ module TSV
 
       tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
 
+      log_msg = "RangeIndex #{Log.fingerprint tsv_file} #{pos_field}"
+      Log.low log_msg
+      bar = log_msg if TrueClass === bar
+
       max_key_size = 0
       index_data = []
-      TSV.traverse tsv_file, key_field: key_field, fields: [pos_field], type: :single, cast: :to_i, **kwargs do |key, pos|
+      TSV.traverse tsv_file, key_field: key_field, fields: [pos_field], type: :single, cast: :to_i, bar: bar, **kwargs do |key, pos|
         key_size = key.length
         max_key_size = key_size if key_size > max_key_size
 
@@ -143,81 +149,11 @@ module TSV
     end
   end
 
+  def range_index(*args, **kwargs, &block)
+    TSV.range_index(self, *args, **kwargs, &block)
+  end
+
   def pos_index(*args, **kwargs, &block)
     TSV.pos_index(self, *args, **kwargs, &block)
   end
-
-
-  #def range_index(start_field = nil, end_field = nil, options = {})
-  #  start_field ||= "Start"
-  #  end_field ||= "End"
-
-  #  options = Misc.add_defaults options,
-  #    :persist => false, :persist_file => nil, :persist_update => false 
-
-  #  persist_options = Misc.pull_keys options, :persist
-  #  persist_options[:prefix] ||= "RangeIndex[#{start_field}-#{end_field}]"
-
-  #  Persist.persist(filename || self.object_id.to_s, :fwt, persist_options) do 
-  #    max_key_size = 0
-  #    index_data = []
-  #    with_unnamed do
-  #      with_monitor :desc => "Creating Index Data", :step => 10000 do
-  #        through :key, [start_field, end_field] do |key, values|
-  #          key_size = key.length
-  #          max_key_size = key_size if key_size > max_key_size
-
-  #          start_pos, end_pos = values
-  #          if Array === start_pos
-  #            start_pos.zip(end_pos).each do |s,e|
-  #              index_data << [key, [s.to_i, e.to_i]]
-  #            end
-  #          else
-  #            index_data << [key, [start_pos.to_i, end_pos.to_i]]
-  #          end
-  #        end
-  #      end
-  #    end
-
-  #    index = FixWidthTable.get(:memory, max_key_size, true)
-  #    index.add_range index_data
-  #    index.read
-  #    index
-  #  end
-  #end
-
-  #def self.range_index(file, start_field = nil, end_field = nil, options = {})
-  #  start_field ||= "Start"
-  #  end_field ||= "End"
-
-  #  data_options = Misc.pull_keys options, :data
-  #  filename = case
-  #             when (String === file or Path === file)
-  #               file
-  #             when file.respond_to?(:filename)
-  #               file.filename
-  #             else
-  #               file.object_id.to_s
-  #             end
-  #  persist_options = Misc.pull_keys options, :persist
-  #  persist_options[:prefix] ||= "StaticRangeIndex[#{start_field}-#{end_field}]"
-
-  #  filters = Misc.process_options options, :filters
-
-  #  if filters
-  #    filename += ":Filtered[#{filters.collect{|f| f * "="} * ", "}]"
-  #  end
-
-  #  Persist.persist(filename, :fwt, persist_options) do
-  #    tsv = TSV.open(file, data_options)
-  #    if filters
-  #      tsv.filter
-  #      filters.each do |match, value|
-  #        tsv.add_filter match, value
-  #      end
-  #    end
- 
-  #    tsv.range_index(start_field, end_field, options)
-  #  end
-  #end
 end

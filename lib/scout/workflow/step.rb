@@ -172,7 +172,8 @@ class Step
   def fork
     Process.fork do
       clear_info unless present?
-      produce
+      run(false)
+      join
     end
     grace
     self
@@ -254,9 +255,14 @@ class Step
     self
   end
 
-  def produce
-    run
-    join
+  def produce(with_fork: false)
+    if with_fork
+      self.fork
+      self.join
+    else
+      run
+    end
+    self
   end
 
   def load

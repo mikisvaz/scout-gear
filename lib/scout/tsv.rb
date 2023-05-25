@@ -41,7 +41,13 @@ module TSV
       data = filename ? ScoutCabinet.open(filename, true, type) : nil
       options[:data] = data if data
       options[:filename] = file
-      Log.debug "TSV open #{Log.fingerprint file}"
+
+      if data
+        Log.debug "TSV open #{Log.fingerprint file} into #{Log.fingerprint data}"
+      else
+        Log.debug "TSV open #{Log.fingerprint file}"
+      end
+
       Open.open(file, grep: grep, invert_grep: invert_grep) do |f|
         TSV.parse(f, **options)
       end

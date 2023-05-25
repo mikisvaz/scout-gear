@@ -80,7 +80,7 @@ module Persist
             pres = Persist.save(res, file, type)
             res = pres unless pres.nil?
           end
-        rescue
+        rescue Exception
           Thread.handle_interrupt(Exception => :never) do
             if Open.exist?(file)
               Log.debug "Failed persistence #{file} - erasing"

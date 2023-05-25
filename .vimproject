@@ -100,24 +100,28 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    workflow.rb
    workflow=workflow{
     definition.rb
+    documentation.rb
+    usage.rb
+    util.rb
     step.rb
     step=step{
-     info.rb
-     status.rb
-     load.rb
-     file.rb
      config.rb
      dependencies.rb
-     provenance.rb
+     file.rb
+     info.rb
+     load.rb
      progress.rb
+     provenance.rb
+     status.rb
     }
     task.rb
     task=task{
      inputs.rb
     }
-    documentation.rb
-    usage.rb
-    util.rb
+    deployment.rb
+    deployment=deployment{
+     orchestrator.rb
+    }
    }
    semaphore.rb
    work_queue.rb

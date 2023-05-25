@@ -4,6 +4,7 @@ require_relative 'workflow/task'
 require_relative 'workflow/step'
 require_relative 'workflow/documentation'
 require_relative 'workflow/usage'
+require_relative 'workflow/deployment'
 
 require_relative 'resource'
 require_relative 'resource/scout'

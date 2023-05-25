@@ -81,7 +81,8 @@ else
   when "serial"
     job.run(true) 
   when "local"
-    Step.orchestrate(job)
+    orchestrator = Workflow::Orchestrator.new 3, "cpus" => 3
+    orchestrator.process({}, job)
   when "slurm"
     SLURM.orchestrate(job)
   end unless job.done?

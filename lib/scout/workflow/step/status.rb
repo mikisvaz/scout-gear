@@ -1,7 +1,11 @@
 class Step
   def abort(exception = nil)
-    while @result && streaming? && stream = self.stream
-      stream.abort(exception)
+    if info[:pid] != Process.pid && Misc.alive?(pid)
+      Process.kill pid
+    else
+      while @result && streaming? && stream = self.stream
+        stream.abort(exception)
+      end
     end
   end
 

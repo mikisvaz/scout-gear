@@ -42,6 +42,8 @@ module ScoutCabinet
 
     database.open(path, tokyocabinet_class::OREADER)
 
+    database.define_singleton_method(:fingerprint){ "#{self.persistence_class}:#{self.persistence_path}" }
+
     Persist::CONNECTIONS[path] = database
 
     database
