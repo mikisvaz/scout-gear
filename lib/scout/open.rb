@@ -56,11 +56,11 @@ module Open
   def self.open(file, options = {})
     if IO === file || StringIO === file
       if block_given?
-        res = yield file 
+        res = yield file
         file.close
         return res
       else
-        return file 
+        return file
       end
     end
 
@@ -163,7 +163,6 @@ module Open
       raise "Content unknown #{Log.fingerprint content}"
     end
 
-    notify_write(file) 
+    notify_write(file)
   end
-
 end

@@ -3,7 +3,7 @@ module Open
 
   class << self
     attr_accessor :sensible_write_lock_dir
-    
+
     def sensible_write_lock_dir
       @sensible_write_lock_dir ||= Path.setup("tmp/sensible_write_locks").find
     end
@@ -18,7 +18,7 @@ module Open
 
   def self.consume_stream(io, in_thread = false, into = nil, into_close = true, &block)
     return if Path === io
-    return unless io.respond_to? :read 
+    return unless io.respond_to? :read
 
     if io.respond_to? :closed? and io.closed?
       io.join if io.respond_to? :join
@@ -46,12 +46,12 @@ module Open
       begin
         into = into.find if Path === into
 
-        if String === into 
+        if String === into
           dir = File.dirname(into)
           Open.mkdir dir unless File.exist?(dir)
-          into_path, into = into, File.open(into, 'w') 
+          into_path, into = into, File.open(into, 'w')
         end
-        
+
         into_close = false unless into.respond_to? :close
 
         while c = io.read(BLOCK_SIZE)
@@ -66,6 +66,7 @@ module Open
         into.close if into and into_close and not into.closed?
         block.call if block_given?
 
+        Log.debug "Consume stream done #{Log.fingerprint io} -> #{Log.fingerprint(into_path ||into)}"
         last_c
       rescue Aborted
         Thread.current["exception"] = true
@@ -81,7 +82,7 @@ module Open
         into.close if into.respond_to?(:closed?) && ! into.closed?
         into_path = into if into_path.nil? && String === into
         if into_path and File.exist?(into_path)
-          FileUtils.rm into_path 
+          FileUtils.rm into_path
         end
         raise exception
       end
@@ -92,7 +93,7 @@ module Open
     force = IndiferentHash.process_options options, :force
 
     if File.exist?(path) and not force
-      Open.consume_stream content 
+      Open.consume_stream content
       return
     end
 
@@ -107,10 +108,11 @@ module Open
 
       if File.exist? path and not force
         Log.warn "Path exists in sensible_write, not forcing update: #{ path }"
-        Open.consume_stream content 
+        Open.consume_stream content
       else
         FileUtils.mkdir_p File.dirname(tmp_path) unless File.directory?(File.dirname(tmp_path))
         FileUtils.rm_f tmp_path if File.exist? tmp_path
+        Log.low "Sensible write stream #{Log.fingerprint content} -> #{Log.fingerprint path}" if IO === content
         begin
           case
           when block_given?
@@ -122,7 +124,7 @@ module Open
               while block = content.read(BLOCK_SIZE)
                 f.write block
                 break if content.closed?
-              end 
+              end
             end
           else
             File.open(tmp_path, 'wb') do |f|  end
@@ -139,8 +141,7 @@ module Open
           Open.touch path if File.exist? path
           content.join if content.respond_to?(:join) and not Path === content and not (content.respond_to?(:joined?) && content.joined?)
 
-          Open.notify_write(path) 
-          Log.debug "Done sensible write: [#{Process.pid}] -- #{ path }"
+          Open.notify_write(path)
         rescue Aborted
           Log.low "Aborted sensible_write -- #{ Log.reset << path }"
           content.abort if content.respond_to? :abort
@@ -174,7 +175,7 @@ module Open
 
       [sout, sin]
     end
-    Log.debug{"Creating pipe #{[Log.fingerprint(res.last), Log.fingerprint(res.first)] * " => "}"}
+    Log.low{"Creating pipe #{[Log.fingerprint(res.last), Log.fingerprint(res.first)] * " -> "}"}
     res
   end
 
@@ -214,14 +215,13 @@ module Open
 
     if do_fork
 
-      #parent_pid = Process.pid
       pid = Process.fork {
         begin
           purge_pipes(sin)
           sout.close
 
           yield sin
-          sin.close if close and not sin.closed? 
+          sin.close if close and not sin.closed?
 
         rescue Exception
           Log.exception $!
@@ -237,34 +237,20 @@ module Open
       ConcurrentStream.setup sin, :pair => sout
       ConcurrentStream.setup sout, :pair => sin
 
-      thread = Thread.new do 
+      thread = Thread.new do
         begin
-          Thread.current.report_on_exception = false
-          Thread.current["name"] = "Pipe input #{Log.fingerprint sin} => #{Log.fingerprint sout}"
+          ConcurrentStream.process_stream(sin, :message => "Open pipe") do
+            Thread.current.report_on_exception = false
+            Thread.current["name"] = "Pipe input #{Log.fingerprint sin} => #{Log.fingerprint sout}"
 
-          yield sin
-
-          sin.close if close and not sin.closed? and not sin.aborted?
-        rescue Aborted
-          Log.low "Aborted open_pipe: #{$!.message}"
-          raise $!
-        rescue Exception
-          Log.low "Exception in open_pipe: #{$!.message}"
-          begin
-            sout.threads.delete(Thread.current)
-            sout.pair = []
-            sout.abort($!) if sout.respond_to?(:abort)
-            sin.threads.delete(Thread.current)
-            sin.pair = []
-            sin.abort($!) if sin.respond_to?(:abort)
-          ensure
-            raise $!
+            yield sin
           end
         end
       end
 
       sin.threads = [thread]
       sout.threads = [thread]
+
       Thread.pass until thread["name"]
     end
 
@@ -274,11 +260,13 @@ module Open
   def self.tee_stream_thread_multiple(stream, num = 2)
     in_pipes = []
     out_pipes = []
-    num.times do 
+    num.times do
       sout, sin = Open.pipe
       in_pipes << sin
       out_pipes << sout
     end
+
+    Log.low("Tee stream #{Log.fingerprint stream} -> #{Log.fingerprint out_pipes}")
 
     filename = stream.filename if stream.respond_to? :filename
 
@@ -291,7 +279,7 @@ module Open
         while block = stream.read(BLOCK_SIZE)
 
           in_pipes.each_with_index do |sin,i|
-            begin 
+            begin
               sin.write block
             rescue IOError
               Log.warn("Tee stream #{i} #{Log.fingerprint stream} IOError: #{$!.message} (#{Log.fingerprint sin})");
@@ -299,13 +287,12 @@ module Open
             rescue
               Log.warn("Tee stream #{i} #{Log.fingerprint stream} Exception: #{$!.message} (#{Log.fingerprint sin})");
               raise $!
-            end unless skip[i] 
+            end unless skip[i]
           end
           break if stream.closed?
         end
 
         stream.join if stream.respond_to? :join
-        stream.close unless stream.closed?
         in_pipes.first.close unless in_pipes.first.closed?
       rescue Aborted, Interrupt
         stream.abort if stream.respond_to?(:abort) && ! stream.aborted?
@@ -348,18 +335,32 @@ module Open
       end
     end
 
-    out_pipes.each do |sout|
-      ConcurrentStream.setup sout, :threads => splitter_thread, :filename => filename, :pair => stream
-    end
     Thread.pass until splitter_thread["name"]
 
     main_pipe = out_pipes.first
-    main_pipe.autojoin = true
 
-    main_pipe.callback = Proc.new do 
-      stream.join if stream.respond_to? :join
-      in_pipes[1..-1].each do |sin|
-        sin.close unless sin.closed?
+    ConcurrentStream.setup(main_pipe, :threads => [splitter_thread], :filename => filename, :autojoin => true)
+
+    out_pipes[1..-1].each do |sout|
+      ConcurrentStream.setup sout, :filename => filename, :threads => [splitter_thread]
+    end
+
+    main_pipe.callback = proc do
+      begin
+        stream.join if stream.respond_to?(:join) && ! stream.joined?
+        in_pipes[1..-1].each do |sin|
+          sin.close unless sin.closed?
+        end
+      rescue
+        main_pipe.abort_callback.call($!)
+        raise $!
+      end
+    end
+
+    main_pipe.abort_callback = proc do |exception|
+      stream.abort(exception)
+      out_pipes[1..-1].each do |sout|
+        sout.abort(exception)
       end
     end
 
@@ -378,7 +379,7 @@ module Open
     str = nil
     Thread.pass while IO.select([stream],nil,nil,1).nil?
     while not str = stream.read(size)
-      IO.select([stream],nil,nil,1) 
+      IO.select([stream],nil,nil,1)
       Thread.pass
       raise ClosedStream if stream.eof?
     end
@@ -403,102 +404,89 @@ module Open
     str
   end
 
-  def self.sort_stream(stream, header_hash = "#", cmd_args = "-u")
-    Open.open_pipe do |sin|
-      line = stream.gets
-      while line =~ /^#{header_hash}/ do
-        sin.puts line
+  def self.sort_stream(stream, header_hash: "#", cmd_args: "-u", memory: false)
+    sout = Open.open_pipe do |sin|
+      ConcurrentStream.process_stream(stream) do
         line = stream.gets
-      end
+        while line && line.start_with?(header_hash) do
+          sin.puts line
+          line = stream.gets
+        end
 
-      line_stream = Open.open_pipe do |line_stream_in|
-        line_stream_in.puts line
-        begin
+        line_stream = Open.open_pipe do |line_stream_in|
+          line_stream_in.puts line if line
           Open.consume_stream(stream, false, line_stream_in)
-        rescue
-          raise $!
         end
-      end
+        Log.low "Sub-sort stream #{Log.fingerprint stream} -> #{Log.fingerprint line_stream}"
 
-      sorted = CMD.cmd("env LC_ALL=C sort #{cmd_args || ""}", :in => line_stream, :pipe => true)
-
-      begin
-        Open.consume_stream(sorted, false, sin)
-      rescue
-        Log.exception $!
-        begin
-          sorted.raise($!) if sorted.respond_to? :raise
-          stream.raise($!) if stream.respond_to? :raise
-        ensure
-          raise $!
+        if memory
+          line_stream.read.split("\n").sort.each do |line|
+            sin.puts line
+          end
+        else
+          io = CMD.cmd("env LC_ALL=C sort #{cmd_args || ""}", :in => line_stream, :pipe => true)
+          Open.consume_stream(io, false, sin)
         end
       end
     end
+    Log.low "Sort #{Log.fingerprint stream} -> #{Log.fingerprint sout}"
+    sout
   end
 
-  def self.process_stream(s)
-    begin
-      yield s
-      s.close if s.respond_to?(:close) && ! s.closed?
-      s.join if s.respond_to?(:join)
-    rescue
-      s.abort($!) if s.respond_to? :abort
-      raise $!
-    end
-  end
-
+  #def self.sort_stream(stream, header_hash = "#", cmd_args = "-u")
+  #  StringIO.new stream.read.split("\n").sort.uniq * "\n"
+  #end
 
   def self.collapse_stream(s, line: nil, sep: "\t", header: nil, &block)
     sep ||= "\t"
     Open.open_pipe do |sin|
+
       sin.puts header if header
-      process_stream(s) do |s|
-        line ||= s.gets
 
-        current_parts = []
-        while line 
-          key, *parts = line.chomp.split(sep, -1)
-          case
-          when key.nil?
-          when current_parts.nil?
-            current_parts = parts
-            current_key = key
-          when current_key == key
-            parts.each_with_index do |part,i|
-              if current_parts[i].nil?
-                current_parts[i] = "|" << part
-              else
-                current_parts[i] = current_parts[i] << "|" << part
-              end
-            end
+      line ||= s.gets
 
-            (parts.length..current_parts.length-1).to_a.each do |pos|
-              current_parts[pos] = current_parts[pos] << "|" << ""
-            end
-          when current_key.nil?
-            current_key = key
-            current_parts = parts
-          when current_key != key
-            if block_given?
-              res = block.call(current_parts)
-              sin.puts [current_key, res] * sep
+      current_parts = []
+      while line
+        key, *parts = line.chomp.split(sep, -1)
+        case
+        when key.nil?
+        when current_parts.nil?
+          current_parts = parts
+          current_key = key
+        when current_key == key
+          parts.each_with_index do |part,i|
+            if current_parts[i].nil?
+              current_parts[i] = "|" << part
             else
-              sin.puts [current_key, current_parts].flatten * sep
-            end 
-            current_key = key
-            current_parts = parts
+              current_parts[i] = current_parts[i] << "|" << part
+            end
           end
-          line = s.gets
-        end
 
-        if block_given?
-          res = block.call(current_parts)
-          sin.puts [current_key, res] * sep
-        else
-          sin.puts [current_key, current_parts].flatten * sep
-        end unless current_key.nil?
+          (parts.length..current_parts.length-1).to_a.each do |pos|
+            current_parts[pos] = current_parts[pos] << "|" << ""
+          end
+        when current_key.nil?
+          current_key = key
+          current_parts = parts
+        when current_key != key
+          if block_given?
+            res = block.call(current_parts)
+            sin.puts [current_key, res] * sep
+          else
+            sin.puts [current_key, current_parts].flatten * sep
+          end
+          current_key = key
+          current_parts = parts
+        end
+        line = s.gets
       end
+
+      if block_given?
+        res = block.call(current_parts)
+        sin.puts [current_key, res] * sep
+      else
+        sin.puts [current_key, current_parts].flatten * sep
+      end unless current_key.nil?
     end
   end
-
 end

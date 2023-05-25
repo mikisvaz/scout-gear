@@ -4,28 +4,6 @@ require_relative '../exceptions'
 require_relative 'lock/lockfile'
 
 module Open
-  def self.thread_in_lock(t)
-    t.backtrace.select{|l| l.include?("lockfile") }.any?
-  end
-
-  def self.unlock_thread(t, exception = nil)
-    while t.alive? && t.backtrace.select{|l| l.include?("lockfile") }.any?
-      iii :UNLOCK
-      t.raise(exception)
-      Log.stack t.backtrace
-      locks = t["locks"]
-      return if locks.nil? || locks.empty?
-      locks.each do |lock|
-        lock.unlock if lock.locked?
-        Open.rm(lock.path)
-      end
-      iii Thread.current
-      Thread.list.each{|t| iii [t, t["locks"]]; Log.stack t.backtrace }
-      Log.stack t.backtrace
-    end
-  end
-
-
   def self.lock(file, unlock = true, options = {})
     unlock, options = true, unlock if Hash === unlock
     return yield if file.nil? and not Lockfile === options[:lock]
@@ -57,9 +35,6 @@ module Open
       raise LockInterrupted
     end
 
-    iii Thread.current["lock_exception"] if Thread.current["lock_exception"]
-    raise Thread.current["lock_exception"] if Thread.current["lock_exception"]
-
     res = nil
 
     begin
@@ -73,8 +48,6 @@ module Open
           if lockfile.locked?
             lockfile.unlock 
           end
-          iii Thread.current["lock_exception"] if Thread.current["lock_exception"]
-          raise Thread.current["lock_exception"] if Thread.current["lock_exception"]
         rescue Exception
           Log.warn "Exception unlocking: #{lockfile.path}"
           Log.exception $!
