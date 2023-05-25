@@ -26,7 +26,7 @@ module TSV
       if order
         tmp_index = {}
         include_self = fields == :all || (Array === fields) && fields.include?(target)
-        target_key_field, source_field_names = Open.traverse tsv_file, key_field: target, fields: fields, type: :double, unnamed: true, bar: bar, **kwargs do |k,values|
+        target_key_field, source_field_names = Open.traverse tsv_file, type: :double, key_field: target, fields: fields, unnamed: true, bar: bar, **kwargs do |k,values|
           tmp_index[k] ||= [[k]] if include_self
           values.each_with_index do |list,i|
             i += 1 if include_self
@@ -71,8 +71,11 @@ module TSV
       :persist, :persist_type, :persist_update, :data_persist,
       :persist => false, :persist_type => :fwt
     kwargs.delete :type
+    kwargs[:unnamed] = true
 
-    Persist.persist(tsv_file, type, kwargs.merge(:persist => persist, :prefix => "RangeIndex", :other_options => kwargs, update: persist_update)) do |filename|
+    Persist.persist(tsv_file, type, 
+                    :persist => persist, :prefix => "RangeIndex[#{[start_field, end_field]*"-"}]", update: persist_update,
+                    :other_options => kwargs) do |filename|
 
       tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
 
@@ -109,8 +112,11 @@ module TSV
       :persist, :persist_type, :persist_update, :data_persist,
       :persist => false, :persist_type => :fwt
     kwargs.delete :type
+    kwargs[:unnamed] = true
 
-    Persist.persist(tsv_file, type, kwargs.merge(:persist => persist, update: persist_update, :prefix => "RangeIndex", :other_options => kwargs)) do |filename|
+    Persist.persist(tsv_file, type, 
+                    :persist => persist, :prefix => "RangeIndex[#{pos_field}]", update: persist_update,
+                    :other_options => kwargs) do |filename|
 
       tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
 

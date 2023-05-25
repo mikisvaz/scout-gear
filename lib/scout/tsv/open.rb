@@ -34,7 +34,7 @@ module Open
   end
 
   def self.traverse(obj, into: nil, cpus: nil, bar: nil, callback: nil, unnamed: true, keep_open: false, **options, &block)
-    cpus = nil if cpus == 1
+    cpus = nil if cpus.to_i == 1
 
     if into == :stream
       sout, sin = Open.pipe
@@ -122,6 +122,7 @@ module Open
               raise obj.exception if obj.error?
               self.traverse(obj.stream, cpus: cpus, callback: callback, **options, &block)
             when IO
+              Log.low "Traverse stream #{Log.fingerprint obj}"
               parser = TSV::Parser.new obj
               parser.traverse **options do |k,v,f|
                 res = block.call k,v,f

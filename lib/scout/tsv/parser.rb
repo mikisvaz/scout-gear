@@ -263,7 +263,7 @@ module TSV
       @options, @key_field, @fields, @first_line, @preamble = TSV.parse_header(@stream, fix:fix, header_hash:header_hash, sep:sep)
       @options[:sep] = sep if @options[:sep].nil?
       @options.merge!(:key_field => @key_field, :fields => @fields)
-      @type = type
+      @type = @options[:type] || type
     end
 
     def all_fields
@@ -303,6 +303,8 @@ module TSV
       else
         field_names = @fields
       end
+
+      kwargs[:positions] = nil if @type == :flat
 
       if key_field
         if @fields

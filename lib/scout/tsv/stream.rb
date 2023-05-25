@@ -200,4 +200,5 @@ module TSV
 
     ConcurrentStream.setup(dumper.stream, threads: [t])
   end
+
 end

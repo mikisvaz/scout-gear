@@ -10,10 +10,11 @@ require_relative 'tsv/traverse'
 require_relative 'tsv/open'
 require_relative 'tsv/attach'
 require_relative 'tsv/change_id'
+require_relative 'tsv/stream'
 
 module TSV
   extend MetaExtension
-  extension_attr :key_field, :fields, :type, :filename, :namespace, :unnamed, :identifiers
+  extension_attr :key_field, :fields, :type, :cast, :filename, :namespace, :unnamed, :identifiers
 
   def self.str2options(str)
     field_options,_sep, rest =  str.partition("#")

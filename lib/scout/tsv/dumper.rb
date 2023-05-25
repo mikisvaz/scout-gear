@@ -28,7 +28,9 @@ module TSV
         :sep, :type, 
         :sep => "\t", :type => :double
       @options = options
+      @options[:type] = @type
       @sout, @sin = Open.pipe
+      Log.low{"Dumper pipe #{[Log.fingerprint(@sin), Log.fingerprint(@sout)] * " -> "}"}
       @initialized = false
       @mutex = Mutex.new
       ConcurrentStream.setup(@sin, pair: @sout)

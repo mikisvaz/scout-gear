@@ -137,5 +137,16 @@ module TSV
     end
     res
   end
+
+  def to_flat
+    res = self.annotate({})
+    transformer = Transformer.new self, res
+    transformer.type = :flat
+    transformer.traverse do |k,v|
+      v = Array === v ? v.flatten : [v]
+      [k, v]
+    end
+    res
+  end
 end
 
