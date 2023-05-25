@@ -1,5 +1,6 @@
 require_relative 'work_queue/socket'
 require_relative 'work_queue/worker'
+require 'timeout'
 
 class WorkQueue
   attr_accessor :workers, :worker_proc, :callback
@@ -38,7 +39,7 @@ class WorkQueue
     @worker_mutex.synchronize do
       worker = @workers.index{|w| w.pid == pid}
       if worker
-        Log.debug "Removed worker #{pid}"
+        Log.low "Removed worker #{pid}"
         @workers.delete_at(worker)
         @removed_workers << pid
       end
@@ -88,19 +89,32 @@ class WorkQueue
 
     Thread.pass until @reader["name"]
 
+    Thread.pass until @worker_mutex.synchronize{ @workers.select{|w| w.pid.nil? }.empty? }
+
     @waiter = Thread.new do
-      begin
-        Thread.current.report_on_exception = false
-        Thread.current["name"] = "Worker waiter #{Process.pid}"
-        while true
-          pid = Process.wait
-          remove_worker(pid)
-          break if @worker_mutex.synchronize{ @workers.empty? }
+      Thread.current.report_on_exception = false
+      Thread.current["name"] = "Worker waiter #{Process.pid}"
+      while true
+        break if @worker_mutex.synchronize{ @workers.empty? }
+        begin
+          Timeout.timeout(1) do
+            begin
+              pid, status = Process.wait2
+              remove_worker(pid) if pid
+            rescue Exception
+              Log.exception $!
+            end
+          end
+        rescue Timeout::Error
+          pids = @worker_mutex.synchronize{ @workers.collect{|w| w.pid } }
+          pids.each do |p|
+            pid, status = Process.wait2 p, Process::WNOHANG
+            remove_worker(pid) if pid
+          end
         end
       end
     end
 
-    Thread.pass until @worker_mutex.synchronize{ @workers.select{|w| w.pid.nil? }.empty? }
     Thread.pass until @waiter["name"]
   end
 
