@@ -82,6 +82,11 @@ module Path
     self.annotate(self + ".#{extension}")
   end
 
+  def unset_extension
+    self.annotate(self.split(".")[0..-2] * ".")
+  end
+
+
   # Is 'file' newer than 'path'? return non-true if path is newer than file
   def self.newer?(path, file, by_link = false)
     return true if not Open.exists?(file)

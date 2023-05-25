@@ -12,9 +12,9 @@ module Log
   end
 
   SEVERITY_NAMES ||= begin
-                       names = %w(DEBUG LOW MEDIUM HIGH INFO WARN ERROR NONE ) 
+                       names = %w(DEBUG LOW MEDIUM HIGH INFO WARN ERROR NONE )
                        names.each_with_index do |name,i|
-                         eval "#{ name } = #{ i }" 
+                         eval "#{ name } = #{ i }"
                        end
                        names
                      end
@@ -32,14 +32,14 @@ module Log
     @@default_severity
   end
 
-  case ENV['SCOUT_LOG'] 
-  when 'DEBUG' 
+  case ENV['SCOUT_LOG']
+  when 'DEBUG'
     self.severity = DEBUG
-  when 'LOW' 
+  when 'LOW'
     self.severity = LOW
-  when 'MEDIUM' 
+  when 'MEDIUM'
     self.severity = MEDIUM
-  when 'HIGH' 
+  when 'HIGH'
     self.severity = HIGH
   when nil
     self.severity = default_severity
@@ -65,8 +65,8 @@ module Log
   def self.last_caller(stack)
     line = nil
     pos ||= 0
-    while line.nil? or line =~ /scout\/log\.rb/ and stack.any? 
-      line = stack.shift 
+    while line.nil? or line =~ /scout\/log\.rb/ and stack.any?
+      line = stack.shift
     end
     line ||= caller.first
     line.gsub('`', "'")
@@ -129,9 +129,36 @@ module Log
     out.puts Log.return_line << " " * (Log.tty_size || 80) << Log.return_line unless nocolor
   end
 
+  MUTEX = Mutex.new
+  def self.log_write(str)
+    MUTEX.synchronize do
+      if logfile.nil?
+        begin
+          STDERR.write str
+        rescue
+        end
+      else
+        logfile.write str
+      end
+    end
+  end
+
+  def self.log_puts(str)
+    MUTEX.synchronize do
+      if logfile.nil?
+        begin
+          STDERR.puts str
+        rescue
+        end
+      else
+        logfile.puts str
+      end
+    end
+  end
+
   LAST = "log"
   def self.logn(message = nil, severity = MEDIUM, &block)
-    return if severity < self.severity 
+    return if severity < self.severity
     message ||= block.call if block_given?
     return if message.nil?
 
@@ -147,17 +174,14 @@ module Log
     message = "" << highlight << message << color(0) if severity >= INFO
     str = prefix << " " << message.to_s
 
-    if logfile.nil?
-      STDERR.write str
-    else
-      logfile.write str 
-    end
+    log_write str
+
     Log::LAST.replace "log"
     nil
   end
 
   def self.log(message = nil, severity = MEDIUM, &block)
-    return if severity < self.severity 
+    return if severity < self.severity
     message ||= block.call if block_given?
     return if message.nil?
     message = message + "\n" unless message[-1] == "\n"
@@ -250,9 +274,9 @@ module Log
   end
 
   def self.tsv(tsv, example = false)
-    STDERR.puts Log.color :magenta, "TSV log: " << Log.last_caller(caller).gsub('`',"'")
-    STDERR.puts Log.color(:blue, "=> "<< Log.fingerprint(tsv), true) 
-    STDERR.puts Log.color(:cyan, "=> " << tsv.summary)
+    log_puts Log.color :magenta, "TSV log: " << Log.last_caller(caller).gsub('`',"'")
+    log_puts Log.color(:blue, "=> "<< Log.fingerprint(tsv), true)
+    log_puts Log.color(:cyan, "=> " << tsv.summary)
     if example && ! tsv.empty?
       key = case example
             when TrueClass, :first, "first"
@@ -266,11 +290,11 @@ module Log
       values = tsv[key]
       values = [values] if tsv.type == :flat || tsv.type == :single
       if values.nil?
-        STDERR.puts Log.color(:blue, "Key (#{tsv.key_field}) not present: ") + key
+        log_puts Log.color(:blue, "Key (#{tsv.key_field}) not present: ") + key
       else
-        STDERR.puts Log.color(:blue, "Key (#{tsv.key_field}): ") + key
+        log_puts Log.color(:blue, "Key (#{tsv.key_field}): ") + key
         tsv.fields.zip(values).each do |field,value|
-          STDERR.puts Log.color(:magenta, field + ": ") + (Array === value ? value * ", " : value.to_s)
+          log_puts Log.color(:magenta, field + ": ") + (Array === value ? value * ", " : value.to_s)
         end
       end
     end
@@ -278,14 +302,14 @@ module Log
 
   def self.stack(stack)
     if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
-      STDERR.puts Log.color :magenta, "Stack trace [#{Process.pid}]: " << Log.last_caller(caller)
+      log_puts Log.color :magenta, "Stack trace [#{Process.pid}]: " << Log.last_caller(caller)
       color_stack(stack).each do |line|
-        STDERR.puts line
+        log_puts line
       end
     else
-      STDERR.puts Log.color :magenta, "Stack trace [#{Process.pid}]: " << Log.last_caller(caller)
+      log_puts Log.color :magenta, "Stack trace [#{Process.pid}]: " << Log.last_caller(caller)
       color_stack(stack.reverse).each do |line|
-        STDERR.puts line
+        log_puts line
       end
     end
   end
@@ -293,7 +317,7 @@ module Log
   def self.count_stack
     if ! $count_stacks
       Log.debug "Counting stacks at: " << caller.first
-      return 
+      return
     end
     $stack_counts ||= {}
     head = $count_stacks_head

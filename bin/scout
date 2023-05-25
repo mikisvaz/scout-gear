@@ -62,6 +62,7 @@ $ #{$0} <command> <subcommand> ... -a --arg1 --arg2='value' --arg3 'another-valu
 --nocolor               #{Log.color :yellow, "Disable colored output"}
 --nobar                 #{Log.color :yellow, "Disable progress report"}
 --locate_file           #{Log.color :yellow, "Report the location of the script instead of executing it"}
+-ck--config_keys*       #{Log.color :yellow, "Override some config keys"}
 EOF
 
 Log.nocolor = true if options[:nocolor]
@@ -83,6 +84,14 @@ else
     Log.severity = global_severity.to_i if global_severity
   end
 end
+
+if config_keys = options.delete(:config_keys)
+  config_keys.split(",").each do |config|
+    config = config.strip
+    Scout::Config.process_config config
+  end
+end
+
 
 $scout_command_dir = Scout.bin.scout
 $scout_command_dir.path_maps[:scout_commands] = File.join(File.dirname(__dir__), "{PATH/bin\\/scout/scout_commands}")
@@ -217,7 +226,6 @@ begin
 
   scout_usage($previous_commands)
   exit_status = 0
-  exit exit_status
 
 rescue ParameterException
   puts
@@ -225,14 +233,11 @@ rescue ParameterException
   print_error($!.message, $!.backtrace)
   puts
   exit_status = -1
-  exit exit_status
 rescue SystemExit,CmdStop
   exit_status = $!.status
-  exit exit_status
 rescue Exception
   Log.exception $!
   exit_status = -1
-  exit exit_status
 ensure
   if options[:profile]
     result = RubyProf.stop

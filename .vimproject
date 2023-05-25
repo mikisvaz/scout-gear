@@ -8,6 +8,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   alias
   find
   glob
+  doc
   workflow=workflow{
    task
    list
@@ -149,6 +150,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     attach.rb
     change_id.rb
     path.rb
+    stream.rb
     open.rb
    }
   }

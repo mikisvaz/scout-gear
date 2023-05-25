@@ -105,4 +105,16 @@ row2    A2|A22    B2|B22
     assert_equal "A1", tsv.to_single["row1"]
     assert_equal "A2", tsv.to_single["row2"]
   end
+
+  def test_to_flat
+    content =<<-EOF
+#: :sep=" "
+#ID    ValueA    ValueB
+row1    A1|A11    B1|B11
+row2    A2|A22    B2|B22
+    EOF
+
+    tsv = TSV.open(content)
+    assert_equal %w(A1 A11 B1 B11), tsv.to_flat["row1"]
+  end
 end

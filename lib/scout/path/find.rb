@@ -34,6 +34,7 @@ module Path
 
   def self.follow(path, map, map_name = nil)
     file = map.sub('{PKGDIR}', path.pkgdir.respond_to?(:pkgdir) ? path.pkgdir.pkgdir || Path.default_pkgdir : path.pkgdir || Path.default_pkgdir).
+      sub('{HOME}', ENV["HOME"]).
       sub('{RESOURCE}', path.pkgdir.to_s).
       sub('{PWD}', FileUtils.pwd).
       sub('{TOPLEVEL}', path._toplevel).
@@ -59,16 +60,17 @@ module Path
 
   def self.path_maps
     @@path_maps ||= IndiferentHash.setup({
-      :current => File.join("{PWD}", "{TOPLEVEL}", "{SUBPATH}"),
-      :user    => File.join(ENV['HOME'], ".{PKGDIR}", "{TOPLEVEL}", "{SUBPATH}"),
-      :global  => File.join('/', "{TOPLEVEL}", "{PKGDIR}", "{SUBPATH}"),
-      :usr     => File.join('/usr/', "{TOPLEVEL}", "{PKGDIR}", "{SUBPATH}"),
-      :local   => File.join('/usr/local', "{TOPLEVEL}", "{PKGDIR}", "{SUBPATH}"),
-      :fast    => File.join('/fast', "{TOPLEVEL}", "{PKGDIR}", "{SUBPATH}"),
-      :cache   => File.join('/cache', "{TOPLEVEL}", "{PKGDIR}", "{SUBPATH}"),
-      :bulk    => File.join('/bulk', "{TOPLEVEL}", "{PKGDIR}", "{SUBPATH}"),
-      :lib     => File.join('{LIBDIR}', "{TOPLEVEL}", "{SUBPATH}"),
-      :base    => File.join(Path.caller_lib_dir(__FILE__), "{TOPLEVEL}", "{SUBPATH}"),
+      :current => "{PWD}/{TOPLEVEL}/{SUBPATH}",
+      :user    => "{HOME}/.{PKGDIR}/{TOPLEVEL}/{SUBPATH}",
+      :global  => '/{TOPLEVEL}/{PKGDIR}/{SUBPATH}',
+      :usr     => '/usr/{TOPLEVEL}/{PKGDIR}/{SUBPATH}',
+      :local   => '/usr/local/{TOPLEVEL}/{PKGDIR}/{SUBPATH}',
+      :fast    => '/fast/{TOPLEVEL}/{PKGDIR}/{SUBPATH}',
+      :cache   => '/cache/{TOPLEVEL}/{PKGDIR}/{SUBPATH}',
+      :bulk    => '/bulk/{TOPLEVEL}/{PKGDIR}/{SUBPATH}',
+      :lib     => '{LIBDIR}/{TOPLEVEL}/{SUBPATH}',
+      :scout_gear => File.join(Path.caller_lib_dir(__FILE__), "{TOPLEVEL}/{SUBPATH}"),
+      :tmp     => '/tmp/{PKGDIR}/{TOPLEVEL}/{SUBPATH}',
       :default => :user
     })
   end

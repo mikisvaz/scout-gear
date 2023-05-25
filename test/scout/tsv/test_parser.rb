@@ -119,6 +119,20 @@ k a|A b|B
     assert_equal [%w(b B), %w(k)], tsv['k']
   end
 
+  def test_parse_flat
+    content =<<-EOF
+#: :sep=" "#:type=:flat
+#Key ValueA
+row1 a aa aaa
+row2 b bb bbb
+    EOF
+
+    tsv = TSV.open(content)
+    assert_equal %w(a aa aaa), tsv["row1"]
+    tsv = TSV.open(content, :fields => ["ValueA"])
+    assert_equal %w(a aa aaa), tsv["row1"]
+  end
+
   def test_parse_key
     content =<<-EOF
 #: :sep=" "#:type=:double

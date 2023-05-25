@@ -14,9 +14,9 @@ module CMD
 
   def self.conda(tool, env = nil, channel = 'bioconda')
     if env
-      CMD.cmd("bash -l -c '(conda activate #{env} && conda install #{tool} -c #{channel})'")      
+      CMD.cmd("bash -l -c '(conda activate #{env} && conda install #{tool} -c #{channel})'")
     else
-      CMD.cmd("bash -l -c 'conda install #{tool} -c #{channel}'")      
+      CMD.cmd("bash -l -c 'conda install #{tool} -c #{channel}'")
     end
   end
 
@@ -98,8 +98,8 @@ module CMD
 
       option = "--" << option.to_s if add_dashes and option.to_s[0] != '-'
 
-      case 
-      when value.nil? || FalseClass === value 
+      case
+      when value.nil? || FalseClass === value
         next
       when TrueClass === value
         string << "#{option} "
@@ -136,8 +136,8 @@ module CMD
     dont_close_in  = options.delete(:dont_close_in)
 
     log = true if log.nil?
-    
-    if cmd.nil? && ! Symbol === tool 
+
+    if cmd.nil? && ! Symbol === tool
       cmd = tool
     else
       tool = get_tool(tool)
@@ -163,7 +163,7 @@ module CMD
 
     cmd_options = process_cmd_options options
     if cmd =~ /'\{opt\}'/
-      cmd.sub!('\'{opt}\'', cmd_options) 
+      cmd.sub!('\'{opt}\'', cmd_options)
     else
       cmd << " " << cmd_options
     end
@@ -183,25 +183,24 @@ module CMD
 
     if in_content.respond_to?(:read)
       in_thread = Thread.new(Thread.current) do |parent|
-        Thread.current.report_on_exception = false if no_fail
         begin
-          begin
-            while c = in_content.readpartial(Open::BLOCK_SIZE)
-              sin << c 
-            end
-          rescue EOFError
+          Thread.current.report_on_exception = false if no_fail
+          Thread.current["name"] = "CMD in"
+          while c = in_content.read(Open::BLOCK_SIZE)
+            sin << c
           end
           sin.close  unless sin.closed?
 
           unless dont_close_in
-            in_content.close unless in_content.closed? 
-            in_content.join if in_content.respond_to? :join 
+            in_content.close unless in_content.closed?
+            in_content.join if in_content.respond_to? :join
           end
         rescue
           Log.error "Error in CMD  [#{pid}] #{cmd}: #{$!.message}" unless no_fail
           raise $!
         end
       end
+      Thread.pass until in_thread["name"]
     else
       in_thread = nil
       sin.close
@@ -211,7 +210,7 @@ module CMD
 
     if pipe
 
-      ConcurrentStream.setup sout, :pids => pids, :autojoin => autojoin, :no_fail => no_fail 
+      ConcurrentStream.setup sout, :pids => pids, :autojoin => autojoin, :no_fail => no_fail
 
       sout.callback = post if post
 
@@ -224,7 +223,7 @@ module CMD
             sout.log = line
             sout.std_err << line if save_stderr
             Log.log "STDERR [#{pid}]: " +  line, stderr if log
-          end 
+          end
           serr.close
           rescue
             Log.exception $!
@@ -244,8 +243,8 @@ module CMD
         err = ""
         err_thread = Thread.new do
           while not serr.eof?
-            line = serr.gets 
-            bar.process(line) 
+            line = serr.gets
+            bar.process(line)
             err << line if Integer === stderr and log
           end
           serr.close
@@ -254,18 +253,17 @@ module CMD
         err = ""
         err_thread = Thread.new do
           while not serr.eof?
-            err << serr.gets 
+            err << serr.gets
           end
           serr.close
         end
       else
         Open.consume_stream(serr, true)
-        #serr.close 
         err_thread = nil
         err = ""
       end
 
-      ConcurrentStream.setup sout, :pids => pids, :threads => [in_thread, err_thread].compact, :autojoin => autojoin, :no_fail => no_fail 
+      ConcurrentStream.setup sout, :pids => pids, :threads => [in_thread, err_thread].compact, :autojoin => autojoin, :no_fail => no_fail
 
       begin
         out = StringIO.new sout.read
@@ -324,7 +322,7 @@ module CMD
         starting = true
         line = "" if bar
       end
-    end 
+    end
     begin
       io.join
       bar.remove if bar

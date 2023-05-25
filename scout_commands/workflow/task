@@ -22,6 +22,7 @@ $ #{$0} [<options>] <workflow> <task>
 -cl--clean Clean the last step
 -rcl--recursive_clean Clean all steps
 -ct--clean_task* Clean a particular task
+-d--deploy* Deploy mode: serial, local, or SLURM (default 'serial')
 EOF
 
 workflow_name, task_name = ARGV
@@ -34,8 +35,9 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, clean_task, jobname, print_filepath = IndiferentHash.process_options options, 
-  :help, :provenance, :clean, :recursive_clean, :clean_task, :job_name, :print_filepath
+help, provenance, clean, recursive_clean, clean_task, jobname, print_filepath, deploy = IndiferentHash.process_options options, 
+  :help, :provenance, :clean, :recursive_clean, :clean_task, :job_name, :print_filepath, :deploy,
+  :deploy => 'serial'
 
 if help
   if defined? scout_usage
@@ -75,7 +77,14 @@ end
 if provenance
   puts Step.prov_report(job)
 else
-  job.run(true) unless job.done?
+  case deploy
+  when "serial"
+    job.run(true) 
+  when "local"
+    Step.orchestrate(job)
+  when "slurm"
+    SLURM.orchestrate(job)
+  end unless job.done?
 
   if print_filepath
     job.join

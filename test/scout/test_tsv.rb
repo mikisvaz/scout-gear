@@ -290,4 +290,21 @@ row2   b  bbb bbbb bb
     tsv = TSV.str_setup("ID~ValueA,ValueB#:type=:flat", {})
     assert_equal "ID", tsv.key_field
   end
+
+  def test_cast_in_header
+    content =<<-EOF
+#: :sep=/\\s+/#:type=:single
+#Id Value
+a 1
+b 2
+c 3
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :key_field => "Value", :grep => "#\\|2")
+      refute tsv.to_s.include?(":cast=:to_f")
+      tsv.cast = :to_f
+      assert_include tsv.to_s, ":cast=:to_f"
+    end
+  end
 end

@@ -15,7 +15,6 @@ class TestStepStatus < Test::Unit::TestCase
 
     step2.dependencies = [step1]
 
-    sss 0
     Misc.with_env "SCOUT_UPDATE", "true" do
       step2.run
       assert step2.updated?

@@ -1,4 +1,12 @@
+require 'sys/proctable'
+
 module Misc
+
+  def self.children(ppid = nil)
+    ppid ||= Process.pid
+    Sys::ProcTable.ps.select{ |pe| pe.ppid == ppid }
+  end
+
   def self.env_add(var, value, sep = ":", prepend = true)
     if ENV[var].nil?
       ENV[var] = value

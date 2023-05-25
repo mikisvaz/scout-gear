@@ -47,6 +47,17 @@ class TestWorkflowStep < Test::Unit::TestCase
     end
     step1.type = :array
 
+    step1.clean
+    res =  step1.run(false)
+    refute IO === res
+    step1.join
+
+    step1.clean
+    res =  step1.run(true)
+    assert IO === res
+    step1.join
+    step1.clean
+
     step2 = Step.new tmpfile.step2 do 
       step1 = dependencies.first
       stream = step1.stream
@@ -228,5 +239,85 @@ class TestWorkflowStep < Test::Unit::TestCase
     io.close
 
     assert_equal times, lines.length
+  end
+
+  def test_fork_stream_fork
+    tmpfile = tmpdir.test_step
+
+    times = 10_000
+    sleep = 0.1 / times
+
+    step1 = Step.new tmpfile.step1, [times, sleep] do |times,sleep|
+      sleep 1
+      Open.open_pipe do |sin|
+        times.times do |i|
+          sin.puts "line-#{i}"
+          sleep sleep
+        end
+      end
+    end
+    step1.type = :array
+
+
+    step2 = Step.new tmpfile.step2 do 
+      step1 = dependencies.first
+      stream = step1.stream
+
+      Open.open_pipe do |sin|
+        while line = stream.gets
+          num = line.split("-").last
+          next if num.to_i % 2 == 1
+          sin.puts "S2: " + line
+        end
+      end
+    end
+    step2.type = :array
+    step2.dependencies = [step1]
+
+    step3 = Step.new tmpfile.step3 do 
+      step1 = dependencies.first
+      stream = step1.stream
+
+      Open.open_pipe do |sin|
+        while line = stream.gets
+          num = line.split("-").last
+          next if num.to_i % 2 == 0
+          sin.puts "S3: " + line
+        end
+      end
+    end
+    step3.type = :array
+    step3.dependencies = [step1]
+
+
+    step4 = Step.new tmpfile.step4 do 
+      step2, step3 = dependencies
+
+      mutex = Mutex.new
+      Open.open_pipe do |sin|
+        t2 = Thread.new do
+          stream2 = step2.stream
+          while line = stream2.gets
+            sin.puts line
+          end
+        end
+
+        t3 = Thread.new do
+          stream3 = step3.stream
+          while line = stream3.gets
+            sin.puts line
+          end
+        end
+        t2.join
+        t3.join
+      end
+    end
+    step4.type = :array
+    step4.dependencies = [step2, step3]
+
+    step4.recursive_clean
+    step4.fork
+    assert Array === step4.load
+    assert_equal times, step4.load.size
   end
 end

@@ -17,6 +17,7 @@ module Resource
       next if pattern.nil?
 
       pattern = pattern.sub('{PWD}', Dir.pwd)
+      pattern = pattern.sub('{HOME}', ENV["HOME"])
       if String ===  pattern and pattern.include?('{')
         regexp = "^" + pattern
           .gsub(/{(TOPLEVEL)}/,'(?<\1>[^/]+)')

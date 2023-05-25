@@ -114,6 +114,7 @@ class TestPersist < Test::Unit::TestCase
               end
             end
           end
+
           if IO === io
             Open.consume_stream(io, false)
           else

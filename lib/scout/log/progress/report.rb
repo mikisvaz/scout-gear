@@ -4,8 +4,7 @@ module Log
     def print(io, str)
       return if self.severity && self.severity < Log.severity
       return if Log.no_bar
-      STDERR.print str
-      Log.logfile.puts str unless Log.logfile.nil?
+      Log.log_write str
       Log::LAST.replace "progress"
     end
 
@@ -57,9 +56,12 @@ module Log
         thr = short_mean
       else
         thr = begin
-                (@ticks || 1) / (Time.now - @start) 
-              rescue
-                1
+                d = Time.now - @start
+                if d == 0
+                  1
+                else
+                  (@ticks || 1) / d
+                end
               end
       end
 

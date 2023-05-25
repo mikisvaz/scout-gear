@@ -10,8 +10,8 @@ module Colorize
 
   def self.colors
     @colors ||= IndiferentHash.setup(Hash[<<-EOF.split("\n").collect{|l| l.split(" ")}])
-green #00cd00 
-red #cd0000 
+green #00cd00
+red #cd0000
 yellow #ffd700
 blue #0000cd
 path blue
@@ -49,26 +49,26 @@ EOF
     when "black"
       '#fff'
     when 'green'
-      colors["green3"] 
+      colors["green3"]
     when 'red'
-      colors["red3"] 
+      colors["red3"]
     when 'yellow'
-      colors["gold1"] 
+      colors["gold1"]
     when 'blue'
-      colors["RoyalBlue"] 
+      colors["RoyalBlue"]
     else
       colors[color.to_s] || color.to_s
     end
   end
 
-  def self.continuous(array, start = "#40324F", eend = "#EABD5D", percent = false) 
+  def self.continuous(array, start = "#40324F", eend = "#EABD5D", percent = false)
     start_color = Color.new from_name(start)
     end_color = Color.new from_name(eend)
 
     if percent
       array = array.collect{|v| n = v.to_f; n = n > 100 ? 100 : n; n < 0.001 ? 0.001 : n}
     else
-      array = array.collect{|v| v.to_f } 
+      array = array.collect{|v| v.to_f }
     end
     max = array.max
     min = array.min
@@ -157,7 +157,7 @@ module Log
     :workflow => yellow,
   })
   HIGHLIGHT = "\033[1m"
-  
+
   def self.uncolor(str)
     "" << Term::ANSIColor.uncolor(str)
   end
@@ -167,7 +167,7 @@ module Log
   end
 
   def self.color(color, str = nil, reset = false)
-    return str.dup || "" if nocolor 
+    return str.dup || "" if nocolor
 
     if (color == :integer || color == :float) && Numeric === str
       color = if str < 0
@@ -179,7 +179,7 @@ module Log
               end
     end
 
-    if color == :status 
+    if color == :status
       color = case str.to_sym
               when :done
                 :green

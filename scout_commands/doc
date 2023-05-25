@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Print documentation for a module
+
+$ #{$0} [<options>] [module]
+
+If you don't specify the module it prints those available
+
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+
+module_name = ARGV.first
+if module_name.nil?
+  puts Rbbt.doc.lib.scout.glob("**/*.md").collect{|f| File.basename(f.unset_extension) } * "\n"
+else
+  begin
+    puts Rbbt.doc.lib.scout[module_name].find_with_extension('md', :lib).read
+  rescue
+    puts Rbbt.doc.lib.scout.glob("**/*.md").select{|f| File.basename(f.unset_extension) == module_name }.first.read
+  end
+end
+

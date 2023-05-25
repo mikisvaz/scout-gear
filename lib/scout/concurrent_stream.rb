@@ -12,13 +12,12 @@ module ConcurrentStream
   attr_accessor :threads, :pids, :callback, :abort_callback, :filename, :joined, :aborted, :autojoin, :lock, :no_fail, :pair, :thread, :stream_exception, :log, :std_err, :next
 
   def self.setup(stream, options = {}, &block)
-    
     threads, pids, callback, abort_callback, filename, autojoin, lock, no_fail, pair, next_stream = IndiferentHash.process_options options, :threads, :pids, :callback, :abort_callback, :filename, :autojoin, :lock, :no_fail, :pair, :next
     stream.extend ConcurrentStream unless ConcurrentStream === stream
 
     stream.threads ||= []
     stream.pids ||= []
-    stream.threads.concat(Array === threads ? threads : [threads]) unless threads.nil? 
+    stream.threads.concat(Array === threads ? threads : [threads]) unless threads.nil?
     stream.pids.concat(Array === pids ? pids : [pids]) unless pids.nil? or pids.empty?
     stream.autojoin = autojoin unless autojoin.nil?
     stream.no_fail = no_fail unless no_fail.nil?
@@ -36,7 +35,7 @@ module ConcurrentStream
           callback.call
         end
       else
-        stream.callback = callback 
+        stream.callback = callback
       end
     end
 
@@ -48,7 +47,7 @@ module ConcurrentStream
           abort_callback.call
         end
       else
-        stream.abort_callback = abort_callback 
+        stream.abort_callback = abort_callback
       end
     end
 
@@ -80,7 +79,7 @@ module ConcurrentStream
 
   def join_threads
     if @threads
-      @threads.each do |t| 
+      @threads.each do |t|
         next if t == Thread.current
         begin
           t.join
@@ -101,7 +100,7 @@ module ConcurrentStream
             Log.low "Not failing on exception joining thread in ConcurrenStream - #{filename} - #{$!.message}"
           else
             Log.low "Exception joining thread in ConcurrenStream #{Log.fingerprint self} - #{Log.fingerprint t} - #{$!.message}"
-            stream_raise_exception $! 
+            stream_raise_exception $!
           end
         end
       end
@@ -111,13 +110,13 @@ module ConcurrentStream
 
   def join_pids
     if @pids and @pids.any?
-      @pids.each do |pid| 
+      @pids.each do |pid|
         begin
           Process.waitpid(pid, Process::WUNTRACED)
           stream_raise_exception ConcurrentStreamProcessFailed.new(pid, "Error in waitpid", self) unless $?.success? or no_fail
         rescue Errno::ECHILD
         end
-      end 
+      end
       @pids = []
     end
   end
@@ -143,7 +142,7 @@ module ConcurrentStream
       @joined = true
       begin
         lock.unlock if lock && lock.locked?
-      rescue 
+      rescue
         Log.exception $!
       end
       raise stream_exception if stream_exception
@@ -158,7 +157,7 @@ module ConcurrentStream
 
     threads = @threads.dup
     @threads.clear
-    threads.each do |t| 
+    threads.each do |t|
       next if t == Thread.current
       next if t["aborted"]
       t["aborted"] = true
@@ -166,14 +165,14 @@ module ConcurrentStream
       Log.debug "Aborting thread #{Log.fingerprint(t)} with exception: #{exception}"
       t.raise(exception)
       t.join
-    end 
+    end
   end
 
   def abort_pids
     @pids.each do |pid|
-      begin 
+      begin
         Log.low "Killing PID #{pid} in ConcurrentStream #{filename}"
-        Process.kill :INT, pid 
+        Process.kill :INT, pid
       rescue Errno::ESRCH
       end
     end if @pids
@@ -189,7 +188,7 @@ module ConcurrentStream
       Log.medium "Aborting stream #{Log.fingerprint self} [#{@aborted}]"
     end
     AbortedStream.setup(self, exception)
-    @aborted = true 
+    @aborted = true
     begin
       @abort_callback.call exception if @abort_callback
 
@@ -207,7 +206,7 @@ module ConcurrentStream
       close unless closed?
 
       if lock and lock.locked?
-        lock.unlock 
+        lock.unlock
       end
     end
   end
@@ -218,7 +217,7 @@ module ConcurrentStream
         super(*args)
       rescue
         self.abort
-        self.join 
+        self.join
         stream_raise_exception $!
       ensure
         self.join if ! @stream_exception && (self.closed? || self.eof?)
@@ -249,7 +248,7 @@ module ConcurrentStream
 
   def add_callback(&block)
     old_callback = callback
-    @callback = Proc.new do 
+    @callback = Proc.new do
       old_callback.call if old_callback
       block.call
     end
@@ -264,4 +263,23 @@ module ConcurrentStream
     self.abort
   end
 
+  def self.process_stream(stream, close: true, join: true, message: "process_stream", **kwargs, &block)
+    ConcurrentStream.setup(stream, **kwargs)
+    begin
+      begin
+        yield
+      ensure
+        stream.close if close && stream.respond_to?(:close) && ! (stream.respond_to?(:closed?) && stream.closed?)
+        stream.join if join && stream.respond_to?(:join) && ! stream.joined?
+      end
+    rescue Aborted
+      Log.low "Aborted #{message}: #{$!.message}"
+      stream.abort($!) if stream.respond_to?(:abort) && ! stream.aborted?
+      raise $!
+    rescue Exception
+      Log.low "Exception #{message}: #{$!.message}"
+      stream.abort($!) if stream.respond_to?(:abort) && ! stream.aborted?
+      raise $!
+    end
+  end
 end

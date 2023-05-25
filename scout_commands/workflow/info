@@ -23,7 +23,7 @@ end
 
 path = ARGV.first
 raise MissingParameterException.new :step_path if path.nil?
-step = Step.load(path)
+step = Step.load(path.dup)
 
 puts step.info.to_json
 

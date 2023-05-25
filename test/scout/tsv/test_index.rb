@@ -43,6 +43,20 @@ row2    a    b    id3
     end
   end
 
+  def test_index_from_flat
+    content =<<-'EOF'
+#: :sep=" "#:type=:flat
+#Id    ValueA
+row1    a aa aaa
+row2    b bb bbb
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      index = TSV.index(filename, :target => "Id")
+      assert_equal "row1", index["aa"]
+    end
+  end
+
   def test_from_tsv
     content =<<-'EOF'
 #: :sep=/\s+/#:type=:double#:merge=:concat

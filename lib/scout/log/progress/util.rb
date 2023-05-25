@@ -74,6 +74,7 @@ module Log
       BAR_MUTEX.synchronize do
         REMOVE << bar
       end
+      cleanup_bars
       Log::LAST.replace "remove_bar" if Log::LAST == "progress"
     end
 
@@ -128,6 +129,8 @@ module Log
             nil
           end
         end
+      rescue Interrupt
+        raise $!
       rescue Exception
         nil
       end
