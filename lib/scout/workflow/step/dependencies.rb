@@ -20,8 +20,8 @@ class Step
 
   def prepare_dependencies
     inverse_dep = {}
-    dependencies.each{|dep| 
-      if dep.present? && ! dep.updated? 
+    dependencies.each{|dep|
+      if dep.present? && ! dep.updated?
         Log.debug "Clean outdated #{dep.path}"
         dep.clean
       end
@@ -29,12 +29,12 @@ class Step
       if dep.dependencies
         dep.dependencies.each do |d|
           inverse_dep[d] ||= []
-          inverse_dep[d] << dep 
+          inverse_dep[d] << dep
         end
       end
       input_dependencies.each do |d|
         inverse_dep[d] ||= []
-        inverse_dep[d] << dep 
+        inverse_dep[d] << dep
       end
     }
     inverse_dep.each do |dep,list|
@@ -52,9 +52,11 @@ class Step
 
   def self.wait_for_jobs(jobs)
     threads = []
-    jobs.each do |job| 
-      threads << job.join
+    jobs.each do |job|
+      threads << Thread.new{ job.join }
     end
-    threads.each do |t| t.join end
+    threads.each do |t|
+      t.join
+    end
   end
 end

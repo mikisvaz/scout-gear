@@ -28,12 +28,6 @@ class Step
     Open.rm_rf files_dir if Open.exist?(files_dir)
   end
 
-  def present?
-    Open.exist?(path) &&
-      Open.exist?(info_file) &&
-      Open.exist?(files_dir)
-  end
-
 
   def recursive_clean
     dependencies.each do |dep|

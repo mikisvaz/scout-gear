@@ -42,7 +42,7 @@ class Step
                         if Open.exists?(info_file)
                           info[:dependencies].collect do |path|
                             Step.load(path)
-                          end
+                          end if info[:dependencies]
                         else
                           []
                         end
@@ -92,7 +92,12 @@ class Step
       inputs = new_inputs
     end
 
-    @result = self.instance_exec(*inputs, &task)
+    @result = begin
+                @in_exec = true
+                self.instance_exec(*inputs, &task)
+              ensure
+                @in_exec = false
+              end
   end
 
   def tmp_path
@@ -129,6 +134,13 @@ class Step
           end
 
           @result
+
+          if (IO === @result || StringIO === @result) && (ENV["SCOUT_NO_STREAM"] == "true" || ! stream)
+            Open.sensible_write(self.path, @result)
+            @result = nil
+          else
+            @result
+          end
         end
       rescue Exception => e
         merge_info :status => :error, :exception => e, :end => Time.now
@@ -155,18 +167,15 @@ class Step
           end
         end
       end
+  end
 
-    if stream && ENV["SCOUT_NO_STREAM"].nil?
-      @result
-    else
-      if IO === @result || @result.respond_to?(:stream)
-        join
-        @result = nil
-        self.load
-      else
-        @result
-      end
+  def fork
+    Process.fork do
+      clear_info unless present?
+      produce
     end
+    grace
+    self
   end
 
   def done?
@@ -185,16 +194,21 @@ class Step
         else
           Log.debug "Taking result #{Log.fingerprint @result}"
         end
+
         @take_stream, @result = @result, @result.next
-        @take_stream
-      elsif done?
+
+        return @take_stream
+      end
+    end
+
+    if done?
+      Open.open(self.path)
+    else
+      if running?
+        join
         Open.open(self.path)
       else
-        if running?
-          nil
-        else
-          exec
-        end
+        exec
       end
     end
   end
@@ -214,8 +228,29 @@ class Step
     end
   end
 
+  def present?
+    Open.exist?(path) ||
+      Open.exist?(info_file) ||
+      Open.exist?(files_dir)
+  end
+
+  def grace
+    while ! present?
+      sleep 0.1
+    end
+  end
+
+  def terminated?
+    ! @in_exec && (done? || error? || aborted?)
+  end
+
   def join
     consume_all_streams
+    while @result.nil? && (present? && ! terminated?)
+      sleep 0.1
+    end
+    raise self.exception if self.exception
+    raise "Error in job #{self.path}" if self.error? or self.aborted? 
     self
   end
 

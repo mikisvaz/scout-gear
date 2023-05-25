@@ -155,6 +155,8 @@ module Task
 
     non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
 
+    non_default_inputs.uniq!
+
     if non_default_inputs.any?
       hash = Misc.digest(:inputs => input_digest_str, :dependencies => dependencies)
       name = [id, hash] * "_"
