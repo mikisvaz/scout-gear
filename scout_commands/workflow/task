@@ -5,7 +5,9 @@ require 'scout'
 $0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
 
 ENV["SCOUT_NO_STREAM"] = "true" if ARGV.include? "--nostream"
+ARGV.delete '--nostream'
 ENV["SCOUT_UPDATE"] = "true" if ARGV.include? "--update"
+ARGV.delete '--update'
 
 options = SOPT.setup <<EOF
 
@@ -50,7 +52,7 @@ if help
   exit 0
 end
 
-job_options = task.get_SOPT(task)
+job_options = task.get_SOPT
 job = workflow.job(task_name, jobname, job_options)
 
 job.recursive_clean if recursive_clean

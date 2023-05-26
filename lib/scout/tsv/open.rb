@@ -102,7 +102,6 @@ module Open
     begin
       res = case obj
             when TSV
-              #obj.traverse options[:key_field], options[:fields], unnamed: unnamed, **options do |k,v,f|
               obj.traverse  unnamed: unnamed, **options do |k,v,f|
                 res = block.call(k, v, f)
                 callback.call res if callback
@@ -122,12 +121,21 @@ module Open
               raise obj.exception if obj.error?
               self.traverse(obj.stream, cpus: cpus, callback: callback, **options, &block)
             when IO
-              Log.low "Traverse stream #{Log.fingerprint obj}"
-              parser = TSV::Parser.new obj
-              parser.traverse **options do |k,v,f|
-                res = block.call k,v,f
-                callback.call res if callback
-                nil
+              if options[:type] == :array || options[:type] == :line
+                Log.low "Traverse stream by lines #{Log.fingerprint obj}"
+                while line = obj.gets
+                  line.strip!
+                  res = block.call(line)
+                  callback.call res if callback
+                end
+              else
+                Log.low "Traverse stream with parser #{Log.fingerprint obj}"
+                parser = TSV::Parser.new obj
+                parser.traverse **options do |k,v,f|
+                  res = block.call k,v,f
+                  callback.call res if callback
+                  nil
+                end
               end
             when TSV::Parser
               obj.traverse **options do |k,v,f|

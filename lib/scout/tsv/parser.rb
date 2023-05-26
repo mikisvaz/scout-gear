@@ -190,6 +190,11 @@ module TSV
   end
 
   def self.parse_header(stream, fix: true, header_hash: '#', sep: "\t")
+    if (Path === stream) || ((String === stream) && Path.is_filename?(stream))
+      Open.open(stream) do |f|
+        return parse_header(f, fix: fix, header_hash: header_hash, sep: sep)
+      end
+    end
     raise "Closed stream" if IO === stream && stream.closed?
 
     opts = {}
@@ -240,7 +245,7 @@ module TSV
     opts[:type] = opts[:type].to_sym if opts[:type]
     opts[:cast] = opts[:cast].to_sym if opts[:cast]
 
-    [opts, key_field, fields, first_line, preamble]
+    NamedArray.setup([opts, key_field, fields, first_line, preamble], %w(options key_field fields first_line preamble))
   end
 
   KEY_PARAMETERS = begin

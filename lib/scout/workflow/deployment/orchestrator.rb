@@ -26,11 +26,11 @@ module Workflow
 
     def self.workload(jobs)
       jobs.inject({}) do |acc,job| 
-          Orchestrator.job_workload(job).each do |j,d|
-            acc[j] = d unless acc.keys.collect{|k| k.path }.include? j.path
-          end
-          acc
+        Orchestrator.job_workload(job).each do |j,d|
+          acc[j] = d unless acc.keys.collect{|k| k.path }.include? j.path
         end
+        acc
+      end
     end
 
     def self.job_rules(rules, job)

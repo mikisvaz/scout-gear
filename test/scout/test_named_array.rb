@@ -33,5 +33,11 @@ ValueB (Entity type)
     NamedArray.add_zipped a, [%w(d), %w(1)]
     assert_equal [%w(a b c d), %w(1 1 1 1)], a
   end
+
+  def test_method_missing
+    a = NamedArray.setup([1,2], [:a, :b])
+    assert_equal 1, a.a
+    assert_equal 2, a.b
+  end
 end
 

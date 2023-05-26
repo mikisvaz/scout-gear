@@ -127,4 +127,12 @@ module NamedArray
     end
     source
   end
+
+  def method_missing(name, *args)
+    if identify_name(name)
+      return self[name]
+    else
+      return super(name, *args)
+    end
+  end
 end

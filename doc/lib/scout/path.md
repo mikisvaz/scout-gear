@@ -14,7 +14,12 @@ Path
 :scout_gear => File.join(Path.caller_lib_dir(__FILE__), "{TOPLEVEL}/{SUBPATH}"),
 :tmp     => '/tmp/{PKGDIR}/{TOPLEVEL}/{SUBPATH}',
 :default => :user
+
+@@basic_map_order ||= %w(current workflow user local global lib fast cache bulk)
+
 ```
+
+
 
 # tags
 {PKGDIR}

@@ -103,9 +103,16 @@ module Task
     sopt_options * ":"
   end
 
-  def get_SOPT(task)
+  def get_SOPT
     sopt_option_string = self.SOPT_str
-    SOPT.get sopt_option_string
+    job_options = SOPT.get sopt_option_string
+    recursive_inputs.uniq.each do |name,type|
+      next unless type.to_s.include?('array')
+      if job_options.include?(name)
+        job_options[name] = job_options[name].split(",")
+      end
+    end
+    job_options
   end
 end
 
