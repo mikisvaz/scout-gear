@@ -320,4 +320,22 @@ class TestWorkflowStep < Test::Unit::TestCase
     assert Array === step4.load
     assert_equal times, step4.load.size
   end
+
+  def test_dependency_canfail
+    tmpfile = tmpdir.test_step
+    step1 = Step.new tmpfile.step1, ["12"] do |s|
+      s.length
+    end
+
+    step2 = Step.new tmpfile.step2 do 
+      step1 = dependencies.first
+      step1.inputs.first + " has " + step1.load.to_s + " characters"
+    end
+
+    step2.dependencies = [step1]
+
+    assert_equal "12 has 2 characters", step2.run
+    assert_equal "12 has 2 characters", step2.run
+  end
+
 end

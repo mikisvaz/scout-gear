@@ -11,13 +11,14 @@ require_relative 'step/progress'
 
 class Step 
 
-  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs
-  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, &task) 
+  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :compute
+  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, compute = nil, &task) 
     @path = path
     @inputs = inputs
     @dependencies = dependencies
     @id = id
     @non_default_inputs = non_default_inputs
+    @compute = compute 
     @task = task
     @mutex = Mutex.new
     @tee_copies = 1

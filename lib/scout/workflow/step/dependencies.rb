@@ -43,7 +43,25 @@ class Step
   end
 
   def run_dependencies
-    dependencies.each{|dep| dep.run(true) unless dep.running? || dep.done? }
+    dependencies.each{|dep| 
+      next if dep.running? || dep.done?
+      compute_options = compute[dep.path] if compute
+      compute_options = [] if compute_options.nil?
+
+      stream = compute_options.include?(:stream)
+      stream = true unless ENV["SCOUT_EXPLICIT_STREAMING"] == 'true'
+      stream = false if compute_options.include?(:produce)
+
+      begin
+        dep.run(stream)
+      rescue ScoutException
+        if compute_options.include?(:canfail)
+          Log.medium "Allow failing of #{dep.path}"
+        else
+          raise $!
+        end
+      end
+    }
   end
 
   def abort_dependencies
