@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/offsite'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Description of the tool
+
+$ #{$0} [<options>] <where> <command> ... -- [<protected options>]
+
+Run a command offsite. Use -- to make sure options reach the offsite
+
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+where = ARGV.shift
+command = ARGV.shift
+
+puts SSHLine.command(where, command, ARGV)

@@ -35,6 +35,12 @@ if dev_dir.nil?
   ARGV.delete _s if _s
 end
 
+if dev_dir.nil? && ENV["SCOUT_DEV"]
+  dev_dir = ENV["SCOUT_DEV"]
+  ARGV.delete "--dev"
+  ARGV.delete dev_dir
+end
+
 if dev_dir
   ['scout-*/lib'].each do |pattern|
     Dir.glob(File.join(File.expand_path(dev_dir), pattern)).each do |f|

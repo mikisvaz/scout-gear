@@ -30,4 +30,34 @@ module Misc
       ENV[var] = old_value
     end
   end
+  
+  def self.update_git(gem_name = 'scout-gear')
+    gem_name = 'scout-gear' if gem_name.nil?
+    dir = File.join(__dir__, '../../../../', gem_name)
+    return unless Open.exist?(dir)
+    Misc.in_dir dir do
+      begin
+        begin
+          CMD.cmd_log('git pull')
+        rescue
+          raise "Could not update #{gem_name}"
+        end
+
+        begin
+          CMD.cmd_log('git submodule update')
+        rescue
+          raise "Could not update #{gem_name} submodules"
+        end
+
+
+        begin
+          CMD.cmd_log('rake install')
+        rescue
+          raise "Could not install updated #{gem_name}"
+        end
+      rescue
+        Log.warn $!.message
+      end
+    end
+  end
 end

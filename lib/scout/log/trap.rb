@@ -1,7 +1,7 @@
 module Log
   def self.trap_std(msg = "STDOUT", msge = "STDERR", severity = 0, severity_err = nil)
-    sout, sin = Misc.pipe
-    soute, sine = Misc.pipe
+    sout, sin = Open.pipe
+    soute, sine = Open.pipe
     backup_stderr = STDERR.dup
     backup_stdout = STDOUT.dup
     old_logfile = Log.logfile
@@ -38,7 +38,7 @@ module Log
   end
 
   def self.trap_stderr(msg = "STDERR", severity = 0)
-    sout, sin = Misc.pipe
+    sout, sin = Open.pipe
     backup_stderr = STDERR.dup
     old_logfile = Log.logfile
     Log.logfile(backup_stderr)

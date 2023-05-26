@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'scout-gear'
+require 'scout/offsite'
 
 $0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
 

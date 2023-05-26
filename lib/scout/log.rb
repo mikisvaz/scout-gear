@@ -50,15 +50,19 @@ module Log
 
 
   def self.tty_size
-    @tty_size = begin
-                  IO.console.winsize.last
-                rescue
-                  begin
-                    `tput li`
-                  rescue
-                    80
-                  end
-                end
+    @@tty_size ||= Log.ignore_stderr do
+      begin
+        IO.console.winsize.last
+      rescue Exception
+        begin
+          res = `tput li`
+          res = nil if res == ""
+          res || ENV["TTY_SIZE"] || 80
+        rescue Exception
+          ENV["TTY_SIZE"] || 80
+        end
+      end
+    end
   end
 
 

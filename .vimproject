@@ -9,6 +9,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   find
   glob
   doc
+  update
+  offsite
   workflow=workflow{
    task
    list
@@ -156,6 +158,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     path.rb
     stream.rb
     open.rb
+   }
+   offsite=offsite{
+    ssh.rb
    }
   }
  }
