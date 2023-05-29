@@ -1,4 +1,5 @@
 module Misc
+  MAX_ARRAY_DIGEST_LENGTH = 100_000
   def self.digest_str(obj)
     if obj.respond_to?(:digest_str)
       obj.digest_str
@@ -9,12 +10,19 @@ module Misc
         if Path === obj || ! Open.exists?(obj)
           '\'' << obj << '\''
         else
-          Misc.file_md5(obj)
+          "File MD5: #{Misc.file_md5(obj)}"
         end
       when Integer, Symbol
         obj.to_s
       when Array
-        '[' << obj.inject(""){|acc,o| acc.empty? ? Misc.digest_str(o) : acc << ', ' << Misc.digest_str(o) } << ']'
+        if obj.length > MAX_ARRAY_DIGEST_LENGTH
+          length = obj.length
+          mid = length/2
+          sample_pos = [1, 2, mid, length-2, length-1]
+          "[#{length}:" << obj.values_at(*sample_pos).inject(""){|acc,o| acc.empty? ? Misc.digest_str(o) : acc << ', ' << Misc.digest_str(o) } << ']'
+        else
+          '[' << obj.inject(""){|acc,o| acc.empty? ? Misc.digest_str(o) : acc << ', ' << Misc.digest_str(o) } << ']'
+        end
       when Hash
         '{' << obj.inject(""){|acc,p| s = Misc.digest_str(p.first) << "=" << Misc.digest_str(p.last); acc.empty? ? s : acc << ', ' << s } << '}'
       when Integer

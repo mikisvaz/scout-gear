@@ -3,7 +3,8 @@ module Task
   def self.format_input(value, type, options = {})
     return value if IO === value || StringIO === value || Step === value
 
-    if String === value && ! [:path, :file, :folder].include?(type) && (options.nil? || (! options[:noload] || options[:stream]))
+    if String === value && ! [:path, :file, :folder].include?(type) && ! (options &&  (options[:noload] || options[:stream]))
+      iii options
       if Open.exists?(value) && ! Open.directory?(value)
         Persist.load(value, type) 
       else

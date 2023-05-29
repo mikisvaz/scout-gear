@@ -121,7 +121,7 @@ class Step
         Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
           clear_info
           merge_info :status => :start, :start => Time.now,
-            :pid => Process.pid, :pid_hostname => ENV["HOSTNAME"], 
+            :pid => Process.pid, :pid_hostname => Misc.hostname, 
             :inputs => inputs, :type => type,
             :dependencies => dependencies.collect{|d| d.path }
 
@@ -223,7 +223,7 @@ class Step
     threads.each do |t| 
       begin
         t.join 
-      rescue
+      rescue Exception
         threads.each{|t| t.raise(Aborted); t.join }
         raise $!
       end
