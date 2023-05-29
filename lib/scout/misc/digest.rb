@@ -46,6 +46,7 @@ module Misc
 
   def self.file_md5(file)
     file = file.find if Path === file
+    file = File.expand_path(file)
     #md5file = file + '.md5'
     Persist.persist("MD5:#{file}", :string) do
       Digest::MD5.file(file).hexdigest
