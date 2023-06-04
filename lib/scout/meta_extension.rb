@@ -62,5 +62,39 @@ module MetaExtension
       end
       base.setup(other, *attr_values)
     end
+
+    base.define_method(:purge) do
+      new = self.dup
+
+      if new.instance_variables.include?(:@extension_attrs)
+        new.instance_variable_get(:@extension_attrs).each do |a|
+          new.remove_instance_variable("@#{a}")
+        end
+        new.remove_instance_variable("@extension_attrs")
+      end
+
+      new
+    end
+  end
+
+  def self.is_extended?(obj)
+    obj.respond_to?(:extension_attr_hash)
+  end
+
+  def self.purge(obj)
+    case obj
+    when nil
+      nil
+    when Array
+      obj.collect{|e| purge(e) }
+    when Hash
+      new = {}
+      obj.each do |k,v|
+        new[k] = purge(v)
+      end
+      new
+    else
+      is_extended?(obj) ? obj.purge : obj
+    end
   end
 end

@@ -13,9 +13,15 @@ class Step
 
   def input_dependencies
     return [] unless inputs
-    inputs.select do |d|
-      Step === d
-    end
+    inputs.collect do |d|
+      if Step === d
+        d
+      elsif (Path === d) && (Step === d.pkgdir)
+        d.pkgdir
+      else
+        nil
+      end
+    end.compact.uniq
   end
 
   def prepare_dependencies

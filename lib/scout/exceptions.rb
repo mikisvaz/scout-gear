@@ -149,4 +149,3 @@ class SSHProcessFailed < StandardError
     super(message)
   end
 end
-

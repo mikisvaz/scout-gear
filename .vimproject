@@ -160,6 +160,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     stream.rb
     open.rb
    }
+   offsite.rb
    offsite=offsite{
     ssh.rb
    }

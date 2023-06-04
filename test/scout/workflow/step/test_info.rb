@@ -25,4 +25,22 @@ class TestStepInfo < Test::Unit::TestCase
       assert_equal "12 has 2 characters", step2.run
     end
   end
+
+  def test_inputs_marshal
+    TmpFile.with_file do |tmpdir|
+      Path.setup(tmpdir)
+      tmpfile = tmpdir.test_step
+
+      path = tmpfile.foo
+      step1 = Step.new tmpfile.step1, [path] do |s|
+        s.length
+      end
+
+      step1.run
+
+      refute Path === step1.info[:inputs][0]
+
+    end
+
+  end
 end

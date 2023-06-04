@@ -83,7 +83,7 @@ else
   when "serial"
     job.run(true) 
   when "local"
-    orchestrator = Workflow::Orchestrator.new 3, "cpus" => 3
+    orchestrator = Workflow::Orchestrator.new 3, "cpus" => Misc.processors
     orchestrator.process({}, job)
   when "slurm"
     SLURM.orchestrate(job)

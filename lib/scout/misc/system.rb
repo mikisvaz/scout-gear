@@ -66,4 +66,8 @@ module Misc
       end
     end
   end
+
+  def self.processors
+    Etc.nprocessors
+  end
 end

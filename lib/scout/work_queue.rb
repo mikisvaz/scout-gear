@@ -142,8 +142,18 @@ class WorkQueue
     end
   end
 
-  def join
-    @waiter.join if @waiter
-    @reader.join if @reader
+  def clean
+    @waiter.join if @waiter 
+    @input.clean
+    @output.clean
+  end
+
+  def join(clean = true)
+    begin
+      @waiter.join if @waiter
+      @reader.join if @reader
+    ensure
+      self.clean if clean
+    end
   end
 end

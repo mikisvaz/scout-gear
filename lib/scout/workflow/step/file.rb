@@ -3,6 +3,7 @@ class Step
     @files_dir ||= begin
                      dir = @path + ".files"
                      @path.annotate(dir) if Path === @path
+                     dir.pkgdir = self
                      dir
                    end
   end

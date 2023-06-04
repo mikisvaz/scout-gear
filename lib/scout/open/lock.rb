@@ -4,6 +4,14 @@ require_relative '../exceptions'
 require_relative 'lock/lockfile'
 
 module Open
+  def self.init_lock
+    Lockfile.refresh = 2 
+    Lockfile.max_age = 30
+    Lockfile.suspend = 4
+  end
+
+  self.init_lock 
+
   def self.lock(file, unlock = true, options = {})
     unlock, options = true, unlock if Hash === unlock
     return yield if file.nil? and not Lockfile === options[:lock]

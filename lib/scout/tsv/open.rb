@@ -68,7 +68,15 @@ module Open
             bar.remove($!) if bar
           end
         end
+
         Thread.pass until into_thread["name"]
+
+        case into
+        when IO
+          ConcurrentStream.setup into, :threads => into_thread
+        when TSV::Dumper
+          ConcurrentStream.setup into.stream, :threads => into_thread
+        end
         return into
       end
     end
@@ -82,20 +90,23 @@ module Open
         callback.call res
       end
       
-      self.traverse(obj, **options) do |*args|
-        queue.write args
-      end
-
       begin
+        self.traverse(obj, **options) do |*args|
+          queue.write args
+        end
+
         queue.close
 
-        queue.join
+        queue.join(false)
 
         bar.remove if bar
         return into
       rescue Exception
         bar.remove($!) if bar
+        queue.abort
         raise $!
+      ensure
+        queue.clean
       end
     end
 

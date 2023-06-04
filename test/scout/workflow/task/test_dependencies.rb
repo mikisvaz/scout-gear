@@ -239,7 +239,6 @@ class TestTaskDependencies < Test::Unit::TestCase
       dep :step1, :input1 => 1  do |id,options|
         {:inputs => options}
       end
-      input :input2, :string
       task :step2 => :string do |i| step(:step1).load end
     end
 
@@ -247,6 +246,22 @@ class TestTaskDependencies < Test::Unit::TestCase
     assert_equal 1, job.run
     assert_equal Task::DEFAULT_NAME, job.name
     assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
+  end
+
+  def test_default_inputs_in_block
+    wf = Workflow.annonymous_workflow "TaskInputs" do
+      input :input1, :string
+      task :step1 => :string do |i| i end
+
+      dep :step1  do |id,options|
+        {}
+      end
+      task :step2 => :string do |i| step(:step1).load end
+    end
+
+    job = wf.job(:step2, "SOME_NAME", :input1 => 2)
+    assert_equal "SOME_NAME", job.step(:step1).clean_name
+    assert_equal 2, job.run
   end
 
   def test_override_inputs_block_array

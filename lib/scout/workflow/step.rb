@@ -122,9 +122,8 @@ class Step
           clear_info
           merge_info :status => :start, :start => Time.now,
             :pid => Process.pid, :pid_hostname => Misc.hostname, 
-            :inputs => inputs, :type => type,
+            :inputs => MetaExtension.purge(inputs), :type => type,
             :dependencies => dependencies.collect{|d| d.path }
-
 
           @result = exec
 
@@ -158,7 +157,11 @@ class Step
               if Aborted === exception || Interrupt === exception
                 merge_info :status => :aborted, :end => Time.now
               else
-                merge_info :status => :error, :exception => exception, :end => Time.now
+                begin
+                  merge_info :status => :error, :exception => exception, :end => Time.now
+                rescue Exception
+                  Log.exception $!
+                end
               end
             end
 

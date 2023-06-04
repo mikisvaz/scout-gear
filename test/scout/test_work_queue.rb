@@ -90,60 +90,82 @@ class TestWorkQueue < Test::Unit::TestCase
   end
 
   def test_queue_error
-    num = 100
-    reps = 10_000
+    5.times do |i|
+      num = 100
+      reps = 10_000
 
-    q = WorkQueue.new num do |obj|
-      raise ScoutException if rand < 0.1
-      [Process.pid.to_s, obj.to_s] * " "
-    end
-
-    res = []
-    q.process do |out|
-      res << out
-    end
-
-    Log.with_severity 7 do
-      pid = Process.fork do
-        reps.times do |i|
-          q.write i
-        end
+      q = WorkQueue.new num do |obj|
+        raise ScoutException if rand < 0.1
+        [Process.pid.to_s, obj.to_s] * " "
       end
 
-      Process.waitpid pid
+      res = []
+      q.process do |out|
+        res << out
+      end
 
-      assert_raise ScoutException do
-        q.join
-        t.join
+      Log.with_severity 7 do
+        t = Thread.new do
+          Thread.current["name"] = "queue writer"
+          Thread.current.report_on_exception = false
+          reps.times do |i|
+            q.write i
+          end
+          q.close
+        end
+        Thread.pass until t["name"]
+
+        assert_raise ScoutException do
+          begin
+            q.join(false)
+          rescue
+            t.raise($!)
+            raise $!
+          ensure
+            t.join
+          end
+        end
       end
     end
   end
 
   def test_queue_error_in_input
-    num = 100
-    reps = 10_000
+    5.times do |i|
+      num = 100
+      reps = 10_000
 
-    q = WorkQueue.new num do |obj|
-      [Process.pid.to_s, obj.to_s] * " "
-    end
-
-    res = []
-    q.process do |out|
-      raise ScoutException 
-      res << out
-    end
-
-    Log.with_severity 7 do
-      pid = Process.fork do
-        reps.times do |i|
-          q.write i
-        end
-        q.close
+      q = WorkQueue.new num do |obj|
+        [Process.pid.to_s, obj.to_s] * " "
       end
 
-      assert_raise ScoutException do
-        q.join
-        t.join
+      res = []
+      q.process do |out|
+        raise ScoutException 
+        res << out
+      end
+
+      Log.with_severity 7 do
+        t = Thread.new do
+          Thread.current.report_on_exception = false
+          Thread.current["name"] = "queue writer"
+          reps.times do |i|
+            q.write i
+          end
+          q.close
+        end
+        Thread.pass until t["name"]
+
+        assert_raise ScoutException do
+          begin
+            q.join(false)
+          rescue Exception
+            t.raise($!)
+            raise $!
+          ensure
+            t.join
+            q.clean
+          end
+        end
       end
     end
   end

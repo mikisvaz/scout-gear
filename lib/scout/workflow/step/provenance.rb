@@ -91,6 +91,7 @@ class Step
     info[:task_name] = task
     path  = step.path
     status = info[:status] || :missing
+    status = status.to_sym if String === status
     status = :noinfo if status == :missing && Open.exist?(path)
     status = "remote" if Open.remote?(path) || Open.ssh?(path)
     name = info[:name] || File.basename(path)

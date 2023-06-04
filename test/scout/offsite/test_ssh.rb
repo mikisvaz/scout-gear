@@ -9,7 +9,6 @@ class TestSSH < Test::Unit::TestCase
   end
 
   def test_marshal
-    sss 0
     return unless SSHLine.reach?(server)
     return unless SSHLine.reach?(server)
     return unless SSHLine.reach?(server)

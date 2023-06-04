@@ -103,6 +103,7 @@ module Workflow
   def task(name_and_type, &block)
     name, type = name_and_type.collect.first
     @tasks ||= IndiferentHash.setup({})
+    block = self.method(name) if block.nil?
     begin
       @annotate_next_task ||= {}
       @annotate_next_task[:extension] ||=  

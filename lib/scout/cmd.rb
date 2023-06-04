@@ -61,6 +61,7 @@ module CMD
 
   def self.scan_version_text(text, cmd = nil)
     cmd = "NOCMDGIVE" if cmd.nil? || cmd.empty?
+    text = Misc.fixutf8 text
     text.split("\n").each do |line|
       next unless line =~ /\W#{cmd}\W/i
       m = line.match(/(v(?:\d+\.)*\d+(?:-[a-z_]+)?)/i)

@@ -21,6 +21,11 @@ Juwelier::Tasks.new do |gem|
   #  gem.add_runtime_dependency 'jabber4r', '> 0.1'
   #  gem.add_development_dependency 'rspec', '> 1.2.3'
   gem.add_runtime_dependency 'term-ansicolor'
+  gem.add_runtime_dependency 'net-ssh'
+  gem.add_runtime_dependency 'matrix'
+  gem.add_runtime_dependency 'sys-proctable'
+  gem.add_runtime_dependency 'RubyInline'
+  #gem.add_runtime_dependency 'tokyocabinet'
 
   gem.add_development_dependency "rdoc", "~> 3.12"
   gem.add_development_dependency "bundler", "~> 1.0"

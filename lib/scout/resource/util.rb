@@ -8,7 +8,6 @@ module Resource
 
     map_order ||= (path_maps.keys & Path.basic_map_order) + (path_maps.keys - Path.basic_map_order)
     map_order -= [:current, "current"]
-    map_order << :current
 
     choices = []
     map_order.uniq.each do |name|
@@ -36,7 +35,9 @@ module Resource
       end
     end
 
-    Path.setup(choices.sort_by{|s| s.length }.first, self, nil, path_maps)
+    identified = choices.sort_by{|s| s.length }.first
+
+    Path.setup(identified || path, self, nil, path_maps)
   end
 
   def self.relocate(path)

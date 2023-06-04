@@ -43,7 +43,7 @@ class Step
     new_info.each do |key,value|
       if key == :status
         message = new_info[:messages]
-        if message.nil? && value == :done || value == :error || value == :aborted
+        if message.nil? && (value == :done || value == :error || value == :aborted)
           start = info[:start]
           eend = new_info[:end]
           if start && eend
@@ -54,6 +54,7 @@ class Step
         end
         report_status value, message 
       end
+
       if Exception === value
         begin
           Marshal.dump(value)
@@ -67,6 +68,7 @@ class Step
           value = new
         end
       end
+
       if info.include?(key)
         case info[key]
         when Array
@@ -114,11 +116,11 @@ class Step
   end
 
   def error?
-    status == :error
+    status == :error || status == 'error'
   end
 
   def aborted?
-    status == :aborted
+    status == :aborted || status == 'aborted'
   end
 
   def running?

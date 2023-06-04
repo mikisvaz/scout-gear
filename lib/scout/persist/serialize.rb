@@ -20,7 +20,7 @@ module Persist
     type = type.to_sym if String === type
     type = SERIALIZER if type == :serializer
     case type
-    when nil, :string, :text, :integer, :float, :boolean, :file, :path, :select, :folder
+    when nil, :string, :text, :integer, :float, :boolean, :file, :path, :select, :folder, :binary
       if IO === content || StringIO === content
         content.read
       else

@@ -12,7 +12,7 @@ class Step
 
   def self.load(path)
     path = relocate(path) unless Open.exists?(path)
-    raise "Could not load #{path}" unless Open.exists?(path)
+    #raise "Could not load #{path}" unless Open.exists?(path)
     s = Step.new path
   end
 end
