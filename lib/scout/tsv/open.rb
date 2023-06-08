@@ -162,9 +162,10 @@ module Open
               end
             end
       bar.remove if bar
-    rescue
+    rescue Exception => exception
+      exception = obj.stream_exception if (ConcurrentStream === obj) && obj.stream_exception
       bar.error if bar
-      raise $!
+      raise exception
     end
 
     into || res

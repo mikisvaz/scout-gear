@@ -63,7 +63,7 @@ module Task
     basename = File.basename(orig_file)
     digest = Misc.digest(orig_file)
     if basename.include? '.'
-      basename.sub!(/(.*)\.(.*)/, "\1-#{digest}.\2")
+      basename.sub!(/(.*)\.(.*)/, '\1-#{digest}.\2')
     else
       basename += "-#{digest}"
     end
@@ -74,35 +74,49 @@ module Task
   end
 
   def save_inputs(directory, provided_inputs = {})
-    input_array, non_default_inputs = assign_inputs(provided_inputs)
-    self.inputs.each_with_index do |p,i|
+    #input_array, non_default_inputs = assign_inputs(provided_inputs)
+    self.recursive_inputs.each_with_index do |p,i|
       name, type, desc, value, options = p
-      next unless non_default_inputs.include?(name)
+      next unless provided_inputs.include?(name)
+      value = provided_inputs[name]
       input_file = File.join(directory, name.to_s)
 
       if type == :file
-        relative_file = save_file_input(input_array[i], directory)
-        Persist.save(relative_file, input_file, type)
+        relative_file = save_file_input(value, directory)
+        Persist.save(relative_file, input_file, :file)
       elsif type == :file_array
-        new_files = input_array[i].collect do |orig_file|
+        new_files = value.collect do |orig_file|
           save_file_input(orig_file, directory)
         end
         Persist.save(new_files, input_file, type)
+      elsif Path.is_filename?(value) 
+        relative_file = save_file_input(value, directory)
+        Open.write(input_file + ".as_file", relative_file)
+      elsif Open.is_stream?(value)
+        Persist.save(input_file, value, type)
+      elsif Open.has_stream?(value)
+        Persist.save(input_file, value.stream, type)
       else
-        Persist.save(input_array[i], input_file, type)
+        Persist.save(value, input_file, type)
       end
     end
   end
 
   def load_inputs(directory)
-    self.inputs.collect do |p|
+    inputs = IndiferentHash.setup({})
+    self.recursive_inputs.each do |p|
       name, type, desc, value, options = p
       filename = File.join(directory, name.to_s) 
       if Open.exists?(filename) || filename = Dir.glob(File.join(filename + ".*")).first
-        Persist.load(filename, type)
-      else
-        value
+        if filename.end_with?('.as_file')
+          value = Open.read(filename).strip
+          value.sub!(/^\./, File.dirname(filename)) if value.start_with?("./")
+          inputs[name] = value
+        else
+          inputs[name] = Persist.load(filename, type)
+        end
       end
     end
+    inputs
   end
 end

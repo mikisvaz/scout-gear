@@ -50,7 +50,7 @@ module Workflow
 
   def directory=(directory)
     @directory = directory
-    @tasks.each{|name,d| d.directory = directory[name] } if @tasks
+    @tasks.each{|name,d| d.directory = Path === directory ? directory[name] : File.join(directory, name.to_s) } if @tasks
   end
 
   def annotate_next_task(type, obj)

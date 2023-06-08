@@ -11,7 +11,7 @@ require_relative 'resource/scout'
 
 module Workflow
   class << self
-    attr_accessor :workflows
+    attr_accessor :workflows, :main
     def workflows
       @workflows ||= []
     end
@@ -31,13 +31,14 @@ module Workflow
     workflow = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
     workflow = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
     if Open.exists?(workflow)
+      self.main = nil
       workflow = workflow.find if Path === workflow
       $LOAD_PATH.unshift(File.join(File.dirname(workflow), 'lib'))
       load workflow
     else
       raise "Workflow #{workflow_name} not found"
     end
-    workflows.last
+    self.main || workflows.last
   end
 
   def job(name, *args)

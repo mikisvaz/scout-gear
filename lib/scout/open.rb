@@ -21,6 +21,8 @@ module Open
   end
 
   def self.get_stream(file, mode = 'r')
+    return file if Open.is_stream?(file)
+    return file.stream if Open.has_stream?(file)
     file = file.find if Path === file
 
     return Open.ssh(file) if Open.ssh?(file)

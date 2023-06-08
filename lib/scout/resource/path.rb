@@ -47,6 +47,10 @@ module Path
     Resource.relocate(self)
   end
 
+  def identify
+    Resource.identify(self)
+  end
+
   def open(*args, &block)
     produce
     Open.open(self, *args, &block)

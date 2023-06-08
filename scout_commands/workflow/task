@@ -19,6 +19,7 @@ $ #{$0} [<options>] <workflow> <task>
 --nostream Disable job streaming
 --update Update jobs with newer dependencies
 -jn--job_name* Name to use as job identifier
+-li--load_inputs* Directory with inputs files to load
 -pf--print_filepath Print the file path
 -prov--provenance Print the step provenance
 -cl--clean Clean the last step
@@ -37,8 +38,8 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, clean_task, jobname, print_filepath, deploy = IndiferentHash.process_options options, 
-  :help, :provenance, :clean, :recursive_clean, :clean_task, :job_name, :print_filepath, :deploy,
+help, provenance, clean, recursive_clean, clean_task, load_inputs, jobname, print_filepath, deploy = IndiferentHash.process_options options, 
+  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :job_name, :print_filepath, :deploy,
   :deploy => 'serial'
 
 if help
@@ -52,8 +53,13 @@ if help
   exit 0
 end
 
-job_options = task.get_SOPT
-job = workflow.job(task_name, jobname, job_options)
+if load_inputs
+  job_inputs = workflow.tasks[task_name].load_inputs(load_inputs)
+else
+  job_inputs = task.get_SOPT
+end
+
+job = workflow.job(task_name, jobname, job_inputs)
 
 job.recursive_clean if recursive_clean
 job.clean if clean
@@ -87,6 +93,9 @@ else
     orchestrator.process({}, job)
   when "slurm"
     SLURM.orchestrate(job)
+  else 
+    OffsiteStep.setup(job, server: deploy, provided_inputs: job_inputs)
+    job.run
   end unless job.done?
 
   if print_filepath

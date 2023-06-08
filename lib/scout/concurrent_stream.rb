@@ -255,11 +255,10 @@ module ConcurrentStream
   end
 
   def stream_raise_exception(exception)
+    self.stream_exception = exception
     threads.each do |thread|
       thread.raise exception
     end
-    self.stream_exception = exception
-
     self.abort
   end
 

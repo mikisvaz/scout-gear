@@ -1,8 +1,17 @@
 require 'net/ssh'
 
 class SSHLine
+  class << self
+    attr_accessor :default_server
+    def default_server
+      @@default_server ||= begin
+                             ENV["SCOUT_OFFSITE"] || ENV["SCOUT_SERVER"] || 'localhost'
+                           end
+    end
+  end
 
-  def initialize(host, user = nil)
+  def initialize(host = :default, user = nil)
+    host = SSHLine.default_server if host.nil? || host == :default
     @host = host
     @user = user
 
@@ -24,15 +33,6 @@ class SSHLine
 
     @ch.on_extended_data do |_,c,err|
       STDERR.write err 
-    end
-  end
-
-  class << self
-    attr_accessor :default_server
-    def default_server
-      @@default_server ||= begin
-                             ENV["SCOUT_OFFSITE"] || ENV["SCOUT_SERVER"] || 'localhost'
-                           end
     end
   end
 
@@ -85,17 +85,10 @@ class SSHLine
 
   def rbbt(script)
     rbbt_script =<<-EOF
-require 'rbbt-util'
-require 'rbbt/workflow'
-
-  res = begin
-      old_stdout = STDOUT.dup; STDOUT.reopen(STDERR)
-#{script}
-      ensure
-        STDOUT.reopen(old_stdout)
-      end
-
-  puts Marshal.dump(res)
+require 'scout'
+SSHLine.run_local do
+#{script.strip}
+end
     EOF
 
     m = ruby(rbbt_script)
@@ -110,9 +103,30 @@ wf = Workflow.require_workflow('#{workflow}')
     rbbt(preamble + "\n" + script)
   end
 
+  class Mock < SSHLine
+    def initialize
+    end
+
+    def run(command)
+      CMD.cmd(command)
+    end
+
+    def ruby(script)
+      cmd = "ruby -e \"#{script.gsub('"','\\"')}\"\n"
+      CMD.cmd(cmd)
+    end
+  end
+
   @connections = {}
   def self.open(host, user = nil)
-    @connections[[host, user]] ||= SSHLine.new host, user
+    @connections[[host, user]] ||=
+      begin
+        if host == 'localhost'
+          SSHLine::Mock.new
+        else
+          SSHLine.new host, user
+        end
+      end
   end
 
   def self.run(server, cmd, options = nil)
@@ -139,5 +153,19 @@ wf = Workflow.require_workflow('#{workflow}')
     command = "#{command} #{argv_str}"
     Log.debug "Offsite #{server} running: #{command}"
     run(server, command, options)
+  end
+
+  def self.mkdir(server, path)
+    self.run server, "mkdir -p '#{path}'"
+  end
+
+  def self.run_local(&block)
+    res = begin
+            old_stdout = STDOUT.dup; STDOUT.reopen(STDERR)
+            block.call
+          ensure
+            STDOUT.reopen(old_stdout)
+          end
+    puts Marshal.dump(res)
   end
 end

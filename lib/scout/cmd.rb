@@ -180,7 +180,7 @@ module CMD
                                 end
     pid = wait_thr.pid
 
-    Log.debug{"CMD: [#{pid}] #{cmd}" if log}
+    Log.debug{"CMD: [#{pid}] #{cmd}".strip if log}
 
     if in_content.respond_to?(:read)
       in_thread = Thread.new(Thread.current) do |parent|

@@ -23,7 +23,11 @@ module Open
     m = file.match(/ssh:\/\/([^:]+):(.*)/)
     server = m[1]
     file = m[2]
-    CMD.cmd("ssh '#{server}' cat '#{file}'", :pipe => true, :autojoin => true)
+    if server == 'localhost'
+      Open.open(file)
+    else
+      CMD.cmd("ssh '#{server}' cat '#{file}'", :pipe => true, :autojoin => true)
+    end
   end
 
   def self.wget(url, options = {})
@@ -120,5 +124,12 @@ module Open
   def self.open_cache(url, options = {})
     filename = cache_file(url, options)
     Open.open(filename)
+  end
+
+  def self.scp(source_file, target_file, target: nil, source: nil)
+    CMD.cmd_log("ssh #{target} mkdir -p #{File.dirname(target_file)}")
+    target_file = [target, target_file] * ":" if target && ! target_file.start_with?(target+":")
+    source_file = [source, source_file] * ":" if source && ! source_file.start_with?(source+":")
+    CMD.cmd_log("scp -r '#{ source_file }' #{target_file}")
   end
 end

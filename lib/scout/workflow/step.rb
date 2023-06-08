@@ -154,7 +154,7 @@ class Step
             end
 
             @result.abort_callback = proc do |exception|
-              if Aborted === exception || Interrupt === exception
+              if exception.nil? || Aborted === exception || Interrupt === exception
                 merge_info :status => :aborted, :end => Time.now
               else
                 begin

@@ -15,7 +15,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    task
    list
    info
-   task_old
+   install
   }
  }
  lib=lib {
@@ -149,6 +149,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     persist=persist{
      adapter.rb
      serialize.rb
+     sdbm.rb
+     tkrzw.rb
      tokyocabinet.rb
      fix_width_table.rb
     }
@@ -163,6 +165,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    offsite.rb
    offsite=offsite{
     ssh.rb
+    sync.rb
+    step.rb
    }
   }
  }

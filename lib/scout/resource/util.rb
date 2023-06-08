@@ -40,11 +40,15 @@ module Resource
     Path.setup(identified || path, self, nil, path_maps)
   end
 
-  def self.relocate(path)
-    return path if Open.exists?(path)
+  def self.identify(path)
     resource = path.pkgdir if Path === path
     resource = Scout unless Resource === resource
     unlocated = resource.identify path
+  end
+
+  def self.relocate(path)
+    return path if Open.exists?(path)
+    unlocated = identify(path)
     unlocated.find
   end
 end

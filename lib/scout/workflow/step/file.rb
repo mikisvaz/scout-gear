@@ -13,4 +13,8 @@ class Step
     Path.setup(dir) unless Path === dir
     dir[file]
   end
+
+  def bundle_files
+    [path, info_file, Dir.glob(File.join(files_dir,"**/*"))].flatten.select{|f| Open.exist?(f) }
+  end
 end

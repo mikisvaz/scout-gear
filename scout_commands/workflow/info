@@ -2,7 +2,6 @@
 
 require 'scout'
 
-Workflow.require_workflow 'Covid19'
 $0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
 
 options = SOPT.setup <<EOF
@@ -26,5 +25,17 @@ path = ARGV.first
 raise MissingParameterException.new :step_path if path.nil?
 step = Step.load(path.dup)
 
-puts step.info.to_json
+step.info.each do |k,v|
+  case v
+  when nil
+    next
+  when Exception
+    puts Log.color(:title, "Exception")
+    Log.exception v
+  else
+    puts [Log.color(:title, k), Log.fingerprint(v)] * " = "
+  end
+rescue
+  next
+end
 

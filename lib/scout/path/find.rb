@@ -129,6 +129,9 @@ module Path
   def follow(map_name = :default, annotate = true)
     IndiferentHash.setup(path_maps)
     map = path_maps[map_name] || Path.path_maps[map_name]
+    if map.nil? && String === map_name
+      map = File.join(map_name, '{TOPLEVEL}/{SUBPATH}')
+    end
     raise "Map not found #{Log.fingerprint map_name} not in #{Log.fingerprint path_maps.keys}" if map.nil?
     while Symbol === map
       map_name = map

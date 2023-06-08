@@ -58,7 +58,7 @@ module Persist
     when :float
       serialized.to_f
     when :boolean
-      TRUE_STRINGS.include? serialized
+      TRUE_STRINGS.include? serialized.strip
     when :array
       serialized.split("\n")
     when :yaml

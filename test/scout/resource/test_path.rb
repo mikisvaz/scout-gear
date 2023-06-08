@@ -36,5 +36,11 @@ class TestResourcePath < Test::Unit::TestCase
       assert_include tmpfile.foo.bar.read, "TEST"
     end
   end
+
+  def test_identify
+    p = Scout.data.file.find(:lib)
+    assert p.located?
+    assert_equal "data/file", p.identify
+  end
 end
 

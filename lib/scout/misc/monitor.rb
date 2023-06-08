@@ -2,6 +2,7 @@ module Misc
   def self.pid_alive?(pid)
     !! Process.kill(0, pid) rescue false
   end
+
   def self.benchmark(repeats = 1, message = nil)
     require 'benchmark'
     res = nil
@@ -51,5 +52,15 @@ module Misc
       eend = Time.now
     end
     eend - start
+  end
+
+  def self.wait_for_interrupt
+    while true
+      begin
+        sleep 1
+      rescue Interrupt
+        break
+      end
+    end
   end
 end

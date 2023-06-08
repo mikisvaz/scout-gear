@@ -68,6 +68,15 @@ module Open
     !! (file =~ /\.zip$/)
   end
 
+  def self.is_stream?(obj)
+    IO === obj || StringIO === obj
+  end
+
+  def self.has_stream?(obj)
+    obj.respond_to?(:stream)
+  end
+
+
   def self.notify_write(file)
     begin
       notification_file = file + '.notify'
