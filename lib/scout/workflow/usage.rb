@@ -3,10 +3,31 @@ require 'scout/simple_opt'
 module Task
   def usage(workflow = nil, deps = nil)
     str = StringIO.new
-    str.puts Log.color(:yellow, name)
-    str.puts Log.color(:yellow, "-" * name.length)
-    str.puts "\n" << Misc.format_paragraph(description.strip)  << "\n" if description and not description.empty?
-    str.puts
+
+    if description
+      title, paragraph = description.split("\n\n")
+      if title.length < Misc::MAX_TTY_LINE_WIDTH
+        title = self.name.to_s + " - " + title
+        str.puts Log.color :yellow, title
+        str.puts Log.color :yellow, "-" * title.length
+        if paragraph
+          str.puts "\n" << Misc.format_paragraph(paragraph) 
+        end
+        str.puts
+      else
+        title = self.name.to_s
+        str.puts Log.color :yellow, title
+        str.puts Log.color :yellow, "-" * title.length
+        str.puts "\n" << Misc.format_paragraph(description) 
+        str.puts
+      end
+    else
+      title = self.name.to_s
+      str.puts Log.color :yellow, title
+      str.puts Log.color :yellow, "-" * title.length
+      str.puts
+    end
+
 
     selects = []
     if inputs && inputs.any?
@@ -226,14 +247,14 @@ module Workflow
       str.puts Log.color :magenta, "=" * self.name.length
     end
 
-    if self.documentation[:description] and not self.documentation[:description].empty?
-      str.puts
-      str.puts Misc.format_paragraph self.documentation[:description] 
-      str.puts
-    end
-
+    str.puts
 
     if task.nil?
+
+      if self.documentation[:description] and not self.documentation[:description].empty?
+        str.puts Misc.format_paragraph self.documentation[:description] 
+        str.puts
+      end
 
       str.puts Log.color :magenta, "## TASKS"
       if self.documentation[:task_description] and not self.documentation[:task_description].empty?

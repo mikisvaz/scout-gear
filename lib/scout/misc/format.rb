@@ -38,10 +38,10 @@ module Misc
 
 
   
-  MAX_WIDTH = 100
+  MAX_TTY_LINE_WIDTH = 100
   def self.format_paragraph(text, size = nil, indent = nil, offset = nil)
-    size ||= Log.tty_size || MAX_WIDTH
-    size = MAX_WIDTH if size > MAX_WIDTH
+    size ||= Log.tty_size || MAX_TTY_LINE_WIDTH
+    size = MAX_TTY_LINE_WIDTH if size > MAX_TTY_LINE_WIDTH
     indent ||= 0
     offset ||= 0
 
@@ -75,9 +75,14 @@ module Misc
   end
 
   def self.format_definition_list_item(dt, dd,  indent = nil, size = nil, color = :yellow)
-    size ||= Log.tty_size || MAX_WIDTH
-    size = MAX_WIDTH if size > MAX_WIDTH
-    indent ||= size / 3
+    if size.nil?
+      base_size = MAX_TTY_LINE_WIDTH
+      base_indent = indent || (base_size / 3)
+      size = base_size - base_indent
+    end
+
+    indent ||= base_indent || size / 3
+
     dd = "" if dd.nil?
     dt = Log.color color, dt if color
     dt = dt.to_s  unless dd.empty?
@@ -96,8 +101,8 @@ module Misc
   end
 
   def self.format_definition_list(defs, indent = nil, size = nil, color = :yellow, sep = "\n\n")
-    size ||= Log.tty_size || MAX_WIDTH
     indent ||= 30
+    size ||= (Log.tty_size || MAX_TTY_LINE_WIDTH) - indent
     entries = []
     defs.each do |dt,dd|
       text = format_definition_list_item(dt,dd,indent, size,color)
