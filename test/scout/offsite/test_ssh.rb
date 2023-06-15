@@ -9,7 +9,7 @@ class TestSSH < Test::Unit::TestCase
   end
 
   def test_localhost
-    SSHLine.rbbt('localhost', 'true')
+    assert SSHLine.scout('localhost', 'true')
   end
 end
 

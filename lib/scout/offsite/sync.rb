@@ -1,6 +1,6 @@
 class SSHLine
   def self.locate(server, paths, map: :user)
-    SSHLine.rbbt server, <<-EOF
+    SSHLine.scout server, <<-EOF
 map = :#{map}
 paths = [#{paths.collect{|p| "'" + p + "'" } * ", " }]
 located = paths.collect{|p| Path.setup(p).find(map) }
