@@ -26,5 +26,29 @@ class TestWorkflowDocumentation < Test::Unit::TestCase
     assert_match 'test', UsageWorkflow.documentation[:title]
     assert_match 'presented', UsageWorkflow.documentation[:description]
   end
+
+  def test_documentation_markdown
+    doc =<<-EOF
+summary
+
+description
+
+# Tasks
+
+## task1
+
+task 1 summary
+
+task 1 description
+
+## task2
+task 2 summary
+
+task 2 description
+    EOF
+
+    assert_includes Workflow.parse_workflow_doc(doc)[:tasks], 'task1'
+    assert_includes Workflow.parse_workflow_doc(doc)[:tasks]['task2'], 'task 2 description'
+  end
 end
 

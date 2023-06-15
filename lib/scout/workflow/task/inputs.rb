@@ -63,7 +63,7 @@ module Task
     basename = File.basename(orig_file)
     digest = Misc.digest(orig_file)
     if basename.include? '.'
-      basename.sub!(/(.*)\.(.*)/, '\1-#{digest}.\2')
+      basename.sub!(/(.*)\.(.*)/, '\1-' + digest + '.\2')
     else
       basename += "-#{digest}"
     end

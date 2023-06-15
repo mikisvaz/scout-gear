@@ -18,7 +18,7 @@ class SSHLine
     @ssh = Net::SSH.start(@host, @user)
 
     @ch = @ssh.open_channel do |ch|
-      ch.exec 'bash'
+      ch.exec 'bash -l'
     end
 
     @ch.on_data do |_,data|
@@ -40,7 +40,7 @@ class SSHLine
   def self.reach?(server = SSHLine.default_server)
     Persist.memory(server, :key => "Reach server") do
       begin
-        CMD.cmd("ssh #{server} bash -c \"scout\"") 
+        CMD.cmd("ssh #{server} bash -l -c \"scout\"") 
         true
       rescue Exception
         false
@@ -83,15 +83,15 @@ class SSHLine
     end
   end
 
-  def rbbt(script)
-    rbbt_script =<<-EOF
+  def scout(script)
+    scout_script =<<-EOF
 require 'scout'
 SSHLine.run_local do
 #{script.strip}
 end
     EOF
 
-    m = ruby(rbbt_script)
+    m = ruby(scout_script)
     Marshal.load m
   end
 
@@ -100,7 +100,7 @@ end
 wf = Workflow.require_workflow('#{workflow}')
     EOF
 
-    rbbt(preamble + "\n" + script)
+    scout(preamble + "\n" + script)
   end
 
   class Mock < SSHLine
@@ -139,8 +139,8 @@ wf = Workflow.require_workflow('#{workflow}')
     open(server).ruby(script)
   end
 
-  def self.rbbt(server, script)
-    open(server).rbbt(script)
+  def self.scout(server, script)
+    open(server).scout(script)
   end
 
   def self.workflow(server, workflow, script)

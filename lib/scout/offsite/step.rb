@@ -43,7 +43,7 @@ job = wf.job(:#{task_name}, "#{clean_name}");
     parts << script
 
 
-    SSHLine.rbbt server, parts * "\n"
+    SSHLine.scout server, parts * "\n"
   end
 
   def offsite_path
