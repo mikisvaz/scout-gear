@@ -19,7 +19,6 @@ TestWF.directory = Path.setup("#{tmpdir.offsite.TestWF}")
 
       job = wf.job(:string)
 
-      sss 0
       off = OffsiteStep.setup job, server: 'localhost', workflow_name: wffile
 
       refute off.done?

@@ -111,7 +111,6 @@ class TestTaskInput < Test::Unit::TestCase
   def test_save_and_load
     task = self.example_task
 
-    sss 0
     TmpFile.with_file("2\n3") do |integer_array_file|
       inputs = {:string => "String", :integer => 2, :integer_array => integer_array_file, :float_array => %w(1.1 2.2)}
       original_digest =  task.process_inputs(inputs).last
