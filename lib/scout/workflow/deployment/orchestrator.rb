@@ -192,7 +192,10 @@ module Workflow
         workload = Orchestrator.workload(jobs)
         all_jobs = workload.keys
 
+        all_jobs.each{|job| job.clean unless job.updated? }
+
         top_level_jobs = jobs.collect{|job| job.path }
+        failed_jobs = []
         while workload.any? 
 
           candidates = resources_used.keys + Orchestrator.candidates(workload, rules)
@@ -203,9 +206,15 @@ module Workflow
             case 
             when (job.error? || job.aborted?)
               begin
-                if job.recoverable_error?
-                  job.clean
-                  raise TryAgain
+                if job.recoverable_error? 
+                  if failed_jobs.include?(job)
+                    Log.warn "Failed twice #{job.path} with recoverable error"
+                    next
+                  else
+                    failed_jobs << job
+                    job.clean
+                    raise TryAgain
+                  end
                 else
                   next
                 end
