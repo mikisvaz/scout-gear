@@ -91,6 +91,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     scout.rb
     util.rb
     path.rb
+    open.rb
    }
    config.rb
    persist.rb

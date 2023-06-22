@@ -13,7 +13,7 @@ module Path
       message = $!.message
       message = "No exception message" if message.nil? || message.empty?
       Log.warn "Error producing #{self}: #{message}"
-      false
+      raise $!
     ensure
       @produced = true
     end
@@ -33,13 +33,16 @@ module Path
   end
 
   def produce_and_find(extension = nil, *args)
-    if extension
-      found = find_with_extension(extension, *args)
-      found.exists? ? found : produce_with_extension(extension, *args)
-    else
-      found = find
-      found.exists? ? found : produce(*args)
-    end
+    found = if extension
+              found = find_with_extension(extension, *args)
+              found.exists? ? found : produce_with_extension(extension, *args)
+            else
+              found = find
+              found.exists? ? found : produce(*args)
+            end
+    raise "Not found: #{self}" unless found
+
+    found
   end
 
   def relocate

@@ -6,7 +6,7 @@ module Workflow
       return workload if job.done? && job.updated?
 
       job.dependencies.each do |dep|
-        next if dep.done? && job.updated?
+        next if dep.done? && dep.updated?
         workload.merge!(job_workload(dep))
         workload[job] += workload[dep]
         workload[job] << dep
@@ -14,7 +14,7 @@ module Workflow
       end
 
       job.input_dependencies.each do |dep|
-        next if dep.done? && job.updated?
+        next if dep.done? && dep.updated?
         workload.merge!(job_workload(dep))
         workload[job] += workload[dep]
         workload[job] << dep
@@ -85,15 +85,15 @@ module Workflow
         candidates = workload.
           select{|k,v| v.empty? }.
           collect{|k,v| k }.
-          reject{|k| k.done? }
+          reject{|k| k.done? || k.running? }
       else
         candidates = workload. #select{|k,v| Orchestrator.job_rules(rules, k) }.
           select{|k,v| v.empty? }.
           collect{|k,v| k }.
-          reject{|k| k.done? }
+          reject{|k| k.done? || k.running? }
       end
 
-      top_level = workload.keys - workload.values.flatten
+      #top_level = workload.keys - workload.values.flatten
 
       candidates = purge_duplicates candidates
       candidates = sort_candidates candidates, rules
@@ -192,7 +192,7 @@ module Workflow
         workload = Orchestrator.workload(jobs)
         all_jobs = workload.keys
 
-        all_jobs.each{|job| job.clean unless job.updated? }
+        all_jobs.each{|job| job.clean unless job.done? && job.updated? }
 
         top_level_jobs = jobs.collect{|job| job.path }
         failed_jobs = []

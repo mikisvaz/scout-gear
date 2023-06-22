@@ -56,7 +56,7 @@ class TestWorkQueue < Test::Unit::TestCase
       end
     end
 
-    Process.wait pid
+    Process.waitpid pid
     q.close
 
     q.join

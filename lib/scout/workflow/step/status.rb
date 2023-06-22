@@ -1,6 +1,6 @@
 class Step
   def abort(exception = nil)
-    if info[:pid] != Process.pid && Misc.alive?(pid)
+    if (pid = info[:pid]) && pid != Process.pid && Misc.pid_alive?(pid)
       Process.kill pid
     else
       while @result && streaming? && stream = self.stream

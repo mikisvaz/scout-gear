@@ -79,6 +79,7 @@ if clean_task
     end
 
     job.clean if job.task_name.to_s == clean_task.to_s
+    job.clean unless job.updated?
   end
 end
 

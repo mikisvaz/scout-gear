@@ -138,8 +138,8 @@ class TestPersist < Test::Unit::TestCase
             Open.write(output2, io)
           end
         end
-        Process.wait pid1
-        Process.wait pid2
+        Process.waitpid pid1
+        Process.waitpid pid2
 
         assert File.exist?(output1) || File.exist?(output2)
         [pid1, pid2].zip([output2, output1]).each do |pid, found|

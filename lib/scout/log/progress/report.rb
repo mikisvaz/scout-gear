@@ -161,6 +161,7 @@ module Log
     def save
       info = {:start => @start, :last_time => @last_time, :last_count => @last_count, :last_percent => @last_percent, :desc => @desc, :ticks => @ticks, :max => @max, :mean => @mean}
       info.delete_if{|k,v| v.nil?}
+      FileUtils.mkdir_p File.dirname(file) unless File.exist?(File.dirname(file))
       File.write(file, info.to_yaml)
     end
 
