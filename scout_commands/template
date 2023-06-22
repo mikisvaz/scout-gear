@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Print a template
+
+$ #{$0} [<options>] <template> [<VAR>=<value>]*
+
+Print a template making the substitutions that follow
+
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+template, *subs = ARGV
+
+raise MissingParameterException, :template if template.nil?
+
+txt = Scout.share.templates[template].find_with_extension('rb').read
+
+subs.each do |sub|
+  key, value = sub.split("=")
+
+  txt.gsub!(key, value)
+end
+
+puts txt
