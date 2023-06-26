@@ -166,7 +166,7 @@ url='#{url}'
             value.sub!(/^['"]/,'')
             value.sub!(/['"]$/,'')
             value.gsub!(/\$[a-z_0-9]+/i){|var| ENV[var[1..-1]] }
-            Log.debug "Set variable export from .post_install: #{Misc.fingerprint [var,value]*"="}"
+            Log.debug "Set variable export from .post_install: #{Log.fingerprint [var,value]*"="}"
             ENV[var] = value
           end
         end
