@@ -25,20 +25,24 @@ module Workflow
     base.libdir = Path.setup(libdir).tap{|p| p.resource = base}
   end
 
-  def self.require_workflow(workflow_name)
-    workflow = workflow_name 
-    workflow = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow)
-    workflow = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
-    workflow = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
-    if Open.exists?(workflow)
-      self.main = nil
-      workflow = workflow.find if Path === workflow
-      $LOAD_PATH.unshift(File.join(File.dirname(workflow), 'lib'))
-      load workflow
-    else
-      raise "Workflow #{workflow_name} not found"
+  def self.require_workflow(workflow_name_orig)
+    first = nil
+    workflow_name_orig.split("+").each do |workflow_name|
+      workflow = workflow_name
+      workflow = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow)
+      workflow = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
+      workflow = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
+      if Open.exists?(workflow)
+        self.main = nil
+        workflow = workflow.find if Path === workflow
+        $LOAD_PATH.unshift(File.join(File.dirname(workflow), 'lib'))
+        load workflow
+      else
+        raise "Workflow #{workflow_name} not found"
+      end
+      first ||= self.main || workflows.last
     end
-    self.main || workflows.last
+    first
   end
 
   def job(name, *args)

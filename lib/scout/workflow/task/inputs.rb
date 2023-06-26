@@ -20,7 +20,7 @@ module Task
     end
   end
 
-  def assign_inputs(provided_inputs = {})
+  def assign_inputs(provided_inputs = {}, id = nil)
     if self.inputs.nil? || (self.inputs.empty? && Array === provided_inputs)
       case provided_inputs
       when Array
@@ -44,7 +44,7 @@ module Task
         non_default_inputs << name.to_sym
         input_array << provided
       elsif options && options[:jobname]
-        input_array << provided_inputs[:jobname]
+        input_array << id
       else
         input_array << value
       end
@@ -55,8 +55,8 @@ module Task
     [input_array, non_default_inputs]
   end
 
-  def process_inputs(provided_inputs = {})
-    input_array, non_default_inputs = assign_inputs provided_inputs
+  def process_inputs(provided_inputs = {}, id = nil)
+    input_array, non_default_inputs = assign_inputs provided_inputs, id
     digest_str = Misc.digest_str(input_array)
     [input_array, non_default_inputs, digest_str]
   end

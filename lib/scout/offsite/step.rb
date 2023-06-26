@@ -5,14 +5,14 @@ require_relative 'sync'
 module OffsiteStep
 
   extend MetaExtension
-  extension_attr :server, :workflow_name, :clean_id, :provided_inputs
+  extension_attr :server, :workflow_name, :clean_id
 
   def inputs_directory
     @inputs_directory ||= begin
                             if provided_inputs && provided_inputs.any?
                               file = ".scout/tmp/step_inputs/#{workflow}/#{task_name}/#{name}"
                               TmpFile.with_path do |inputs_dir|
-                                task.save_inputs(inputs_dir, provided_inputs)
+                                save_inputs(inputs_dir)
                                 SSHLine.rsync(inputs_dir, file, target: server, directory: true)
                               end
                               file

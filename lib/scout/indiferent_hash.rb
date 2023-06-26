@@ -75,5 +75,22 @@ module IndiferentHash
     end
     clean
   end
+
+  def slice(*list)
+    ext_list = []
+    list.each do |e|
+      case e
+      when Symbol
+        ext_list << e
+        ext_list << e.to_s
+      when String
+        ext_list << e
+        ext_list << e.to_sym
+      else
+        ext_list << e
+      end
+    end
+    IndiferentHash.setup(super(*ext_list))
+  end
 end
 

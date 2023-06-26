@@ -119,6 +119,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      progress.rb
      provenance.rb
      status.rb
+     inputs.rb
     }
     task.rb
     task=task{
@@ -172,6 +173,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     sync.rb
     step.rb
    }
+   hpc=hpc{
+    slurm.rb
+   }
   }
  }
  test=test {
@@ -202,7 +206,18 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     test_task.rb
     test_usage.rb
     test_util.rb
+    step=step{
+     test_dependencies.rb
+     test_info.rb
+     test_load.rb
+     test_provenance.rb
+     test_status.rb
     }
+    task=task{
+     test_dependencies.rb
+     test_inputs.rb
+    }
+   }
    indiferent_hash=indiferent_hash{
     test_case_insensitive.rb
     test_options.rb

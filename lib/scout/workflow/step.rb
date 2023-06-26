@@ -8,16 +8,18 @@ require_relative 'step/dependencies'
 require_relative 'step/provenance'
 require_relative 'step/config'
 require_relative 'step/progress'
+require_relative 'step/inputs'
 
 class Step 
 
-  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :compute, :overriden_task
-  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, compute = nil, &task) 
+  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :provided_inputs, :compute, :overriden_task, :overriden_workflow
+  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, &task)
     @path = path
     @inputs = inputs
     @dependencies = dependencies
     @id = id
     @non_default_inputs = non_default_inputs
+    @provided_inputs = provided_inputs
     @compute = compute 
     @task = task
     @mutex = Mutex.new
@@ -295,5 +297,9 @@ class Step
 
   def fingerprint
     digest_str
+  end
+
+  def task_signature
+    [workflow.to_s, task_name] * "#"
   end
 end

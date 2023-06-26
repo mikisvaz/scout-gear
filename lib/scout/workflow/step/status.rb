@@ -41,4 +41,19 @@ class Step
     clean
   end
 
+  def canfail?
+    @compute && @compute.include?(:canfail)
+  end
+
+  def started?
+    return true if done?
+    return false unless Open.exist?(info_file)
+    pid = info[:pid]
+    return false unless pid
+    return Misc.pid_alive?(pid)
+  end
+
+  def waiting?
+    present? and not started?
+  end
 end

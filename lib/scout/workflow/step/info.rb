@@ -127,6 +127,10 @@ class Step
     ! done? && (info[:pid] && Misc.pid_alive?(info[:pid]))
   end
 
+  def overriden?
+    overriden_task || overriden_workflow
+  end
+
   def exception
     info[:exception]
   end

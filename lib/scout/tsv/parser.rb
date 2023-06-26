@@ -187,7 +187,15 @@ module TSV
       else
         bar.remove
       end if bar
-      stream.join if stream.respond_to?(:join) if stream.eof?
+
+      if stream.respond_to?(:join)
+        eof = begin
+                stream.eof?
+              rescue IOError
+                true
+              end
+        stream.join if eof
+      end
     end
   end
 

@@ -1,7 +1,13 @@
 class Step
-  def rec_dependencies
-    rec_dependencies = dependencies.dup
-    dependencies.inject(rec_dependencies){|acc,d| acc.concat d.rec_dependencies }
+  def rec_dependencies(connected = false, seen = [])
+    direct_deps = []
+    dependencies.each do |dep|
+      next if seen.include? dep.path
+      next if connected && dep.done? && dep.updated?
+      direct_deps << dep
+    end
+    seen.concat direct_deps.collect{|d| d.path }
+    direct_deps.inject(direct_deps){|acc,d| acc.concat(d.rec_dependencies(connected, [])); acc }
   end
 
   def recursive_inputs

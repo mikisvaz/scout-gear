@@ -42,13 +42,12 @@ module Task
   def job(id = DEFAULT_NAME, provided_inputs = nil )
     provided_inputs, id = id, DEFAULT_NAME if (provided_inputs.nil? || provided_inputs.empty?) && (Hash === id || Array === id)
     provided_inputs = {} if provided_inputs.nil?
+    IndiferentHash.setup(provided_inputs)
     id = DEFAULT_NAME if id.nil?
-
-    provided_inputs[:jobname] ||= id
 
     provided_inputs = load_inputs(provided_inputs[:load_inputs]) if Hash === provided_inputs && provided_inputs[:load_inputs]
 
-    inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs
+    inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
 
     compute = {}
     dependencies = dependencies(id, provided_inputs, non_default_inputs, compute)
@@ -92,7 +91,8 @@ module Task
         Log.debug "ID #{self.name} #{id} - Clean"
       end
       NamedArray.setup(inputs, @inputs.collect{|i| i[0] }) if @inputs
-      Step.new path.find, inputs, dependencies, id, non_default_inputs, compute, &self
+      step_provided_inputs = Hash === provided_inputs ? provided_inputs.slice(*non_default_inputs) : provided_inputs
+      Step.new path.find, inputs, dependencies, id, non_default_inputs, step_provided_inputs, compute, &self
     end
   end
 end
