@@ -6,7 +6,7 @@ ENV["SCOUT_NOCOLOR"] = "true" if ARGV.include? "--nocolor"
 
 ENV["SCOUT_NO_PROGRESS"] = "true" if ARGV.include? "--nobar"
 
-require 'scout-gear'
+require 'scout'
 
 class CmdStop < Exception
   attr_accessor :exit_status

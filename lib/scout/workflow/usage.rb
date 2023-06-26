@@ -13,28 +13,30 @@ module Task
         if paragraph
           str.puts "\n" << Misc.format_paragraph(paragraph) 
         end
-        str.puts
       else
         title = self.name.to_s
         str.puts Log.color :yellow, title
         str.puts Log.color :yellow, "-" * title.length
         str.puts "\n" << Misc.format_paragraph(description) 
-        str.puts
       end
     else
       title = self.name.to_s
       str.puts Log.color :yellow, title
       str.puts Log.color :yellow, "-" * title.length
-      str.puts
     end
 
 
     selects = []
+
     if inputs && inputs.any?
+      str.puts
       str.puts Log.color(:magenta, "Inputs")
       str.puts
       str.puts SOPT.input_array_doc(inputs)
-      str.puts
+
+      inputs.select{|name,type, _| type == :select }.each do |name,_,_,_,options|
+        selects << [name, options[:select_options]] if options[:select_options]
+      end
     end
 
     deps = workflow ? workflow.recursive_deps(self.name) : self.deps if deps.nil?
@@ -44,14 +46,21 @@ module Task
       deps.each do |dep_workflow,task_name,options|
         next if task_name.nil?
         task = dep_workflow.tasks[task_name]
+
         next if task.inputs.nil?
+
         inputs = task.inputs.reject{|name, _| seen.include? name }
         inputs = task.inputs.reject{|name, _| options.include? name }
         next unless inputs.any?
+        task.inputs.select{|name, _| inputs.include? name }.each do |name,_,_,_,options|
+          selects << [i, options[:select_options]] if options[:select_options]
+        end
+
         dep = workflow.nil? || dep_workflow.name != workflow.name ? ["#{dep_workflow.name}", task_name.to_s] *"#" : task_name.to_s
         dep_inputs[dep] = inputs
       end
 
+      str.puts
       str.puts Log.color(:magenta, "Inputs from dependencies:") if dep_inputs.any?
       dep_inputs.each do |dep,inputs|
         str.puts
@@ -59,54 +68,31 @@ module Task
         str.puts
         str.puts SOPT.input_array_doc(inputs)
       end
-
-      #task_inputs = dep_inputs deps, workflow
-      #task_inputs.each do |task,new_inputs|
-      #  new_inputs.zip(task.input_types.values_at(*new_inputs)).select do |i,t| 
-      #    t.to_sym == :select and task.input_options[i][:select_options] 
-      #  end.each do |i,t| 
-      #    selects << [i, task.input_options[i][:select_options]] 
-      #  end
-
-      #  next if new_inputs.empty?
-
-      #  if task.workflow and task.workflow != workflow
-      #    puts "  #{Log.color :yellow, ["[#{task.workflow.to_s}]", task.name.to_s] *" "}:"
-      #  else
-      #    puts "  #{Log.color :yellow, task.name.to_s}:"
-      #  end
-      #  puts unless Log.compact
-      #  puts SOPT.input_doc(new_inputs, task.input_types, task.input_descriptions, task.input_defaults, true)
-      #  puts unless Log.compact
-      #end
-      #puts
     end
 
     case
     when inputs && inputs.select{|name,type| type == :array }.any?
+      str.puts
       str.puts Log.color(:green, Misc.format_paragraph("Lists are specified as arguments using ',' or '|'. When specified as files the '\\n'
       also works in addition to the others. You may use the '--array_separator' option
       the change this default. Whenever a file is specified it may also accept STDIN using
       the '-' character."))
-      str.puts
 
     when inputs && inputs.select{|name,type| type == :file || type == :tsv }.any?
-      str.puts Log.color(:green, Misc.format_paragraph("Whenever a file is specified it may also accept STDIN using the '-' character."))
       str.puts
+      str.puts Log.color(:green, Misc.format_paragraph("Whenever a file is specified it may also accept STDIN using the '-' character."))
     end
 
     str.puts
     str.puts Log.color(:magenta, "Returns: ") << Log.color(:blue, type.to_s) << "\n"
-    str.puts
 
     if selects.any?
+      str.puts
       str.puts Log.color(:magenta, "Input select options")
-      str.puts
       selects.collect{|p| p}.uniq.each do |input,options|
+        str.puts 
         str.puts Log.color(:blue, input.to_s + ": ") << Misc.format_paragraph(options.collect{|o| Array === o ? o.first.to_s : o.to_s} * ", ") << "\n"
-        str.puts unless Log.compact
       end
-      str.puts
     end
     str.rewind
     str.read
@@ -249,7 +235,9 @@ module Workflow
 
     str.puts
 
-    if task.nil?
+    if tasks.nil?
+      str.puts Log.color(:title, "No tasks")
+    elsif task.nil?
 
       if self.documentation[:description] and not self.documentation[:description].empty?
         str.puts Misc.format_paragraph self.documentation[:description] 
@@ -284,7 +272,7 @@ module Workflow
 
         prov_string = prov_string(dep_tree(name))
         str.puts Misc.format_paragraph Log.color(:blue, "->" + prov_string) if prov_string && ! prov_string.empty?
-      end
+      end 
 
     else
 

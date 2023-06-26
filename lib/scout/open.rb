@@ -20,21 +20,21 @@ module Open
     end
   end
 
-  def self.get_stream(file, mode = 'r')
+  def self.get_stream(file, mode = 'r', options = {})
     return file if Open.is_stream?(file)
     return file.stream if Open.has_stream?(file)
     file = file.find if Path === file
 
-    return Open.ssh(file) if Open.ssh?(file)
-    return Open.wget(file) if Open.remote?(file)
+    return Open.ssh(file, options) if Open.ssh?(file)
+    return Open.wget(file, options) if Open.remote?(file)
 
     File.open(file, mode)
   end
 
-  def self.file_open(file, grep = false, mode = 'r', invert_grep = false)
+  def self.file_open(file, grep = false, mode = 'r', invert_grep = false, options = {})
     Open.mkdir File.dirname(file) if mode.include? 'w'
 
-    stream = get_stream(file, mode)
+    stream = get_stream(file, mode, options)
 
     if grep
       grep(stream, grep, invert_grep)
@@ -72,7 +72,7 @@ module Open
 
     options[:noz] = true if mode.include? "w"
 
-    io = file_open(file, options[:grep], mode, options[:invert_grep])
+    io = file_open(file, options[:grep], mode, options[:invert_grep], options)
 
     io = unzip(io)   if ((String === file and zip?(file))   and not options[:noz]) or options[:zip]
     io = gunzip(io)  if ((String === file and gzip?(file))  and not options[:noz]) or options[:gzip]
@@ -88,7 +88,7 @@ module Open
       rescue DontClose
         res = $!.payload
       rescue Exception
-        io.abort if io.respond_to? :abort
+        io.abort $! if io.respond_to? :abort
         io.join if io.respond_to? :join
         raise $!
       ensure

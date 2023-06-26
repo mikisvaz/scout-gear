@@ -13,6 +13,9 @@ $ #{$0} [<options>] <template> [<VAR>=<value>]*
 Print a template making the substitutions that follow
 
 -h--help Print this help
+-s--sub* List a substitutions as a parameter instead
+-s--var* List a substitutions as a parameter, variable name
+-s--value* List a substitutions as a parameter, value
 EOF
 if options[:help]
   if defined? scout_usage
@@ -28,6 +31,17 @@ template, *subs = ARGV
 raise MissingParameterException, :template if template.nil?
 
 txt = Scout.share.templates[template].find_with_extension('rb').read
+
+if options[:sub]
+  subs ||= []
+  subs << options[:sub]
+end
+
+if options[:var]
+  subs ||= []
+  subs << [options[:var], options[:value]] * "="
+end
+
 
 subs.each do |sub|
   key, value = sub.split("=")

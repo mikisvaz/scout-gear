@@ -3,7 +3,7 @@ module Path
     return self if ! force && (Open.exist?(self) || @produced)
     begin
       if Resource === self.pkgdir
-        self.pkgdir.produce self
+        self.pkgdir.produce self, force
       else
         false
       end
