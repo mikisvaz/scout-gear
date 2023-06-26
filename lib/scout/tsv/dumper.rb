@@ -11,7 +11,9 @@ module TSV
         fields_str = "#{header_hash}#{key_field || "Id"}#{sep}#{fields*sep}"
       end
 
-      if preamble && options.values.compact.any?
+      if String === preamble
+        preamble_str = preamble
+      elsif preamble && options.values.compact.any?
         preamble_str = "#: " << IndiferentHash.hash2string(options)
       else
         preamble_str = nil

@@ -11,7 +11,7 @@ require_relative 'step/progress'
 
 class Step 
 
-  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :compute
+  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :compute, :overriden_task
   def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, compute = nil, &task) 
     @path = path
     @inputs = inputs
@@ -278,6 +278,7 @@ class Step
   def step(task_name)
     dependencies.each do |dep|
       return dep if dep.task_name == task_name
+      return dep if dep.overriden_task == task_name
       rec_dep = dep.step(task_name)
       return rec_dep if rec_dep
     end

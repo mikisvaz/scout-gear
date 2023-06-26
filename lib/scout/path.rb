@@ -32,7 +32,7 @@ module Path
     prevpath = prevpath.to_s if Symbol === prevpath
 
     subpath = File.join(prevpath.to_s, subpath) if prevpath
-    new = self.empty? ? subpath : File.join(self, subpath)
+    new = self.empty? ? subpath.dup : File.join(self, subpath)
     self.annotate(new)
     new
   end

@@ -20,17 +20,22 @@ module CMD
     end
   end
 
+
   def self.get_tool(tool)
     return tool.to_s unless TOOLS[tool]
 
     @@init_cmd_tool ||= IndiferentHash.setup({})
+
+    claim, test, block, cmd = TOOLS[tool]
+    cmd = tool.to_s if cmd.nil?
+
     if !@@init_cmd_tool[tool]
-      claim, test, block, cmd = TOOLS[tool]
+
       begin
         if test
           CMD.cmd(test + " ")
         else
-          CMD.cmd("#{tool} --help")
+          CMD.cmd("#{cmd} --help")
         end
       rescue
         if claim
@@ -43,7 +48,7 @@ module CMD
       version = nil
       ["--version", "-version", "--help", ""].each do |f|
         begin
-          version_txt += CMD.cmd("#{tool} #{f} 2>&1", :nofail => true).read
+          version_txt += CMD.cmd("#{cmd} #{f} 2>&1", :nofail => true).read
           version = CMD.scan_version_text(version_txt, tool)
           break if version
         rescue
@@ -56,9 +61,8 @@ module CMD
       return cmd if cmd
     end
 
-    tool.to_s
+    cmd
   end
-
   def self.scan_version_text(text, cmd = nil)
     cmd = "NOCMDGIVE" if cmd.nil? || cmd.empty?
     text = Misc.fixutf8 text

@@ -10,12 +10,16 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   glob
   doc
   update
+  template
   offsite
   workflow=workflow{
    task
    list
    info
    install
+  }
+  resource=resource{
+   produce
   }
  }
  lib=lib {
@@ -91,7 +95,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     scout.rb
     util.rb
     path.rb
-    open.rb
    }
    config.rb
    persist.rb
@@ -209,6 +212,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  share=share{
   software=software{
    install_helpers
+  }
+  templates=templates{
+   workflow.rb
   }
  }
 

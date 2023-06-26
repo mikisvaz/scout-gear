@@ -4,6 +4,7 @@ require_relative 'resource/produce'
 require_relative 'resource/path'
 require_relative 'resource/open'
 require_relative 'resource/util'
+require_relative 'resource/software'
 
 module Resource
   extend MetaExtension

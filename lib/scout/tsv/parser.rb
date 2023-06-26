@@ -51,7 +51,7 @@ module TSV
     [key, items]
   end
 
-  def self.parse_stream(stream, data: nil, source_type: nil, type: :list, merge: true, one2one: false, fix: true, bar: false, first_line: nil, field_names: nil, **kargs, &block)
+  def self.parse_stream(stream, data: nil, source_type: nil, type: :list, merge: true, one2one: false, fix: true, bar: false, first_line: nil, field_names: nil, head: nil, **kargs, &block)
     begin
       bar = "Parsing #{Log.fingerprint stream}" if TrueClass === bar
       bar = Log::ProgressBar.get_obj_bar(stream, bar) if bar
@@ -62,7 +62,8 @@ module TSV
       data = {} if data.nil?
       merge = false if type != :double && type != :flat
       line = first_line || stream.gets
-      while line
+      while line 
+        break if head && head <= 0
         begin
           line.chomp!
           if Proc === fix
@@ -171,6 +172,7 @@ module TSV
           stream.abort($!) if stream.respond_to?(:abort)
           raise $!
         ensure
+          head = head - 1 if head
           if stream.closed?
             line = nil
           else
@@ -185,7 +187,7 @@ module TSV
       else
         bar.remove
       end if bar
-      stream.join if stream.respond_to?(:join)
+      stream.join if stream.respond_to?(:join) if stream.eof?
     end
   end
 

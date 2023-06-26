@@ -95,6 +95,27 @@ k a|A b|B
     assert_equal 'a', tsv['k'][0][0]
   end
 
+  def test_parse_head
+    content =<<-EOF
+#: :sep=" "#:type=:double
+#Key ValueA ValueB
+k a|A b|B
+k1 a|A b|B
+k2 a|A b|B
+k3 a|A b|B
+k4 a|A b|B
+    EOF
+    content = StringIO.new content
+
+    tsv = TSV.parse(content, :head => 2)
+    assert_equal 2, tsv.keys.length
+
+    content.rewind
+    tsv = TSV.parse(content, :head => 3)
+    assert_equal 3, tsv.keys.length
+  end
+
+
   def test_parse_fields
     content =<<-EOF
 #: :sep=" "#:type=:double

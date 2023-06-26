@@ -6,7 +6,7 @@ module Resource
 
   def self.install(content, name, software_dir = Path.setup('software'), &block)
     software_dir ||= Path.setup('software')
-    software_dir = software_dir.find if Path === software_dir
+    software_dir = software_dir.find(:user) if Path === software_dir
 
     content = block if block_given?
 
@@ -173,4 +173,6 @@ url='#{url}'
       end
     end
   end
+
+  self.set_software_env
 end

@@ -44,6 +44,8 @@ module Task
     provided_inputs = {} if provided_inputs.nil?
     id = DEFAULT_NAME if id.nil?
 
+    provided_inputs[:jobname] ||= id
+
     provided_inputs = load_inputs(provided_inputs[:load_inputs]) if Hash === provided_inputs && provided_inputs[:load_inputs]
 
     inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs

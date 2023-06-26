@@ -55,6 +55,7 @@ module Task
         dep = provided_inputs[overriden]
         dep = Step.new dep unless Step === dep
         dep.type = workflow.tasks[task].type
+        dep.overriden_task = task
         dependencies << dep
         non_default_inputs << overriden
         next

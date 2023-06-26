@@ -43,6 +43,8 @@ module Task
       if ! provided.nil? && provided != value
         non_default_inputs << name.to_sym
         input_array << provided
+      elsif options && options[:jobname]
+        input_array << provided_inputs[:jobname]
       else
         input_array << value
       end
@@ -112,6 +114,8 @@ module Task
           value = Open.read(filename).strip
           value.sub!(/^\./, File.dirname(filename)) if value.start_with?("./")
           inputs[name] = value
+        elsif (options &&  (options[:noload] || options[:stream] || options[:nofile]))
+          inputs[name] = filename
         else
           inputs[name] = Persist.load(filename, type)
         end

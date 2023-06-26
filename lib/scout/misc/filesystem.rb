@@ -16,11 +16,10 @@ module Misc
 
     basedir += "/" unless basedir.slice(-2,-1) == "/"
 
-    if path.index(basedir) == 0
-      return path[basedir.length..-1]
+    if path.start_with?(basedir)
+      return path.slice(basedir.length, basedir.length)
     else
       return nil
     end
   end
-
 end

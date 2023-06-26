@@ -6,6 +6,7 @@ class WorkQueue
   attr_accessor :workers, :worker_proc, :callback
 
   def initialize(workers = 0, &block)
+    workers = workers.to_i if String === workers
     @input = WorkQueue::Socket.new
     @output = WorkQueue::Socket.new
     @workers = workers.times.collect{ Worker.new }
