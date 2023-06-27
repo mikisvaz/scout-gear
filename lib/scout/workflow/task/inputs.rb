@@ -62,6 +62,7 @@ module Task
   end
 
   def save_file_input(orig_file, directory)
+    orig_file = orig_file.path if Step === orig_file
     basename = File.basename(orig_file)
     digest = Misc.digest(orig_file)
     if basename.include? '.'
@@ -83,7 +84,10 @@ module Task
       value = provided_inputs[name]
       input_file = File.join(directory, name.to_s)
 
-      if type == :file
+      if Path.is_filename?(value) 
+        relative_file = save_file_input(value, directory)
+        Open.write(input_file + ".as_file", relative_file)
+      elsif type == :file
         relative_file = save_file_input(value, directory)
         Persist.save(relative_file, input_file, :file)
       elsif type == :file_array
@@ -91,13 +95,10 @@ module Task
           save_file_input(orig_file, directory)
         end
         Persist.save(new_files, input_file, type)
-      elsif Path.is_filename?(value) 
-        relative_file = save_file_input(value, directory)
-        Open.write(input_file + ".as_file", relative_file)
       elsif Open.is_stream?(value)
-        Persist.save(input_file, value, type)
+        Persist.save(value, input_file, type)
       elsif Open.has_stream?(value)
-        Persist.save(input_file, value.stream, type)
+        Persist.save(value.stream, input_file, type)
       else
         Persist.save(value, input_file, type)
       end

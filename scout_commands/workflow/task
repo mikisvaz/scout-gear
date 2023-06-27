@@ -18,7 +18,7 @@ $ #{$0} [<options>] <workflow> <task>
 -h--help Print this help
 --nostream Disable job streaming
 --update Update jobs with newer dependencies
--jn--job_name* Name to use as job identifier
+-jn--jobname* Name to use as job identifier
 -li--load_inputs* Directory with inputs files to load
 -pf--print_filepath Print the file path
 -prov--provenance Print the step provenance
@@ -26,6 +26,7 @@ $ #{$0} [<options>] <workflow> <task>
 -rcl--recursive_clean Clean all steps
 -ct--clean_task* Clean a particular task
 -d--deploy* Deploy mode: serial, local, or SLURM (default 'serial')
+-od--override_deps* Override deps using 'Workflow#task=<path>' array_separated
 EOF
 
 workflow_name, task_name = ARGV
@@ -38,8 +39,8 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, clean_task, load_inputs, jobname, print_filepath, deploy = IndiferentHash.process_options options, 
-  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :job_name, :print_filepath, :deploy,
+help, provenance, clean, recursive_clean, clean_task, load_inputs, jobname, print_filepath, deploy, override_deps = IndiferentHash.process_options options, 
+  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :jobname, :print_filepath, :deploy, :override_deps,
   :deploy => 'serial'
 
 if help
@@ -57,6 +58,13 @@ if load_inputs
   job_inputs = workflow.tasks[task_name].load_inputs(load_inputs)
 else
   job_inputs = task.get_SOPT
+end
+
+if override_deps
+  override_deps.split($array_separator || ",").each do |part|
+    t_, value = part.split("=")
+    job_inputs.merge!( t_ => value)
+  end
 end
 
 job = workflow.job(task_name, jobname, job_inputs)
@@ -97,6 +105,7 @@ else
     require_relative '../../modules/rbbt-util/lib/rbbt/hpc'
     HPC::BATCH_MODULE = HPC.batch_system "SLURM"
     HPC::BATCH_MODULE.orchestrate_job(job, {})
+    job.grace
   else 
     OffsiteStep.setup(job, server: deploy)
     job.run

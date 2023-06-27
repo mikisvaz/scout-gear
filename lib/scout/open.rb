@@ -58,7 +58,7 @@ module Open
   def self.open(file, options = {})
     if IO === file || StringIO === file
       if block_given?
-        res = yield file
+        res = yield file, options
         file.close
         return res
       else

@@ -56,4 +56,8 @@ class Step
   def waiting?
     present? and not started?
   end
+
+  def dirty?
+    done? && ! updated?
+  end
 end

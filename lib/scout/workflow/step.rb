@@ -211,7 +211,7 @@ class Step
     if done?
       Open.open(self.path)
     else
-      if running?
+      if running? || waiting?
         join
         Open.open(self.path)
       else
@@ -253,7 +253,7 @@ class Step
 
   def join
     consume_all_streams
-    while @result.nil? && (present? && ! terminated?)
+    while @result.nil? && (present? && ! (terminated? || done?))
       sleep 0.1
     end
     raise self.exception if self.exception

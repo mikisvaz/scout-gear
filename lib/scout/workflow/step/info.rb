@@ -128,7 +128,11 @@ class Step
   end
 
   def overriden?
-    overriden_task || overriden_workflow
+    overriden_task || overriden_workflow || dependencies.select{|d| d.overriden? }.any?
+  end
+
+  def overriden_deps
+    rec_dependencies.select{|d| d.overriden? }
   end
 
   def exception

@@ -104,7 +104,7 @@ module Persist
 
     if type == :binary
       content.force_encoding("ASCII-8BIT") if content.respond_to? :force_encoding
-      Open.open(path, :mode => 'wb') do |f|
+      Open.open(file, :mode => 'wb') do |f|
         f.puts content
       end
       content

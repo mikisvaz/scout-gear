@@ -41,6 +41,5 @@ class TestStepInfo < Test::Unit::TestCase
       refute Path === step1.info[:inputs][0]
 
     end
-
   end
 end
