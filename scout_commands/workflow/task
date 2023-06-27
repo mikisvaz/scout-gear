@@ -107,7 +107,13 @@ else
     HPC::BATCH_MODULE.orchestrate_job(job, {})
     job.grace
   else 
-    OffsiteStep.setup(job, server: deploy)
+    if deploy.end_with?('-slurm')
+      server = deploy.sub('-slurm','')
+      OffsiteStep.setup(job, server: server, slurm: true)
+    else
+      OffsiteStep.setup(job, server: deploy)
+    end
+
     job.run
   end unless job.done?
 

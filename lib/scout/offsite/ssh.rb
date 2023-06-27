@@ -21,6 +21,9 @@ class SSHLine
       ch.exec 'bash -l'
     end
 
+    @ch.send_data("[[ -f ~/.scout/environment ]] && source ~/.scout/environment\n")
+    @ch.send_data("[[ -f ~/.rbbt/environment ]] && source ~/.rbbt/environment\n")
+
     @ch.on_data do |_,data|
       if m = data.match(/DONECMD: (\d+)\n/)
         @exit_status = m[1].to_i

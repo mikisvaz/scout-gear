@@ -5,7 +5,7 @@ require_relative 'sync'
 module OffsiteStep
 
   extend MetaExtension
-  extension_attr :server, :workflow_name, :clean_id
+  extension_attr :server, :workflow_name, :clean_id, :slurm
 
   def inputs_directory
     @inputs_directory ||= begin
@@ -68,6 +68,19 @@ job = wf.job(:#{task_name}, "#{clean_name}");
     status == :done
   end
 
+  def orchestrate_slurm
+    bundle_files = offsite_job_ssh <<~EOF
+    require 'rbbt/hpc'
+    HPC::BATCH_MODULE = HPC.batch_system "SLURM"
+    HPC::BATCH_MODULE.orchestrate_job(job, {})
+    job.join
+    job.bundle_files
+    EOF
+    SSHLine.sync(bundle_files, source: server)
+    self.load
+  end
+
+
   def exec
     bundle_files = offsite_job_ssh <<~EOF
     job.run
@@ -78,6 +91,10 @@ job = wf.job(:#{task_name}, "#{clean_name}");
   end
 
   def run
-    exec
+    if slurm
+      orchestrate_slurm
+    else
+      exec
+    end
   end
 end

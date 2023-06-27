@@ -66,7 +66,6 @@ module Open
         into.close if into and into_close and not into.closed?
         block.call if block_given?
 
-        Log.debug "Consume stream done #{Log.fingerprint io} -> #{Log.fingerprint(into_path ||into)}"
         last_c
       rescue Aborted
         Thread.current["exception"] = true
