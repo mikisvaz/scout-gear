@@ -99,7 +99,6 @@ if config_keys = options.delete(:config_keys)
   end
 end
 
-
 $scout_command_dir = Scout.bin.scout
 $scout_command_dir.path_maps[:scout_commands] = File.join(File.dirname(__dir__), "{PATH/bin\\/scout/scout_commands}")
 

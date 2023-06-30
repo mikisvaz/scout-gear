@@ -45,6 +45,21 @@ module Task
     IndiferentHash.setup(provided_inputs)
     id = DEFAULT_NAME if id.nil?
 
+
+    missing_inputs = []
+    self.inputs.each do |input,type,desc,val,options|
+      next unless options && options[:required]
+      missing_inputs << input unless provided_inputs.include?(input)
+    end if self.inputs
+
+    if missing_inputs.length == 1
+      raise ParameterException, "Input '#{missing_inputs.first}' is required but was not provided or is nil"
+    end
+
+    if missing_inputs.length > 1
+      raise ParameterException, "Inputs #{Misc.humanize_list(missing_inputs)} are required but were not provided or are nil"
+    end
+
     provided_inputs = load_inputs(provided_inputs[:load_inputs]) if Hash === provided_inputs && provided_inputs[:load_inputs]
 
     inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
@@ -52,7 +67,7 @@ module Task
     compute = {}
     dependencies = dependencies(id, provided_inputs, non_default_inputs, compute)
 
-    non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
+    #non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
 
     non_default_inputs.uniq!
 
@@ -94,5 +109,9 @@ module Task
       step_provided_inputs = Hash === provided_inputs ? provided_inputs.slice(*non_default_inputs) : provided_inputs
       Step.new path.find, inputs, dependencies, id, non_default_inputs, step_provided_inputs, compute, &self
     end
+  end
+
+  def alias?
+    @extension == :dep_task
   end
 end

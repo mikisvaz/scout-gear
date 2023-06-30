@@ -83,10 +83,25 @@ class Step
       end
     end
 
-    str << "\n"
+    str
   end
 
-  def self.prov_report(step, offset = 0, task = nil, seen = [], expand_repeats = false, input = nil)
+  def self.prov_indent(step, offset, input_dependencies)
+    return (" " * (offset))
+    if step.alias?
+      (" " * offset + "🡵")
+    elsif step.overriden_task
+      (" " * offset + "🡇")
+    elsif input_dependencies.include?(step)
+      (" " * offset + "┝")
+    elsif step.input_dependencies.any?
+      (" " * offset + "╰")
+    else
+      (" " * (offset+1))
+    end
+  end
+
+  def self.prov_report(step, offset = 0, task = nil, seen = [], expand_repeats = false, input = nil, input_dependencies = nil)
     info = step.info  || {}
     info[:task_name] = task
     path  = step.path
@@ -101,7 +116,7 @@ class Step
 
     this_step_msg = prov_report_msg(status, name, path, info, input)
 
-    input_dependencies = {}
+    input_dependencies ||= {}
     step.dependencies.each do |dep|
       if dep.input_dependencies.any?
         dep.input_dependencies.each do |id|
@@ -116,8 +131,10 @@ class Step
       end
     end if step.dependencies
 
-    str = ""
-    str = " " * offset + this_step_msg if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
+    str = []
+
+    indent = prov_indent(step, offset, input_dependencies)
+    str << indent + this_step_msg if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
 
     step.dependencies.dup.tap{|l| 
       l.reverse! if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
@@ -126,10 +143,10 @@ class Step
       new = ! seen.include?(path)
       if new
         seen << path
-        str << prov_report(dep, offset + 1, task, seen, expand_repeats, input_dependencies[dep])
+        str.concat(prov_report(dep, offset + 1, task, seen, expand_repeats, input_dependencies[dep], input_dependencies.dup).split("\n"))
       else
         if expand_repeats
-          str << Log.color(Step.status_color(dep.status), Log.uncolor(prov_report(dep, offset+1, task)))
+          str << Log.color(Step.status_color(dep.status), Log.uncolor(prov_report(dep, offset+1, task, input_dependencies[dep], input_dependencies.dup)))
         else
           info = dep.info  || {}
           status = info[:status] || :missing
@@ -138,13 +155,14 @@ class Step
           status = :unsync if status == :done and not Open.exist?(path)
           status = :notfound if status == :noinfo and not Open.exist?(path)
 
-          str << Log.color(Step.status_color(status), " " * (offset + 1) + Log.uncolor(prov_report_msg(status, name, path, info, input_dependencies[dep])))
+          dep_indent = prov_indent(dep, offset+1, input_dependencies)
+          str << dep_indent + Log.color(Step.status_color(status), Log.uncolor(prov_report_msg(status, name, path, info, input_dependencies[dep])))
         end
       end
     end if step.dependencies
 
-    str += (" " * offset) + this_step_msg unless ENV["SCOUT_ORIGINAL_STACK"] == 'true'
+    str << indent + this_step_msg unless ENV["SCOUT_ORIGINAL_STACK"] == 'true'
 
-    str
+    str * "\n"
   end
 end

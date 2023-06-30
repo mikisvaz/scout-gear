@@ -33,7 +33,9 @@ class Step
   def inputs
     @inputs ||= begin
                   if info_file && Open.exists?(info_file)
-                    info[:inputs]
+                    inputs = info[:inputs]
+                    NamedArray.setup(inputs, info[:input_names]) if inputs && info[:input_names]
+                    inputs
                   else
                     []
                   end
@@ -59,6 +61,10 @@ class Step
 
   def name
     @name ||= File.basename(@path)
+  end
+
+  def short_path
+    [workflow.to_s, task_name, name] * "/"
   end
 
   def clean_name
@@ -122,9 +128,10 @@ class Step
       begin
         Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
           clear_info
+          input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
           merge_info :status => :start, :start => Time.now,
             :pid => Process.pid, :pid_hostname => Misc.hostname, 
-            :inputs => MetaExtension.purge(inputs), :type => type,
+            :inputs => MetaExtension.purge(inputs), :input_names => input_names, :type => type,
             :dependencies => dependencies.collect{|d| d.path }
 
           @result = exec
@@ -278,9 +285,10 @@ class Step
   end
 
   def step(task_name)
+    task_name = task_name.to_sym
     dependencies.each do |dep|
-      return dep if dep.task_name == task_name
-      return dep if dep.overriden_task == task_name
+      return dep if dep.task_name && dep.task_name.to_sym == task_name
+      return dep if dep.overriden_task && dep.overriden_task.to_sym == task_name
       rec_dep = dep.step(task_name)
       return rec_dep if rec_dep
     end
@@ -301,5 +309,9 @@ class Step
 
   def task_signature
     [workflow.to_s, task_name] * "#"
+  end
+
+  def alias?
+    task.alias? if task
   end
 end

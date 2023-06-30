@@ -18,6 +18,7 @@ $ #{$0} [<options>] <workflow> <task>
 -h--help Print this help
 --nostream Disable job streaming
 --update Update jobs with newer dependencies
+--deploy* Deploy mode: serial, local, or SLURM (default 'serial')
 -jn--jobname* Name to use as job identifier
 -li--load_inputs* Directory with inputs files to load
 -pf--print_filepath Print the file path
@@ -25,7 +26,6 @@ $ #{$0} [<options>] <workflow> <task>
 -cl--clean Clean the last step
 -rcl--recursive_clean Clean all steps
 -ct--clean_task* Clean a particular task
--d--deploy* Deploy mode: serial, local, or SLURM (default 'serial')
 -od--override_deps* Override deps using 'Workflow#task=<path>' array_separated
 EOF
 
@@ -86,8 +86,7 @@ if clean_task
       dep.set_info :status, :cleaned
     end
 
-    job.clean if job.task_name.to_s == clean_task.to_s
-    job.clean unless job.updated?
+    job.clean if (job.task_name.to_s == clean_task.to_s) || ! job.updated?
   end
 end
 

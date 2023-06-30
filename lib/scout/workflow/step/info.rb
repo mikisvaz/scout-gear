@@ -9,11 +9,17 @@ class Step
                    end
   end
 
+  def self.load_info(info_file)
+    info = Persist.load(info_file, SERIALIZER) || {}
+    IndiferentHash.setup(info)
+  end
+
   def load_info
-    @info = Persist.load(info_file, SERIALIZER) || {}
-    IndiferentHash.setup(@info)
+    @info = Step.load_info(info_file)
     @info_load_time = Time.now
   end
+
+
 
   def save_info(info = nil)
     Persist.save(info, info_file, SERIALIZER)

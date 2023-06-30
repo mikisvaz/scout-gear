@@ -6,7 +6,7 @@ module IndiferentHash
     defaults = string2hash defaults if String === defaults
 
     defaults.each do |key, value|
-      next if options.include? key
+      next if options.include?(key)
 
       options[key] = value 
     end

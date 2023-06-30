@@ -136,6 +136,7 @@ module Workflow
 
     dep_tree = {}
     task = self.tasks[task_name]
+    raise "TaskNotFound: #{task_name}" if task.nil?
     task.deps.each do |workflow, task, options|
       next if seen.include? dep
       seen << [workflow, task, options.merge(seen_options)]

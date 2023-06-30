@@ -7,11 +7,12 @@ class Step
       direct_deps << dep
     end
     seen.concat direct_deps.collect{|d| d.path }
-    direct_deps.inject(direct_deps){|acc,d| acc.concat(d.rec_dependencies(connected, [])); acc }
+    direct_deps.inject(direct_deps){|acc,d| acc.concat(d.rec_dependencies(connected, seen)); acc }
   end
 
   def recursive_inputs
-    recursive_inputs = @inputs.to_hash
+    recursive_inputs = NamedArray === @inputs ? @inputs.to_hash : {}
+    return recursive_inputs if dependencies.nil?
     dependencies.inject(recursive_inputs) do |acc,dep|
       acc.merge(dep.recursive_inputs)
     end

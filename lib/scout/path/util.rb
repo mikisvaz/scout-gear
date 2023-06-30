@@ -86,6 +86,26 @@ module Path
     self.annotate(self.split(".")[0..-2] * ".")
   end
 
+  def remove_extension(extension = nil)
+    if extension.nil?
+      unset_extension
+    else
+      self.annotate(self.sub(/\.#{extension}$/,''))
+    end
+  end
+
+  def replace_extension(new_extension = nil, multiple = false)
+    if String === multiple
+      new_path = self.sub(/(\.[^\.\/]{1,5})(.#{multiple})?$/,'')
+    elsif multiple
+      new_path = self.sub(/(\.[^\.\/]{1,5})+$/,'')
+    else
+      new_path = self.sub(/\.[^\.\/]{1,5}$/,'')
+    end
+    new_path = new_path + "." + new_extension.to_s
+    self.annotate(new_path)
+  end
+
 
   # Is 'file' newer than 'path'? return non-true if path is newer than file
   def self.newer?(path, file, by_link = false)

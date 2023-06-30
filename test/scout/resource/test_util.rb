@@ -7,6 +7,15 @@ class TestResourceUtil < Test::Unit::TestCase
     assert_equal 'share/data/somedir/somepath', Scout.identify(path)
   end
 
+  def test_identify_with_subdir
+    m = Module.new
+    m.extend Resource
+    m.subdir = 'test/subdir'
+    path = m.root['share/data/somedir/somepath'].find
+    assert_equal 'share/data/somedir/somepath', m.identify(path)
+  end
+
+
   def test_relocate
     TmpFile.with_file do |dir|
       Path.setup dir

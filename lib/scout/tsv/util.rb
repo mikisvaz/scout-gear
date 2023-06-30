@@ -122,7 +122,7 @@ Example:
   end
 
   def digest_str
-    fingerprint
+    "TSV:{"<< Log.fingerprint(self.all_fields|| []) << ";" << Log.fingerprint(self.keys) << ";" << Log.fingerprint(self.values) << "}"
   end
 
   def inspect

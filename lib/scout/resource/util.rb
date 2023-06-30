@@ -28,7 +28,11 @@ module Resource
               m.named_captures.include?(c) ? m[c] : nil
             }.compact * "/"
             unlocated.gsub!(/\/+/,'/')
-            unlocated[self.subdir] = "" if self.subdir
+            if self.subdir && ! self.subdir.empty?
+              subdir = self.subdir
+              subdir += "/" unless subdir.end_with?("/")
+              unlocated[subdir] = "" 
+            end
             choices << self.annotate(unlocated)
           end
         end

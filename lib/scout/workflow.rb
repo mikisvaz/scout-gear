@@ -27,7 +27,9 @@ module Workflow
 
   def self.require_workflow(workflow_name_orig)
     first = nil
-    workflow_name_orig.split("+").each do |workflow_name|
+    workflow_name_orig.split("+").each do |complete_workflow_name|
+      self.main = nil
+      workflow_name, *subworkflows = complete_workflow_name.split("::")
       workflow = workflow_name
       workflow = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow)
       workflow = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow)
@@ -40,7 +42,14 @@ module Workflow
       else
         raise "Workflow #{workflow_name} not found"
       end
-      first ||= self.main || workflows.last
+
+      current = begin
+                  Kernel.const_get(complete_workflow_name)
+                rescue
+                  self.main || workflows.last
+                end
+
+      first ||= current
     end
     first
   end

@@ -4,7 +4,7 @@ require_relative 'resource/scout'
 
 module Scout::Config
 
-  CACHE = IndiferentHash.setup({})
+  CACHE ||= IndiferentHash.setup({})
 
   GOT_KEYS=[]
 

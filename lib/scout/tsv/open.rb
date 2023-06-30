@@ -20,7 +20,7 @@ module Open
         into.add *res
       when TSV, Hash
         key, value = res
-        if into.type == :double
+        if TSV === into && into.type == :double
           into.zip_new key, value, insitu: false
         else
           into[key] = value
@@ -115,6 +115,12 @@ module Open
             when TSV
               obj.traverse  unnamed: unnamed, **options do |k,v,f|
                 res = block.call(k, v, f)
+                callback.call res if callback
+                nil
+              end
+            when Hash
+              obj.each do |key,value|
+                res = block.call(key,value)
                 callback.call res if callback
                 nil
               end

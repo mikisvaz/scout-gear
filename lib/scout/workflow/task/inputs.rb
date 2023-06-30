@@ -87,6 +87,8 @@ module Task
       if Path.is_filename?(value) 
         relative_file = save_file_input(value, directory)
         Open.write(input_file + ".as_file", relative_file)
+      elsif Step === value
+        Open.write(input_file + ".as_step", value.short_path)
       elsif type == :file
         relative_file = save_file_input(value, directory)
         Persist.save(relative_file, input_file, :file)
@@ -115,6 +117,9 @@ module Task
           value = Open.read(filename).strip
           value.sub!(/^\./, File.dirname(filename)) if value.start_with?("./")
           inputs[name] = value
+        elsif filename.end_with?('.as_step')
+          value = Open.read(filename).strip
+          inputs[name] = Step.load value
         elsif (options &&  (options[:noload] || options[:stream] || options[:nofile]))
           inputs[name] = filename
         else

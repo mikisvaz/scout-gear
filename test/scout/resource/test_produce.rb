@@ -74,4 +74,19 @@ end
       assert_equal list, file.list
     end
   end
+
+  def test_produce_compressed
+    dir = tmpdir.directory[__method__]
+    dir.pkgdir = Scout
+    list = %w(a b)
+
+    Scout.claim dir["foo.gz"], :proc do |filename|
+      list
+    end
+
+    Misc.in_dir(dir) do
+      file = dir.foo
+      assert_include file.produce.find, '.gz'
+    end
+  end
 end

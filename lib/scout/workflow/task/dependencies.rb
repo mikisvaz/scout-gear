@@ -54,6 +54,7 @@ module Task
       if provided_inputs.include?(overriden = [workflow.name, task] * "#")
         dep = provided_inputs[overriden]
         dep = Step.new dep unless Step === dep
+        dep = dep.dup
         dep.type = workflow.tasks[task].type
         dep.overriden_task = task
         dep.overriden_workflow = workflow

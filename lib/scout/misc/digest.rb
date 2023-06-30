@@ -29,7 +29,7 @@ module Misc
         obj.to_s
       when Float
         if obj % 1 == 0
-          obj.to_i
+          obj.to_i.to_s
         elsif obj.abs > 10
           "%.1f" % obj
         elsif obj.abs > 1

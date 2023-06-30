@@ -33,6 +33,10 @@ class Step
     Open.rm_rf files_dir if Open.exist?(files_dir)
   end
 
+  def self.clean(file)
+    Step.new(file).clean
+  end
+
 
   def recursive_clean
     dependencies.each do |dep|

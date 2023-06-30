@@ -19,6 +19,7 @@ module TSV
         preamble_str = nil
       end
 
+      preamble_str = preamble_str.strip if preamble_str
       [preamble_str, fields_str].compact * "\n"
     end
 
