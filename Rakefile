@@ -23,7 +23,6 @@ Juwelier::Tasks.new do |gem|
   gem.add_runtime_dependency 'scout-essentials'
   gem.add_runtime_dependency 'net-ssh'
   gem.add_runtime_dependency 'matrix'
-  gem.add_runtime_dependency 'sys-proctable'
   gem.add_runtime_dependency 'RubyInline'
   #gem.add_runtime_dependency 'tokyocabinet'
 
