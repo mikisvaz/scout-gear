@@ -1,4 +1,4 @@
-require_relative '../open'
+require 'scout/open'
 require_relative '../work_queue'
 
 module MultipleResult

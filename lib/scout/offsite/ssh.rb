@@ -1,4 +1,5 @@
 require 'net/ssh'
+require_relative 'exceptions'
 
 class SSHLine
   class << self

@@ -1,5 +1,5 @@
-require_relative '../meta_extension'
-require_relative '../named_array'
+require 'scout/meta_extension'
+require 'scout/named_array'
 require_relative 'step'
 require_relative 'task/inputs'
 require_relative 'task/dependencies'

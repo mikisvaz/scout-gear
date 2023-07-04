@@ -1,3 +1,4 @@
+require 'scout/persist'
 require_relative 'persist/adapter'
 require_relative 'persist/tokyocabinet'
 

@@ -78,12 +78,12 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    open.rb
    open=open{
     lock.rb
+    remote.rb
+    stream.rb
+    util.rb
     lock=lock{
      lockfile.rb
     }
-    stream.rb
-    remote.rb
-    util.rb
    }
    resource.rb
    resource=resource{

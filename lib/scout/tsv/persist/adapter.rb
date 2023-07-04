@@ -1,5 +1,5 @@
-require_relative '../../open/lock'
-require_relative '../../meta_extension'
+require 'scout/open/lock'
+require 'scout/meta_extension'
 require_relative 'serialize'
 
 module TSVAdapter

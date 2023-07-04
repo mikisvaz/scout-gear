@@ -8,6 +8,8 @@ end
 
 if continue
   module ScoutSemaphore
+    class SemaphoreInterrupted < TryAgain; end
+
     inline(:C) do |builder|
       builder.prefix <<-EOF
   #include <unistd.h>

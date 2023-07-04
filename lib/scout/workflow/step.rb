@@ -1,5 +1,5 @@
-require_relative '../path'
-require_relative '../persist'
+require 'scout/path'
+require 'scout/persist'
 require_relative 'step/info'
 require_relative 'step/status'
 require_relative 'step/load'

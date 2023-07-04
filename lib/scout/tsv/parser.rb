@@ -1,4 +1,4 @@
-require_relative '../named_array'
+require 'scout/named_array'
 module TSV
   def self.cast_value(value, cast)
     if Array === value

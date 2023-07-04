@@ -1,5 +1,6 @@
 require_relative 'work_queue/socket'
 require_relative 'work_queue/worker'
+require_relative 'work_queue/exceptions'
 require 'timeout'
 
 class WorkQueue

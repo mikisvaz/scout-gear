@@ -1,4 +1,4 @@
-require_relative '../../named_array'
+require 'scout/named_array'
 module Task
   def self.format_input(value, type, options = {})
     return value if IO === value || StringIO === value || Step === value

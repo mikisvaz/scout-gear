@@ -1,4 +1,4 @@
-require_relative 'meta_extension'
+require 'scout/meta_extension'
 require_relative 'tsv/util'
 require_relative 'tsv/parser'
 require_relative 'tsv/dumper'

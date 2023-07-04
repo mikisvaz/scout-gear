@@ -1,4 +1,4 @@
-require_relative '../meta_extension'
+require 'scout/meta_extension'
 
 module Workflow
   extend MetaExtension

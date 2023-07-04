@@ -1,5 +1,0 @@
-require_relative 'simple_opt/accessor'
-require_relative 'simple_opt/parse'
-require_relative 'simple_opt/doc'
-require_relative 'simple_opt/get'
-require_relative 'simple_opt/setup'

@@ -1,4 +1,4 @@
-require_relative '../../config'
+require 'scout/config'
 
 class Step
   def config(key, *tokens)

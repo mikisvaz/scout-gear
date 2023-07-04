@@ -219,14 +219,10 @@ class TestTaskInput < Test::Unit::TestCase
       original_digest =  task.process_inputs(inputs).last
 
       TmpFile.with_file do |save_directory|
-        iii inputs
         task.save_inputs(save_directory, inputs)
         Open.rm(file1)
         new_inputs = task.load_inputs(save_directory)
-        iii new_inputs
         new_digest =  task.process_inputs(new_inputs).last
-        iii new_digest
-        iii original_digest
         assert_equal original_digest, new_digest
       end
     end
