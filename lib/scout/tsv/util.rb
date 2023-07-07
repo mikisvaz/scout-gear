@@ -6,6 +6,7 @@ require_relative 'util/process'
 require_relative 'util/select'
 require_relative 'util/reorder'
 require_relative 'util/unzip'
+require_relative 'util/sort'
 module TSV
   def self.identify_field(key_field, fields, name, strict: nil)
     return :key if name == :key || (! strict && NamedArray.field_match(key_field, name))

@@ -124,62 +124,62 @@ class Step
     return @result || self.load if done?
     prepare_dependencies
     run_dependencies
-    @result = 
-      begin
-        Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
-          clear_info
-          input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
-          merge_info :status => :start, :start => Time.now,
-            :pid => Process.pid, :pid_hostname => Misc.hostname, 
-            :inputs => MetaExtension.purge(inputs), :input_names => input_names, :type => type,
-            :dependencies => dependencies.collect{|d| d.path }
+    begin
+      @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
+        clear_info
+        input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
+        merge_info :status => :start, :start => Time.now,
+          :pid => Process.pid, :pid_hostname => Misc.hostname, 
+          :inputs => MetaExtension.purge(inputs), :input_names => input_names, :type => type,
+          :dependencies => dependencies.collect{|d| d.path }
 
-          @result = exec
+        @exec_result = exec
 
-          if @result.nil? && File.exist?(self.tmp_path) && ! File.exist?(self.path)
-            Open.mv self.tmp_path, self.path
-          else
-            @result = @result.stream if @result.respond_to?(:stream)
-          end
-
-          @result
-
-          if (IO === @result || StringIO === @result) && (ENV["SCOUT_NO_STREAM"] == "true" || ! stream)
-            Open.sensible_write(self.path, @result)
-            @result = nil
-          else
-            @result
-          end
+        if @exec_result.nil? && File.exist?(self.tmp_path) && ! File.exist?(self.path)
+          Open.mv self.tmp_path, self.path
+        else
+          @exec_result = @exec_result.stream if @exec_result.respond_to?(:stream)
         end
-      rescue Exception => e
-        merge_info :status => :error, :exception => e, :end => Time.now
-        abort_dependencies
-        raise e
-      ensure
-        if ! (error? || aborted?)
-          if streaming?
-            ConcurrentStream.setup(@result) do
-              merge_info :status => :done, :end => Time.now
-            end
 
-            @result.abort_callback = proc do |exception|
-              if exception.nil? || Aborted === exception || Interrupt === exception
-                merge_info :status => :aborted, :end => Time.now
-              else
-                begin
-                  merge_info :status => :error, :exception => exception, :end => Time.now
-                rescue Exception
-                  Log.exception $!
-                end
-              end
-            end
+        @exec_result
 
-            log :streaming
-          else
-            merge_info :status => :done, :end => Time.now
-          end
+        if (IO === @exec_result || StringIO === @exec_result) && (ENV["SCOUT_NO_STREAM"] == "true" || ! stream)
+          Open.sensible_write(self.path, @exec_result)
+          @exec_result = nil
+        else
+          @exec_result
         end
       end
+    rescue Exception => e
+      merge_info :status => :error, :exception => e, :end => Time.now
+      abort_dependencies
+      raise e
+    ensure
+      if ! (error? || aborted?)
+        if streaming?
+          ConcurrentStream.setup(@result) do
+            merge_info :status => :done, :end => Time.now
+          end
+
+          @result.abort_callback = proc do |exception|
+            if exception.nil? || Aborted === exception || Interrupt === exception
+              merge_info :status => :aborted, :end => Time.now
+            else
+              begin
+                merge_info :status => :error, :exception => exception, :end => Time.now
+              rescue Exception
+                Log.exception $!
+              end
+            end
+          end
+
+
+          log :streaming
+        else
+          merge_info :status => :done, :end => Time.now
+        end
+      end
+    end
   end
 
   def fork

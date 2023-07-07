@@ -137,7 +137,7 @@ row2 aa bb cc
     dumper =  TSV::Dumper.new :key_field => "Key", :fields => ["Field"], type: :single
     dumper.init
     assert_raise ScoutException do
-      Log.with_severity 0 do
+      Log.with_severity 7 do
         i = 0
         TSV.traverse lines, :into => dumper, cpus: 3 do |l|
           raise ScoutException if i > 10

@@ -54,10 +54,10 @@ if help
   exit 0
 end
 
+job_inputs = task.get_SOPT
+
 if load_inputs
-  job_inputs = workflow.tasks[task_name].load_inputs(load_inputs)
-else
-  job_inputs = task.get_SOPT
+  job_inputs = job_inputs.merge(workflow.tasks[task_name].load_inputs(load_inputs))
 end
 
 if override_deps

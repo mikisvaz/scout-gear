@@ -31,6 +31,7 @@ class Step
     Open.rm tmp_path if Open.exist?(tmp_path)
     Open.rm info_file if Open.exist?(info_file)
     Open.rm_rf files_dir if Open.exist?(files_dir)
+    self
   end
 
   def self.clean(file)
