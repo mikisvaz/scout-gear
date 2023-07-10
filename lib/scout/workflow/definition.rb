@@ -132,8 +132,10 @@ module Workflow
   def task_alias(name, workflow, oname, *rest, &block)
     dep(workflow, oname, *rest, &block) 
     extension :dep_task unless @extension
-    returns workflow.tasks[oname].returns if @returns.nil?
-    type = workflow.tasks[oname].type 
+    task_proc = workflow.tasks[oname]
+    raise "Task #{name} not found" if task_proc.nil?
+    returns task_proc.returns if @returns.nil?
+    type = task_proc.type 
     task name => type do
       raise RbbtException, "dep_task does not have any dependencies" if dependencies.empty?
       Step.wait_for_jobs dependencies.select{|d| d.streaming? }

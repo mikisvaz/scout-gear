@@ -70,7 +70,7 @@ module TSV
       @dumper.init if @dumper.respond_to?(:init) && ! @dumper.initialized
       Log.debug "Transform #{Log.fingerprint @parser} into #{Log.fingerprint @dumper}"
       Open.traverse(@parser, *args, **kwargs) do |k,v|
-        NamedArray.setup(v, @parser.fields, k) unless @unnamed
+        NamedArray.setup(v, @parser.fields, k) unless @unnamed || @parser.fields.nil?
         block.call k, v
       end
     end
@@ -131,6 +131,7 @@ module TSV
     res = self.annotate({})
     transformer = Transformer.new self, res
     transformer.type = :single
+    transformer.unnamed = true
     transformer.traverse do |k,v|
       v = v.first while Array === v
       [k, v]

@@ -27,10 +27,10 @@ class Step
     @result = nil
     @info = nil
     @info_load_time = nil
-    Open.rm path if Open.exist?(path)
-    Open.rm tmp_path if Open.exist?(tmp_path)
-    Open.rm info_file if Open.exist?(info_file)
-    Open.rm_rf files_dir if Open.exist?(files_dir)
+    Open.rm path if Open.exist_or_link?(path)
+    Open.rm tmp_path if Open.exist_or_link?(tmp_path)
+    Open.rm info_file if Open.exist_or_link?(info_file)
+    Open.rm_rf files_dir if Open.exist_or_link?(files_dir)
     self
   end
 

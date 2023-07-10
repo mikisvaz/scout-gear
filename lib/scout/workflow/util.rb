@@ -7,5 +7,10 @@ module Workflow
     mod.instance_eval(&block)
     mod
   end
+
+  def find_in_dependencies(name, dependencies)
+    name = name.to_sym
+    dependencies.select{|dep| dep.task_name.to_sym == name }
+  end
 end
 

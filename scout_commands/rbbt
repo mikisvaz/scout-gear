@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+
 case
 when File.exist?(file = File.join(__dir__, '../modules/rbbt-util/bin/rbbt'))
   $LOAD_PATH.unshift(lib_dir = File.join(file, '../..', 'lib'))
@@ -19,5 +20,5 @@ when File.exist?(file = File.join(ENV["HOME"], 'git/rbbt-util/bin/rbbt'))
   Path.default_pkgdir = Rbbt
   load file
 else
-  raise "Cant find rbbt"
+  raise "Can't find rbbt"
 end
