@@ -12,9 +12,10 @@ class Step
                    end
   end
 
-  def file(file)
+  def file(file = nil)
     dir = files_dir
     Path.setup(dir) unless Path === dir
+    return dir if file.nil?
     dir[file]
   end
 

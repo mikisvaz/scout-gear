@@ -16,7 +16,12 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    task
    list
    info
+   write_info
    install
+  }
+  batch=batch{
+   list
+   clean
   }
   resource=resource{
    produce

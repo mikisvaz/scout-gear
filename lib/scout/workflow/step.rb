@@ -232,11 +232,14 @@ class Step
     while @result && streaming? && stream = self.stream
       threads << Open.consume_stream(stream, true)
     end
+
+    threads.compact!
+
     threads.each do |t| 
       begin
         t.join 
       rescue Exception
-        threads.each{|t| t.raise(Aborted); t.join }
+        threads.compact.each{|t| t.raise(Aborted); t.join }
         raise $!
       end
     end
@@ -252,6 +255,7 @@ class Step
     while ! present?
       sleep 0.1
     end
+    self
   end
 
   def terminated?

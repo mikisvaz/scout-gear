@@ -84,8 +84,10 @@ module Workflow
     annotate_next_task :deps, [workflow, task, options, block, args]
   end
 
-  def input(*args)
-    annotate_next_task(:inputs, args)
+  def input(name, type = nil, *rest)
+    name = name.to_sym
+    type = type.to_sym if type
+    annotate_next_task(:inputs, [name, type] + rest)
   end
 
   def desc(description)
@@ -102,6 +104,7 @@ module Workflow
 
   def task(name_and_type, &block)
     name, type = name_and_type.collect.first
+    type = type.to_sym if String === type
     @tasks ||= IndiferentHash.setup({})
     block = self.method(name) if block.nil?
     begin

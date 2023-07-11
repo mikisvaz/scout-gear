@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+Examine the info of a job result
+
+$ #{$0} <job-result> <key> <value>
+
+-h--help Help
+-f--force Write info even if key is already present
+-r--recursive Write info for all dependencies as well
+-p--check_pid Check that recursive jobs where created by the same process
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+
+file, key, value = ARGV
+
+force, recursive, check_pid = options.values_at :force, :recursive, :check_pid
+
+def get_step(file)
+  file = file.sub(/\.(info|files)/,'')
+  step = Step.new file
+  step
+end
+
+raise ParameterException if key.nil? || value.nil?
+
+if %w(DELETE nil).include? value
+  value = nil
+  force = true
+end
+
+step = get_step file
+
+step.set_info key, value if force || ! step.info.include?(key)
+
+pid = step.info[:pid]
+host = step.info[:pid_hostname]
+
+step.rec_dependencies.each do |dep|
+  begin
+    dep.set_info key, value if (force || ! dep.info.include?(key)) && (!check_pid || dep.info[:pid].to_s == pid and dep.info[:pid_hostname] == host)
+  rescue
+    Log.warn "Could no set info #{key} for #{dep.path}: #{$!.message}"
+  end
+end if recursive
+
+if recursive && step.info[:archived_info]
+  ad = step.info[:archived_info]
+  ad.each do |d,info|
+    begin
+      info[key] = value if (force || ! info.include?(key)) && (!check_pid || info[:pid].to_s == pid and info[:pid_hostname] == host)
+    rescue
+      Log.warn "Could no set info #{key} for archived_dep #{info[:path]}: #{$!.message}"
+    end 
+  end
+  step.set_info :archived_info, ad
+end
