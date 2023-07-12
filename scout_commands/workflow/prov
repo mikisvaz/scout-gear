@@ -1,0 +1,133 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Examine the provenance of a job result
+
+$ #{$0} [<options>] <filename> [<other|->]*
+
+-h--help Help
+-p--plot* draw the dependency plot into <file.png>
+-i--inputs* List of inputs to print
+-if--info_fields* List of info fields to print
+-t--touch Update modification times to be consistent
+-e--expand_repeats Show all the dependency tree even if reapeated dependencies have already been seen before
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+$inputs = (options[:inputs] || "").split(",")
+$info_fields = (options[:info_fields] || "").split(",")
+
+file = ARGV.shift
+
+$seen = []
+def get_step(file)
+  file = File.expand_path(file) if File.exist?(file)
+  file = file.sub(/\.(info|files)$/,'')
+  $seen << file
+  Step.new file
+end
+
+def touch(step)
+  return unless File.exist?(step.path)
+  step.dependencies.each do |dep|
+    next unless Open.exists?(dep.path)
+    if Open.mtime(dep.path) > Open.mtime(step.path) + 1
+      Log.debug("Updating #{step.path} to #{dep.path}")
+      Open.update_mtime(dep.path, step.path)
+    end
+    touch(dep)
+  end if step.dependencies
+end
+
+step = get_step file
+$main_mtime = Open.exist?(step.path) ? Open.mtime(step.path) : nil
+
+def adjacency(step)
+
+  info = step.info || {}
+  path  = step.path
+  status = info[:status] || :missing
+  status = "remote" if Open.remote?(path)
+  if status == 'remote'
+    workflow, task, name = path.sub(/\{.*/,'').split("/")[-3..-1]
+  else
+    workflow, task, name = path.split("/")[-3..-1]
+  end
+  name = name.split(":").last
+  status = :unsync if status == :done and not Open.exist? path
+  shapes = Hash.new "circle"
+  edge_info = {:status =>  status, :workflow => workflow, :task => task, :name => name, :label => task, :shape => shapes[workflow], :color => status == 'remote' ? 'blue' : 'green'}
+  id = Misc.digest(path)
+  edges = []
+  node_info = {}
+  node_info[id] = edge_info
+  if info[:dependencies]
+    info[:dependencies].each do |task,name,path|
+      dep = get_step path
+      _id, _edges, _node_info = adjacency(dep)
+      edges << [_id, id] 
+      edges.concat _edges
+      node_info.merge!(_node_info)
+    end 
+  end
+
+  [id, edges, node_info]
+end
+
+if options[:touch]
+  touch(step)
+end
+
+if options[:plot]
+  id, edges, node_info = adjacency(step)
+  node_info[id][:color] = 'red'
+  TmpFile.with_file do |edge_file|
+    Open.write(edge_file) do |f|
+      f.puts "from,to"
+      edges.uniq.each do |from,to|
+        f.puts [from,to]*","
+      end
+    end
+    TmpFile.with_file do |node_info_file|
+      Open.write(node_info_file) do |f|
+        fields = node_info.first.last.keys
+        f.puts "id," + fields * ","
+        node_info.each do |id,info|
+          f.puts ([id] + info.values_at(*fields)) * ","
+        end
+      end
+
+      require 'rbbt/util/R'
+
+      R.run <<-EOF
+      nodes <- read.csv("#{node_info_file}", header=T, as.is=T)
+      links <- read.csv("#{edge_file}", header=T, as.is=T)
+
+      rbbt.require('igraph')
+
+      net <- graph.data.frame(links, nodes, directed=T)
+      net <- simplify(net, remove.multiple = F, remove.loops = T)
+
+      png("#{options[:plot]}", width=1000, height=1000)
+      plot(net, edge.arrow.size=0.4, vertex.label=net$label, vertex.color=net$color)
+      dev.off()
+      EOF
+    end
+  end
+
+else
+  puts Step.prov_report(step, 0, nil, [], options[:expand_repeats])
+end
+

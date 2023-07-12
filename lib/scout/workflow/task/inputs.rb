@@ -85,8 +85,12 @@ module Task
       input_file = File.join(directory, name.to_s)
 
       if Path.is_filename?(value) 
-        relative_file = save_file_input(value, directory)
-        Open.write(input_file + ".as_file", relative_file)
+        if type == :path
+          Open.write(input_file + ".as_path", value)
+        else
+          relative_file = save_file_input(value, directory)
+          Open.write(input_file + ".as_file", relative_file)
+        end
       elsif Step === value
         Open.write(input_file + ".as_step", value.short_path)
       elsif type == :file

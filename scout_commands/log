@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Change log level
+
+$ #{$0} <level>
+
+DEBUG
+LOW
+MEDIUM
+HIGH
+INFO
+WARN
+ERROR
+NONE
+
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+if ARGV.empty?
+  if Scout.etc.log_severity.exists?                                                                                                                                                         
+    puts Scout.etc.log_severity.read                                                                                                                                                      
+  else                                                                                                                                                                                     
+    puts Scout.etc.log_severity.find + ' does not exist'                                                                                                                                  
+  end                                                                                                                                                                                      
+else
+  level = ARGV[0]
+  level = %w(DEBUG LOW MEDIUM HIGH INFO WARN ERROR NONE)[level.to_i] if level =~ /^\d+$/
+  Open.write(Scout.etc.log_severity, level.upcase)
+end
+
+

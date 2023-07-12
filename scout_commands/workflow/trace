@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Description of the tool
+
+$ #{$0} [<options>] <job-result>
+
+-h--help Help
+-fg--fix_gap Remove execution gaps
+-rk--report_keys* Config keys and info fields to report
+-p--plot* Plot file
+-w--width* Image Width
+-h--height* Image Height
+-s--size* Image Size (Height and Width)
+-pd--plot_data Print plot data
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+require 'rbbt/workflow/util/trace'
+require 'rbbt/util/R'
+
+
+files = ARGV
+plot = options[:plot]
+
+def get_step(file)
+  file = File.expand_path(file)
+  file = file.sub(/\.(info|files)/,'')
+  Step.new file
+end
+
+jobs = []
+jobs = files.collect do |file|
+  get_step file
+end
+
+puts Workflow.trace(jobs, options)

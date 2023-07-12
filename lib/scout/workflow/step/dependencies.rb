@@ -5,7 +5,7 @@ class Step
       next if seen.include? dep.path
       next if connected && dep.done? && dep.updated?
       direct_deps << dep
-    end
+    end if dependencies
     seen.concat direct_deps.collect{|d| d.path }
     direct_deps.inject(direct_deps){|acc,d| acc.concat(d.rec_dependencies(connected, seen)); acc }
   end

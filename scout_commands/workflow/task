@@ -21,7 +21,7 @@ $ #{$0} [<options>] <workflow> <task>
 --deploy* Deploy mode: serial, local, or SLURM (default 'serial')
 -jn--jobname* Name to use as job identifier
 -li--load_inputs* Directory with inputs files to load
--pf--print_filepath Print the file path
+-pf--printpath Print the file path
 -prov--provenance Print the step provenance
 -cl--clean Clean the last step
 -rcl--recursive_clean Clean all steps
@@ -39,8 +39,8 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, clean_task, load_inputs, jobname, print_filepath, deploy, override_deps = IndiferentHash.process_options options, 
-  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :jobname, :print_filepath, :deploy, :override_deps,
+help, provenance, clean, recursive_clean, clean_task, load_inputs, jobname, printpath, deploy, override_deps = IndiferentHash.process_options options, 
+  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :jobname, :printpath, :deploy, :override_deps,
   :deploy => 'serial'
 
 if help
@@ -102,8 +102,9 @@ else
   when "slurm"
     require 'rbbt-scout'
     require_relative '../../modules/rbbt-util/lib/rbbt/hpc'
+    slurm_options = {:time => '3h'}
     HPC::BATCH_MODULE = HPC.batch_system "SLURM"
-    HPC::BATCH_MODULE.orchestrate_job(job, {})
+    HPC::BATCH_MODULE.orchestrate_job(job, slurm_options)
     job.grace
   else 
     if deploy.end_with?('-slurm')
@@ -116,7 +117,7 @@ else
     job.run
   end unless job.done?
 
-  if print_filepath
+  if printpath
     job.join
     path = job.path
     path = path.find if Path === path

@@ -76,10 +76,14 @@ class Step
 
   def task_name
     @task_name ||= @task.name if @task.respond_to?(:name)
+    @task_name ||= info[:task_name] if Open.exist?(info_file)
+    @task_name ||= path.split("/")[-2]
   end
 
   def workflow
-    @task.workflow if @task
+    @workflow ||= @task.workflow if @task
+    @workflow ||= info[:workflow] if Open.exist?(info_file)
+    @workflow ||= path.split("/")[-3]
   end
 
   def exec
@@ -130,6 +134,7 @@ class Step
         input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
         merge_info :status => :start, :start => Time.now,
           :pid => Process.pid, :pid_hostname => Misc.hostname, 
+          :task_name => task_name, :workflow => workflow.to_s,
           :inputs => MetaExtension.purge(inputs), :input_names => input_names, :type => type,
           :dependencies => dependencies.collect{|d| d.path }
 

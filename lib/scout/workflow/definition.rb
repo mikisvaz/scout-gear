@@ -105,6 +105,7 @@ module Workflow
   def task(name_and_type, &block)
     name, type = name_and_type.collect.first
     type = type.to_sym if String === type
+    name = name.to_sym if String === name
     @tasks ||= IndiferentHash.setup({})
     block = self.method(name) if block.nil?
     begin

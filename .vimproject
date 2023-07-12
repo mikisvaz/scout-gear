@@ -18,6 +18,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    info
    write_info
    install
+   trace
   }
   batch=batch{
    list
