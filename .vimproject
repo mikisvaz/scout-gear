@@ -8,6 +8,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   alias
   find
   glob
+  log
   doc
   update
   template
@@ -19,6 +20,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    write_info
    install
    trace
+   prov
   }
   batch=batch{
    list
