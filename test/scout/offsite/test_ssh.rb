@@ -5,7 +5,7 @@ class TestSSH < Test::Unit::TestCase
   def test_marshal
     return unless SSHLine.reach?
 
-    assert TrueClass === SSHLine.rbbt(:default, 'true')
+    assert TrueClass === SSHLine.scout(:default, 'true')
   end
 
   def test_localhost
