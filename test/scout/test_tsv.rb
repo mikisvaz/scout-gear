@@ -85,6 +85,27 @@ row2    a    a    id3
     assert_equal %w(A a), tsv["row2"][0]
   end
 
+  def test_open_persist_path
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+    TmpFile.with_file do |persist_path|
+      orig = TmpFile.with_file(content) do |filename|
+        TSV.open(filename, :persist => true, :merge => true, :persist_path => persist_path)
+      end
+
+      tsv = ScoutCabinet.open persist_path, false
+      assert_equal tsv.persistence_path, persist_path
+      assert_equal orig, tsv
+    end
+
+  end
+
   def test_headerless_fields
     content =<<-EOF
 row1    a|aa|aaa    b    Id1|Id2

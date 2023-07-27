@@ -34,11 +34,14 @@ module TSV
   end
 
   def self.open(file, options = {})
-    persist, type, grep, invert_grep = IndiferentHash.process_options options, :persist, :persist_type, :grep, :invert_grep, :persist => false, :persist_type => "HDB"
-    type = type.to_sym if type
+    grep, invert_grep = IndiferentHash.process_options options, :grep, :invert_grep, :persist => false
+
+    persist_options = IndiferentHash.pull_keys options, :persist
+    persist_options = IndiferentHash.add_defaults persist_options, :prefix => "TSV", :type => "HDB"
+
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
-    Persist.persist(file, type, options.merge(:persist => persist, :prefix => "Tsv", :other_options => options)) do |filename|
-      data = filename ? ScoutCabinet.open(filename, true, type) : nil
+    Persist.persist(file, persist_options[:type], persist_options.merge(:other_options => options)) do |filename|
+      data = filename ? ScoutCabinet.open(filename, true, persist_options[:type]) : nil
       options[:data] = data if data
       options[:filename] = file
 

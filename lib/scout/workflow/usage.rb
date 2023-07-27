@@ -52,8 +52,9 @@ module Task
         inputs = task.inputs.reject{|name, _| seen.include? name }
         inputs = task.inputs.reject{|name, _| options.include? name }
         next unless inputs.any?
-        task.inputs.select{|name, _| inputs.include? name }.each do |name,_,_,_,options|
-          selects << [i, options[:select_options]] if options[:select_options]
+        input_names = inputs.collect{|name,_| name }
+        task.inputs.select{|name,_| input_names.include? name }.each do |name,_,_,_,options|
+          selects << [name, options[:select_options]] if options && options[:select_options]
         end
 
         dep = workflow.nil? || dep_workflow.name != workflow.name ? ["#{dep_workflow.name}", task_name.to_s] *"#" : task_name.to_s
@@ -291,6 +292,7 @@ module Workflow
       prov_tree = prov_tree(dep_tree)
       if prov_tree && ! prov_tree.empty? && prov_tree.split("\n").length > 2
 
+        str.puts
         str.puts Log.color :magenta, "## DEPENDENCY GRAPH (abridged)"
         str.puts
         prov_tree.split("\n").each do |line|
