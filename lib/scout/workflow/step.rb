@@ -81,7 +81,7 @@ class Step
   end
 
   def workflow
-    @workflow ||= @task.workflow if @task
+    @workflow ||= @task.workflow if Task === @task
     @workflow ||= info[:workflow] if Open.exist?(info_file)
     @workflow ||= path.split("/")[-3]
   end
