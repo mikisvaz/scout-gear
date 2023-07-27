@@ -131,6 +131,10 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    test_tsv.rb
    test_work_queue.rb
    test_workflow.rb
+   work_queue=work_queue{
+    test_socket.rb
+    test_worker.rb
+   }
    workflow=workflow{
     test_definition.rb
     test_documentation.rb
@@ -149,10 +153,42 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      test_dependencies.rb
      test_inputs.rb
     }
+    deployment=deployment{
+     test_orchestrator.rb
+    }
    }
-   indiferent_hash=indiferent_hash{
-    test_case_insensitive.rb
-    test_options.rb
+   tsv=tsv{
+    test_attach.rb
+    test_change_id.rb
+    test_dumper.rb
+    test_index.rb
+    test_open.rb
+    test_parser.rb
+    test_persist.rb
+    test_stream.rb
+    test_transformer.rb
+    test_traverse.rb
+    test_util.rb
+    util=util{
+     test_filter.rb
+     test_melt.rb
+     test_process.rb
+     test_reorder.rb
+     test_select.rb
+     test_sort.rb
+     test_unzip.rb
+    }
+    persist=persist{
+     test_adapter.rb
+     test_fix_width_table.rb
+     test_tokyocabinet.rb
+    }
+   }
+   offsite=offsite{
+    test_ssh.rb
+    test_step.rb
+    test_sync.rb
+    test_task.rb
    }
   }
  }
@@ -533,6 +569,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
       test_filter.rb
       test_index.rb
       test_manipulate.rb
+      test_marshal.rb
       test_matrix.rb
       test_parallel.rb
       test_parser.rb
