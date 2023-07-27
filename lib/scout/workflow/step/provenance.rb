@@ -68,7 +68,7 @@ class Step
       $inputs.each do |input|
         value = job_inputs[input]
         next if  value.nil?
-        value_str = Misc.fingerprint(value)
+        value_str = Log.fingerprint(value)
         str << "\t#{Log.color :magenta, input}=#{value_str}"
       end
     end
@@ -78,7 +78,7 @@ class Step
         IndiferentHash.setup(info)
         value = info[field]
         next if value.nil?
-        value_str = Misc.fingerprint(value)
+        value_str = Log.fingerprint(value)
         str << "\t#{Log.color :magenta, field}=#{value_str}"
       end
     end

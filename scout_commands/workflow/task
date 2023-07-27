@@ -102,7 +102,7 @@ else
   when "slurm"
     require 'rbbt-scout'
     require_relative '../../modules/rbbt-util/lib/rbbt/hpc'
-    slurm_options = {:time => '3h'}
+    slurm_options = {}
     HPC::BATCH_MODULE = HPC.batch_system "SLURM"
     HPC::BATCH_MODULE.orchestrate_job(job, slurm_options)
     job.grace
