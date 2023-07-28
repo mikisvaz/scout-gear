@@ -137,7 +137,7 @@ module Workflow
     dep(workflow, oname, *rest, &block) 
     extension :dep_task unless @extension
     task_proc = workflow.tasks[oname]
-    raise "Task #{name} not found" if task_proc.nil?
+    raise "Task #{oname} not found" if task_proc.nil?
     returns task_proc.returns if @returns.nil?
     type = task_proc.type 
     task name => type do
