@@ -89,9 +89,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     persist=persist{
      adapter.rb
      serialize.rb
-     sdbm.rb
-     tkrzw.rb
      tokyocabinet.rb
+     tkrzw.rb
      fix_width_table.rb
     }
     index.rb

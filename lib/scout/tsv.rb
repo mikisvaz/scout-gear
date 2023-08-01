@@ -37,11 +37,20 @@ module TSV
     grep, invert_grep = IndiferentHash.process_options options, :grep, :invert_grep, :persist => false
 
     persist_options = IndiferentHash.pull_keys options, :persist
-    persist_options = IndiferentHash.add_defaults persist_options, :prefix => "TSV", :type => "HDB"
+    persist_options = IndiferentHash.add_defaults persist_options, :prefix => "TSV", :type => :HDB
 
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
     Persist.persist(file, persist_options[:type], persist_options.merge(:other_options => options)) do |filename|
-      data = filename ? ScoutCabinet.open(filename, true, persist_options[:type]) : nil
+      if filename
+        data = case persist_options[:type]
+               when :HDB, :BDB
+                 ScoutCabinet.open(filename, true, persist_options[:type])
+               when :tkh, :tkt, :tks
+                 ScoutTKRZW.open(filename, true, persist_options[:type])
+               end
+      else
+        data = nil
+      end
       options[:data] = data if data
       options[:filename] = file
 
