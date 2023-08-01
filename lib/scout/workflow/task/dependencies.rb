@@ -79,7 +79,7 @@ module Task
         when Step
           dep = res
           dependencies << dep
-          dep_non_default_inputs = find_dep_non_default_inputs.call(dep, block_options)
+          dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options)
           non_default_inputs.concat(dep_non_default_inputs)
         when Hash
           step_options = block_options.merge(res)

@@ -107,7 +107,7 @@ module Workflow
     type = type.to_sym if String === type
     name = name.to_sym if String === name
     @tasks ||= IndiferentHash.setup({})
-    block = self.method(name) if block.nil?
+    block = lambda &self.method(name) if block.nil?
     begin
       @annotate_next_task ||= {}
       @annotate_next_task[:extension] ||=  
