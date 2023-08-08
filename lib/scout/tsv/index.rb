@@ -10,7 +10,7 @@ module TSV
 
     fields = :all if fields.nil?
 
-    Persist.persist(tsv_file, type, kwargs.merge(target: target, fields: fields, persist: persist, update: persist_update, :prefix => "Index", :other_options => kwargs)) do |filename|
+    Persist.persist(tsv_file, type, kwargs.merge(target: target, fields: fields, persist: persist, update: persist_update, prefix: "Index", other_options: {fields: fields, target: target, order: order})) do |filename|
       if filename
         index = ScoutCabinet.open(filename, true, type)
         TSV.setup(index, :type => :single)
