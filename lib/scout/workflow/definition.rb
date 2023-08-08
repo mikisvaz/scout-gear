@@ -103,7 +103,14 @@ module Workflow
   end
 
   def task(name_and_type, &block)
-    name, type = name_and_type.collect.first
+    case name_and_type
+    when Hash
+      name, type = name_and_type.collect.first
+    when Symbol
+      name, type = [name_and_type, :binary]
+    when String
+      name, type = [name_and_type, :binary]
+    end
     type = type.to_sym if String === type
     name = name.to_sym if String === name
     @tasks ||= IndiferentHash.setup({})
