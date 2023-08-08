@@ -130,6 +130,27 @@ module TSV
     res
   end
 
+  def to_double
+    return self if self.type == :double
+    res = self.annotate({})
+    self.with_unnamed do
+      transformer = Transformer.new self, res
+      transformer.type = :double
+      transformer.traverse do |k,v|
+        case self.type
+        when :single
+          [k, [[v]]]
+        when :list
+          [k, v.collect{|v| [v] }]
+        when :flat
+          [k, [v]]
+        end
+      end
+    end
+    res
+  end
+
+
   def to_single
     res = self.annotate({})
     transformer = Transformer.new self, res
