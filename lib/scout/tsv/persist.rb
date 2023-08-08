@@ -3,12 +3,12 @@ require_relative 'persist/adapter'
 
 begin
   require_relative 'persist/tokyocabinet'
-rescue
+rescue Exception
 end
 
 begin
   require_relative 'persist/tkrzw'
-rescue
+rescue Exception
 end
 
 Persist.save_drivers[:tsv] = proc do |file,content| 
