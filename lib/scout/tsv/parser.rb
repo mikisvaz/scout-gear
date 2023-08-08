@@ -407,8 +407,9 @@ module TSV
 
     data = parser.traverse **kwargs, &block
     data.type = type
-    data.filename = filename
-    data.namespace = namespace
+    data.filename = filename || parser.options[:filename]
+    data.namespace = namespace || parser.options[:namespace]
+    data.identifiers = parser.options[:identifiers]
     data.unnamed = unnamed
     data.save_extension_attr_hash if data.respond_to?(:save_extension_attr_hash)
     data
