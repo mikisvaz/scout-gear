@@ -28,9 +28,43 @@ module TSV
     {:key_field => key, :fields => fields}.merge(rest_options)
   end
 
+  class << self
+    alias original_setup setup
+
+    def setup(obj, *rest, &block)
+
+      if rest.length == 1 && String === rest.first
+        options = TSV.str2options(rest.first)
+        if Array === obj
+          default_value = case options[:type]
+                          when :double, :flat, :list, nil
+                            []
+                          when :single
+                            nil
+                          end
+          obj = Misc.array2hash(obj, default_value)
+        end
+        original_setup(obj, options, &block)
+      else
+        if Array === obj
+          options = rest.first if Hash === rest.first
+          options ||= {}
+          default_value = case options[:type]
+                          when :double, :flat, :list, nil
+                            []
+                          when :single
+                            nil
+                          end
+          obj = Misc.array2hash(obj, default_value)
+        end
+        original_setup(obj, *rest, &block)
+      end
+    end
+  end
+
   def self.str_setup(option_str, obj)
     options = TSV.str2options(option_str) 
-    setup(obj, options)
+    setup(obj, **options)
   end
 
   def self.open(file, options = {})

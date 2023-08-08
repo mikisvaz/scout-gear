@@ -310,6 +310,9 @@ row2   b  bbb bbbb bb
 
     tsv = TSV.str_setup("ID~ValueA,ValueB#:type=:flat", {})
     assert_equal "ID", tsv.key_field
+
+    tsv = TSV.setup({}, "ID~ValueA,ValueB#:type=:flat")
+    assert_equal "ID", tsv.key_field
   end
 
   def test_cast_in_header
