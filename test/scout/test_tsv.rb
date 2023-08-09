@@ -331,4 +331,31 @@ c 3
       assert_include tsv.to_s, ":cast=:to_f"
     end
   end
+
+  def test_open_persist_parser
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      parser = TSV::Parser.new filename
+      tsv = TSV.open(parser, :persist => true)
+      tsv.close
+      Persist::CONNECTIONS.clear
+      TSV.open(filename, :persist => true)
+    end
+
+    assert_equal "Id", tsv.key_field
+
+    assert tsv.respond_to?(:persistence_class)
+    assert_equal TokyoCabinet::HDB, tsv.persistence_class
+
+    assert_include tsv.keys, 'row1'
+    assert_include tsv.keys, 'row2'
+  end
+
 end

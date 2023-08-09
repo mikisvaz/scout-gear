@@ -74,7 +74,17 @@ module TSV
     persist_options = IndiferentHash.add_defaults persist_options, :prefix => "TSV", :type => :HDB
 
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
-    Persist.persist(file, persist_options[:type], persist_options.merge(:other_options => options)) do |filename|
+
+    source_name, other_options = case file
+                  when StringIO
+                    [file.inspect, options]
+                  when TSV::Parser
+                    [file.options[:filename], file.options]
+                  else
+                    [file, options]
+                  end
+
+    Persist.persist(source_name, persist_options[:type], persist_options.merge(:other_options => other_options)) do |filename|
       if filename
         data = case persist_options[:type]
                when :HDB, :BDB
@@ -86,7 +96,7 @@ module TSV
         data = nil
       end
       options[:data] = data if data
-      options[:filename] = file
+      options[:filename] = TSV::Parser === file ? file.options[:filename] : file
 
       if data
         Log.debug "TSV open #{Log.fingerprint file} into #{Log.fingerprint data}"
@@ -94,8 +104,12 @@ module TSV
         Log.debug "TSV open #{Log.fingerprint file}"
       end
 
-      Open.open(file, grep: grep, invert_grep: invert_grep) do |f|
-        TSV.parse(f, **options)
+      if TSV::Parser === file
+        TSV.parse(file, **options)
+      else
+        Open.open(file, grep: grep, invert_grep: invert_grep) do |f|
+          TSV.parse(f, **options)
+        end
       end
     end
   end

@@ -2,7 +2,7 @@ require_relative 'parser'
 require_relative 'transformer'
 require_relative 'persist/fix_width_table'
 module TSV
-  def self.index(tsv_file, target: 0, fields: nil, order: true, bar: nil, **kwargs)
+  def self.index(tsv_file, target: :key, fields: nil, order: true, bar: nil, **kwargs)
     persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
       :persist, :persist_type, :persist_update, :data_persist,
       :persist => false, :persist_type => "HDB"

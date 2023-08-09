@@ -46,7 +46,7 @@ module TSV
   def add_field(name = nil)
     through do |key, values|
       new_values = yield(key, values)
-      new_values = [new_values] if type == :double and not Array === new_values
+      new_values = [new_values].compact if type == :double and not Array === new_values
 
       case
       when (values.nil? and (fields.nil? or fields.empty?))

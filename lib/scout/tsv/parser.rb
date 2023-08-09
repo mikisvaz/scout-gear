@@ -276,6 +276,7 @@ module TSV
       end
       @fix = fix
       @options, @key_field, @fields, @first_line, @preamble = TSV.parse_header(@stream, fix:fix, header_hash:header_hash, sep:sep)
+      @options[:filename] = file if Path.is_filename?(file)
       @options[:sep] = sep if @options[:sep].nil?
       @options.merge!(:key_field => @key_field, :fields => @fields)
       @type = @options[:type] || type
@@ -374,7 +375,7 @@ module TSV
   end
 
   def self.parse(stream, fix: true, header_hash: "#", sep: "\t", filename: nil, namespace: nil, unnamed: false, serializer: nil, **kwargs, &block)
-    parser = TSV::Parser.new stream, fix: fix, header_hash: header_hash, sep: sep
+    parser = TSV::Parser === stream ? stream : TSV::Parser.new(stream, fix: fix, header_hash: header_hash, sep: sep)
 
     cast = kwargs[:cast]
     cast = parser.options[:cast] if cast.nil?
