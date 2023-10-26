@@ -103,11 +103,18 @@ module Workflow
   end
 
   def task(name_and_type, &block)
-    name, type = name_and_type.collect.first
+    case name_and_type
+    when Hash
+      name, type = name_and_type.collect.first
+    when Symbol
+      name, type = [name_and_type, :binary]
+    when String
+      name, type = [name_and_type, :binary]
+    end
     type = type.to_sym if String === type
     name = name.to_sym if String === name
     @tasks ||= IndiferentHash.setup({})
-    block = self.method(name) if block.nil?
+    block = lambda &self.method(name) if block.nil?
     begin
       @annotate_next_task ||= {}
       @annotate_next_task[:extension] ||=  
@@ -137,7 +144,7 @@ module Workflow
     dep(workflow, oname, *rest, &block) 
     extension :dep_task unless @extension
     task_proc = workflow.tasks[oname]
-    raise "Task #{name} not found" if task_proc.nil?
+    raise "Task #{oname} not found" if task_proc.nil?
     returns task_proc.returns if @returns.nil?
     type = task_proc.type 
     task name => type do

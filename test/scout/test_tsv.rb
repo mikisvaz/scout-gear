@@ -85,6 +85,27 @@ row2    a    a    id3
     assert_equal %w(A a), tsv["row2"][0]
   end
 
+  def test_open_persist_path
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+    TmpFile.with_file do |persist_path|
+      orig = TmpFile.with_file(content) do |filename|
+        TSV.open(filename, :persist => true, :merge => true, :persist_path => persist_path)
+      end
+
+      tsv = ScoutCabinet.open persist_path, false
+      assert_equal tsv.persistence_path, persist_path
+      assert_equal orig, tsv
+    end
+
+  end
+
   def test_headerless_fields
     content =<<-EOF
 row1    a|aa|aaa    b    Id1|Id2
@@ -289,6 +310,9 @@ row2   b  bbb bbbb bb
 
     tsv = TSV.str_setup("ID~ValueA,ValueB#:type=:flat", {})
     assert_equal "ID", tsv.key_field
+
+    tsv = TSV.setup({}, "ID~ValueA,ValueB#:type=:flat")
+    assert_equal "ID", tsv.key_field
   end
 
   def test_cast_in_header
@@ -307,4 +331,31 @@ c 3
       assert_include tsv.to_s, ":cast=:to_f"
     end
   end
+
+  def test_open_persist_parser
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      parser = TSV::Parser.new filename
+      tsv = TSV.open(parser, :persist => true)
+      tsv.close
+      Persist::CONNECTIONS.clear
+      TSV.open(filename, :persist => true)
+    end
+
+    assert_equal "Id", tsv.key_field
+
+    assert tsv.respond_to?(:persistence_class)
+    assert_equal TokyoCabinet::HDB, tsv.persistence_class
+
+    assert_include tsv.keys, 'row1'
+    assert_include tsv.keys, 'row2'
+  end
+
 end

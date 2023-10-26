@@ -19,7 +19,7 @@ module Task
       step_inputs.each do |k,v|
         if Symbol === v
           input_dep = dependencies.select{|d| d.task_name == v }.first
-          resolved_inputs[k] = input_dep || step_inputs[v] || k
+          resolved_inputs[k] = input_dep || provided_inputs[v] || step_inputs[v] || k
         else
           resolved_inputs[k] = v
         end
@@ -79,7 +79,7 @@ module Task
         when Step
           dep = res
           dependencies << dep
-          dep_non_default_inputs = find_dep_non_default_inputs.call(dep, block_options)
+          dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options)
           non_default_inputs.concat(dep_non_default_inputs)
         when Hash
           step_options = block_options.merge(res)

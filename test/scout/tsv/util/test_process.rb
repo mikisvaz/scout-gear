@@ -43,5 +43,25 @@ row2    AA    BB    Id33
     assert_equal %w(c cc ccc), tsv["row1"]["ValueC"]
     assert_equal %w(C CC), tsv["row2"]["ValueC"]
   end
+
+  def test_add_field_double_empty
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    AA    BB    Id33
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename)
+    end
+
+    tsv.add_field "ValueC" do |k,v|
+      nil
+    end
+
+    assert_equal %w(), tsv["row1"]["ValueC"]
+  end
 end
 

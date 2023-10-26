@@ -2,15 +2,16 @@ module TSV
   class Transformer
     attr_accessor :unnamed, :parser, :dumper
 
-    def initialize(parser, dumper = nil, unnamed: false)
+    def initialize(parser, dumper = nil, unnamed: nil)
       if TSV::Parser === parser
         @parser = parser
       elsif TSV === parser
         @parser = parser
+        @unnamed = parser.unnamed
       else
         @parser = TSV::Parser.new parser
       end
-      @unnamed = unnamed
+      @unnamed = unnamed unless unnamed.nil?
       if dumper.nil?
         @dumper = TSV::Dumper.new(@parser)
         @dumper.sep = "\t"
@@ -112,20 +113,43 @@ module TSV
 
   def to_list
     res = self.annotate({})
-    transformer = Transformer.new self, res
-    transformer.type = :list
-    transformer.traverse do |k,v|
-      case self.type
-      when :single
-        [k, [v]]
-      when :double
-        [k, v.collect{|v| v.first }]
-      when :flat
-        [k, v.slice(0,1)]
+    self.with_unnamed do
+      transformer = Transformer.new self, res
+      transformer.type = :list
+      transformer.traverse do |k,v|
+        case self.type
+        when :single
+          [k, [v]]
+        when :double
+          [k, v.collect{|v| v.first }]
+        when :flat
+          [k, v.slice(0,1)]
+        end
       end
     end
     res
   end
+
+  def to_double
+    return self if self.type == :double
+    res = self.annotate({})
+    self.with_unnamed do
+      transformer = Transformer.new self, res
+      transformer.type = :double
+      transformer.traverse do |k,v|
+        case self.type
+        when :single
+          [k, [[v]]]
+        when :list
+          [k, v.collect{|v| [v] }]
+        when :flat
+          [k, [v]]
+        end
+      end
+    end
+    res
+  end
+
 
   def to_single
     res = self.annotate({})

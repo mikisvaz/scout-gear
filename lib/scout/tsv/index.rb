@@ -2,7 +2,7 @@ require_relative 'parser'
 require_relative 'transformer'
 require_relative 'persist/fix_width_table'
 module TSV
-  def self.index(tsv_file, target: 0, fields: nil, order: true, bar: nil, **kwargs)
+  def self.index(tsv_file, target: :key, fields: nil, order: true, bar: nil, **kwargs)
     persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
       :persist, :persist_type, :persist_update, :data_persist,
       :persist => false, :persist_type => "HDB"
@@ -10,7 +10,7 @@ module TSV
 
     fields = :all if fields.nil?
 
-    Persist.persist(tsv_file, type, kwargs.merge(target: target, fields: fields, persist: persist, update: persist_update, :prefix => "Index", :other_options => kwargs)) do |filename|
+    Persist.persist(tsv_file, type, kwargs.merge(target: target, fields: fields, persist: persist, update: persist_update, prefix: "Index", other_options: {fields: fields, target: target, order: order})) do |filename|
       if filename
         index = ScoutCabinet.open(filename, true, type)
         TSV.setup(index, :type => :single)

@@ -40,11 +40,17 @@ module TSV
 
   def self.attach(source, other, target: nil, fields: nil, match_key: nil, other_key: nil, one2one: true, complete: false, insitu: nil, persist_input: false, bar: nil)
     source = TSV::Transformer.new source unless TSV === source || TSV::Parser === source
-    other = TSV.open other, persist: persist_input unless TSV === other 
+    other = TSV::Parser.new other unless TSV === other || TSV::Parser === other
 
     fields = [fields] if String === fields
 
     match_key, other_key = TSV.match_keys(source, other, match_key: match_key, other_key: other_key)
+
+    if ! (TSV === other)
+      other_key_name = other_key == :key ? other.key_field : other.fields[other_key]
+      other = TSV.open other, key_field: other_key_name, fields: fields, one2one: true, persist: persist_input
+      other_key = :key if other.key_field == source.key_field
+    end
 
     if TSV::Transformer === source
       source.dumper = case target
@@ -117,6 +123,7 @@ module TSV
                 current_values[overlap] = v if current_values[overlap].nil? || String === current_values[overlap] && current_values[overlap].empty?
               else
                 current_values[overlap] ||= []
+                next if v.nil?
                 current_values[overlap].concat (v - current_values[overlap])
               end
             end
@@ -154,6 +161,7 @@ module TSV
                          end
 
             other_values.zip(overlaps).each do |v,overlap|
+              next if v.nil?
               if false && overlap == :key
                 other_key = Array === v ? v : v.first
               elsif source.type == :list

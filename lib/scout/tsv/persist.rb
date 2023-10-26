@@ -1,6 +1,15 @@
 require 'scout/persist'
 require_relative 'persist/adapter'
-require_relative 'persist/tokyocabinet'
+
+begin
+  require_relative 'persist/tokyocabinet'
+rescue Exception
+end
+
+begin
+  require_relative 'persist/tkrzw'
+rescue Exception
+end
 
 Persist.save_drivers[:tsv] = proc do |file,content| 
   stream = if IO === content

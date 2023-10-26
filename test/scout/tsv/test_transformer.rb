@@ -117,4 +117,16 @@ row2    A2|A22    B2|B22
     tsv = TSV.open(content)
     assert_equal %w(A1 A11 B1 B11), tsv.to_flat["row1"]
   end
+
+  def test_to_double
+    content =<<-EOF
+#: :sep=" "
+#ID    ValueA    ValueB
+row1    A1    B1
+row2    A2    B2
+    EOF
+
+    tsv = TSV.open(content)
+    assert_equal %w(A1), tsv.to_double["row1"]["ValueA"]
+  end
 end
