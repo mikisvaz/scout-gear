@@ -103,6 +103,18 @@ module ScoutCabinet
   #end
 end
 
+module Persist
+  def self.open_tokyocabinet(path, write, serializer = nil, tokyocabinet_class = TokyoCabinet::HDB)
+    write = true unless File.exist? path
+
+    FileUtils.mkdir_p File.dirname(path) unless File.exist?(File.dirname(path))
+
+    database = ScoutCabinet.open(path, write, tokyocabinet_class)
+
+    database
+  end
+end
+
 Persist.save_drivers[:HDB] = proc do |file, content|
   data = ScoutCabinet.open(file, true, "HDB")
   content.annotate(data)
