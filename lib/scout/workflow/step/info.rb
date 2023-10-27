@@ -47,8 +47,9 @@ class Step
   def merge_info(new_info)
     info = self.info
     new_info.each do |key,value|
+      value = MetaExtension.purge(value)
       if key == :status
-        message = new_info[:messages]
+        message = new_info[:message]
         if message.nil? && (value == :done || value == :error || value == :aborted)
           start = info[:start]
           eend = new_info[:end]
@@ -59,6 +60,13 @@ class Step
           end
         end
         report_status value, message 
+      end
+
+      if key == :message
+        messages = info[:messages] || []
+        messages << value
+        info[:messages] = messages
+        next
       end
 
       if Exception === value
@@ -111,7 +119,7 @@ class Step
     end
 
     if message
-      merge_info :status => status, :messages => message
+      merge_info :status => status, :message => message
     else
       merge_info :status => status
     end
