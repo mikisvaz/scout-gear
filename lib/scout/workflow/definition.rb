@@ -143,10 +143,11 @@ module Workflow
   def task_alias(name, workflow, oname, *rest, &block)
     dep(workflow, oname, *rest, &block) 
     extension :dep_task unless @extension
-    task_proc = workflow.tasks[oname]
-    raise "Task #{oname} not found" if task_proc.nil?
-    returns task_proc.returns if @returns.nil?
-    type = task_proc.type 
+    task_proc = workflow.tasks[oname] if workflow.tasks
+    if task_proc
+      returns task_proc.returns if @returns.nil?
+      type = task_proc.type 
+    end
     task name => type do
       raise RbbtException, "dep_task does not have any dependencies" if dependencies.empty?
       Step.wait_for_jobs dependencies.select{|d| d.streaming? }
@@ -154,7 +155,7 @@ module Workflow
       dep.join
       raise dep.get_exception if dep.error?
       raise Aborted, "Aborted dependency #{dep.path}" if dep.aborted?
-      set_info :result_type, dep.info[:result_type]
+      set_info :type, dep.info[:type]
       forget = config :forget_dep_tasks, "forget_dep_tasks", :default => FORGET_DEP_TASKS
       if forget
         remove = config :remove_dep_tasks, "remove_dep_tasks", :default => REMOVE_DEP_TASKS

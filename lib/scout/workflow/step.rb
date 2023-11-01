@@ -56,7 +56,7 @@ class Step
 
   attr_accessor :type
   def type
-    @type ||= @task.respond_to?(:type) ? @task.type : info[:type]
+    @type ||= (@task.respond_to?(:type) && @task.type) ? @task.type : info[:type]
   end
 
   def name

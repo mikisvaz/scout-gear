@@ -25,7 +25,7 @@ module ScoutCabinet
     database = Log.ignore_stderr do Persist::CONNECTIONS[path] ||= tokyocabinet_class.new end
 
     if big and not Open.exists?(path)
-      database.tune(nil,nil,nil,tokyocabinet_class::TLARGE | tokyocabinet_class::TDEFLATE) 
+      database.tune(nil, nil, nil, tokyocabinet_class::TLARGE | tokyocabinet_class::TDEFLATE) 
     end
 
     flags = (write ? tokyocabinet_class::OWRITER | tokyocabinet_class::OCREAT : tokyocabinet_class::OREADER)
@@ -101,6 +101,18 @@ module ScoutCabinet
 
   #  database
   #end
+end
+
+module Persist
+  def self.open_tokyocabinet(path, write, serializer = nil, tokyocabinet_class = TokyoCabinet::HDB)
+    write = true unless File.exist? path
+
+    FileUtils.mkdir_p File.dirname(path) unless File.exist?(File.dirname(path))
+
+    database = ScoutCabinet.open(path, write, tokyocabinet_class)
+
+    database
+  end
 end
 
 Persist.save_drivers[:HDB] = proc do |file, content|
