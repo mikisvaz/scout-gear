@@ -5,8 +5,7 @@ module Path
   end
 
   def index(*args, **kwargs, &block)
-    found = self.find
-    found = self.set_extension('tsv').find unless found.exists?
+    found = produce_and_find('tsv')
     TSV.index(found, *args, **kwargs, &block)
   end
 end
