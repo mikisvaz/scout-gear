@@ -111,25 +111,33 @@ module Task
     end
   end
 
+
+  def self.load_input_from_file(filename, name, type, options = nil)
+    if Open.exists?(filename) || filename = Dir.glob(File.join(filename + ".*")).first
+      if filename.end_with?('.as_file')
+        value = Open.read(filename).strip
+        value.sub!(/^\./, File.dirname(filename)) if value.start_with?("./")
+        value
+      elsif filename.end_with?('.as_step')
+        value = Open.read(filename).strip
+        Step.load value
+      elsif (options &&  (options[:noload] || options[:stream] || options[:nofile]))
+        filename
+      else
+        Persist.load(filename, type)
+      end
+    else
+      return nil
+    end
+  end
+
   def load_inputs(directory)
     inputs = IndiferentHash.setup({})
     self.recursive_inputs.each do |p|
       name, type, desc, value, options = p
       filename = File.join(directory, name.to_s) 
-      if Open.exists?(filename) || filename = Dir.glob(File.join(filename + ".*")).first
-        if filename.end_with?('.as_file')
-          value = Open.read(filename).strip
-          value.sub!(/^\./, File.dirname(filename)) if value.start_with?("./")
-          inputs[name] = value
-        elsif filename.end_with?('.as_step')
-          value = Open.read(filename).strip
-          inputs[name] = Step.load value
-        elsif (options &&  (options[:noload] || options[:stream] || options[:nofile]))
-          inputs[name] = filename
-        else
-          inputs[name] = Persist.load(filename, type)
-        end
-      end
+      value = Task.load_input_from_file(filename, name, type, options)
+      inputs[name] = value unless value.nil?
     end
     inputs
   end
