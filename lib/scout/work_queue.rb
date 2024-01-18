@@ -44,6 +44,8 @@ class WorkQueue
         Log.low "Removed worker #{pid}"
         @workers.delete_at(worker)
         @removed_workers << pid
+      else
+        Log.medium "Worker #{pid} not mine"
       end
     end
   end
@@ -98,22 +100,13 @@ class WorkQueue
       Thread.current["name"] = "Worker waiter #{Process.pid}"
       while true
         break if @worker_mutex.synchronize{ @workers.empty? }
-        begin
-          Timeout.timeout(1) do
-            begin
-              pid, status = Process.wait2
-              remove_worker(pid) if pid
-            rescue Exception
-              Log.exception $!
-            end
-          end
-        rescue Timeout::Error
-          pids = @worker_mutex.synchronize{ @workers.collect{|w| w.pid } }
-          pids.each do |p|
-            pid, status = Process.wait2 p, Process::WNOHANG
+        threads = @workers.collect do |w|
+          Thread.new do
+            pid, status = Process.wait2 w.pid
             remove_worker(pid) if pid
           end
         end
+        threads.each do |t| t.join end
       end
     end
 

@@ -7,7 +7,7 @@ class WorkQueue
 
     def run
       @pid = Process.fork do
-        Log.debug "Worker start with #{Process.pid}"
+        Log.low "Worker start with #{Process.pid}"
         yield
       end
     end
@@ -15,6 +15,12 @@ class WorkQueue
     def process(input, output = nil, &block)
       run do
         begin
+          if output
+            Open.purge_pipes(output.swrite)
+          else
+            Open.purge_pipes
+          end
+
           while obj = input.read
             if DoneProcessing === obj
               output.write DoneProcessing.new
@@ -36,7 +42,7 @@ class WorkQueue
 
     def abort
       begin
-        Log.debug "Aborting worker #{@pid}"
+        Log.medium "Aborting worker #{@pid}"
         Process.kill "INT", @pid 
       rescue Errno::ECHILD 
       rescue Errno::ESRCH
@@ -44,7 +50,7 @@ class WorkQueue
     end
 
     def join
-      Log.debug "Joining worker #{@pid}"
+      Log.low "Joining worker #{@pid}"
       Process.waitpid @pid
     end
 
