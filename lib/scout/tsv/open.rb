@@ -64,8 +64,8 @@ module Open
             into.close if ! keep_open && into.respond_to?(:close)
             bar.remove if bar
           rescue Exception
-            into.abort($!) if into.respond_to?(:abort)
             bar.remove($!) if bar
+            into.abort($!) if into.respond_to?(:abort)
           end
         end
 

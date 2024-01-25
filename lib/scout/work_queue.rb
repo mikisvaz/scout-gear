@@ -6,18 +6,29 @@ require 'timeout'
 class WorkQueue
   attr_accessor :workers, :worker_proc, :callback
 
+  def new_worker
+    worker = Worker.new
+    worker.queue_id = queue_id
+    worker
+  end
+
   def initialize(workers = 0, &block)
     workers = workers.to_i if String === workers
     @input = WorkQueue::Socket.new
     @output = WorkQueue::Socket.new
-    @workers = workers.times.collect{ Worker.new }
+    @workers = workers.times.collect{ new_worker }
     @worker_proc = block
     @worker_mutex = Mutex.new
     @removed_workers = []
+    Log.medium "Starting queue #{queue_id} with workers: #{Log.fingerprint @workers.collect{|w| w.worker_short_id }} and sockets #{@input.socket_id} and #{@output.socket_id}"
+  end
+
+  def queue_id
+    [object_id, Process.pid] * "@"
   end
 
   def add_worker(&block)
-    worker = Worker.new
+    worker = new_worker
     @worker_mutex.synchronize do
       @workers.push(worker)
       if block_given?
@@ -41,11 +52,11 @@ class WorkQueue
     @worker_mutex.synchronize do
       worker = @workers.index{|w| w.pid == pid}
       if worker
-        Log.low "Removed worker #{pid}"
+        Log.low "Removed worker #{pid} from #{queue_id}"
         @workers.delete_at(worker)
         @removed_workers << pid
       else
-        Log.medium "Worker #{pid} not mine"
+        Log.medium "Worker #{pid} not from #{queue_id}"
       end
     end
   end
@@ -58,14 +69,14 @@ class WorkQueue
     @reader = Thread.new(Thread.current) do |parent|
       begin
         Thread.current.report_on_exception = false
-        Thread.current["name"] = "Output reader #{Process.pid}"
+        Thread.current["name"] = "Output reader #{queue_id}"
         @done_workers ||= []
         while true
           obj = @output.read
           if DoneProcessing === obj
 
             done = @worker_mutex.synchronize do
-              Log.low "Worker #{obj.pid} done"
+              Log.low "Worker #{obj.pid} from #{queue_id} done"
               @done_workers << obj.pid
               @closed && @done_workers.length == @removed_workers.length + @workers.length
             end
@@ -80,12 +91,12 @@ class WorkQueue
       rescue DoneProcessing
       rescue Aborted
       rescue WorkerException
-        Log.error "Exception in worker #{obj.pid} in queue #{Process.pid}: #{obj.worker_exception.message}"
+        Log.error "Exception in worker #{obj.pid} in queue #{queue_id}: #{obj.worker_exception.message}"
         self.abort
         @input.abort obj.worker_exception
         raise obj.worker_exception
       rescue
-        Log.error "Exception processing output in queue #{Process.pid}: #{$!.message}"
+        Log.error "Exception processing output in queue #{queue_id}: #{$!.message}"
         self.abort
         raise $!
       end
@@ -97,7 +108,7 @@ class WorkQueue
 
     @waiter = Thread.new do
       Thread.current.report_on_exception = false
-      Thread.current["name"] = "Worker waiter #{Process.pid}"
+      Thread.current["name"] = "Worker waiter #{queue_id}"
       while true
         break if @worker_mutex.synchronize{ @workers.empty? }
         threads = @workers.collect do |w|
@@ -124,7 +135,7 @@ class WorkQueue
   end
 
   def abort
-    Log.low "Aborting #{@workers.length} workers in queue #{Process.pid}"
+    Log.low "Aborting #{@workers.length} workers in queue #{queue_id}"
     @worker_mutex.synchronize do
       @workers.each{|w| w.abort }
     end

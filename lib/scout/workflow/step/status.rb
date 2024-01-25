@@ -6,6 +6,7 @@ class Step
       while @result && streaming? && stream = self.stream
         stream.abort(exception)
       end
+      @take_stream.abort(exception) if streaming?
     end
   end
 
