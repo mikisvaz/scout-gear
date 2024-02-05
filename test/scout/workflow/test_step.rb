@@ -95,6 +95,7 @@ class TestWorkflowStep < Test::Unit::TestCase
       lines << line
     end
 
+    stream.join
     assert step1.path.read.end_with? "line-#{times-1}\n"
     assert_equal times/2, lines.length
     assert_equal times/2, step2.join.path.read.split("\n").length

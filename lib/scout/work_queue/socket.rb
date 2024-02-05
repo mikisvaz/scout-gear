@@ -17,6 +17,10 @@ class WorkQueue
       ScoutSemaphore.create_semaphore(@read_sem,1)
     end
 
+    def socket_id
+      @key
+    end
+
     def clean
       @cleaned = true
       @sread.close unless @sread.closed?

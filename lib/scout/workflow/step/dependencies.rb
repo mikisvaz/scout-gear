@@ -84,7 +84,10 @@ class Step
   def self.wait_for_jobs(jobs)
     threads = []
     jobs.each do |job|
-      threads << Thread.new{ job.join }
+      threads << Thread.new do
+        Thread.current.report_on_exception = false
+        job.join
+      end
     end
     threads.each do |t|
       t.join

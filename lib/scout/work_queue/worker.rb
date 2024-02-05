@@ -1,13 +1,21 @@
 class WorkQueue
   class Worker
-    attr_accessor :pid, :ignore_ouput
+    attr_accessor :pid, :ignore_ouput, :queue_id
     def initialize(ignore_ouput = false)
       @ignore_output = ignore_ouput
     end
 
+    def worker_short_id
+      [object_id, pid].compact * "@"
+    end
+
+    def worker_id
+      [worker_short_id, queue_id] * "->"
+    end
+
     def run
       @pid = Process.fork do
-        Log.debug "Worker start with #{Process.pid}"
+        Log.low "Worker start #{worker_id}"
         yield
       end
     end
@@ -15,6 +23,12 @@ class WorkQueue
     def process(input, output = nil, &block)
       run do
         begin
+          if output
+            Open.purge_pipes(output.swrite)
+          else
+            Open.purge_pipes
+          end
+
           while obj = input.read
             if DoneProcessing === obj
               output.write DoneProcessing.new
@@ -36,7 +50,7 @@ class WorkQueue
 
     def abort
       begin
-        Log.debug "Aborting worker #{@pid}"
+        Log.medium "Aborting worker #{worker_id}"
         Process.kill "INT", @pid 
       rescue Errno::ECHILD 
       rescue Errno::ESRCH
@@ -44,7 +58,7 @@ class WorkQueue
     end
 
     def join
-      Log.debug "Joining worker #{@pid}"
+      Log.low "Joining worker #{worker_id}"
       Process.waitpid @pid
     end
 

@@ -48,6 +48,7 @@ module TSVAdapter
 
       def load_value(str)
         return nil if str.nil?
+        return str if serializer.nil?
         serializer.load(str)
       end
 
