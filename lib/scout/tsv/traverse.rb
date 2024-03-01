@@ -7,8 +7,7 @@ module TSV
     key_pos = self.identify_field(key_field)
     fields = self.all_fields if fields == :all
     fields = [fields] unless fields.nil? || Array === fields
-    positions = fields.nil? || fields == :all ? nil : self.identify_field(fields)
-
+    positions = (fields.nil? || fields == :all) ? nil : self.identify_field(fields)
 
     if key_pos == :key
       key_name = @key_field
@@ -20,6 +19,8 @@ module TSV
         positions.unshift :key
       end
     end
+
+    fields = positions.collect{|p| p == :key ? self.key_field : self.fields[p] } if positions
 
     if positions.nil? && key_pos == :key
       field_names = @fields
@@ -47,13 +48,18 @@ module TSV
           if positions.nil?
             if key_pos != :key
               values = values.dup
-              key = values.delete_at(key_pos)
+              if @type == :flat
+                key = values
+              else
+                key = values.delete_at(key_pos)
+              end
             end
           else 
             orig_key = key
-            key = values[key_pos] if key_pos != :key 
+            key = @type == :flat ? values : values[key_pos] if key_pos != :key 
 
             values = values.values_at(*positions)
+            NamedArray.setup(values, fields)
             if key_index
               if @type == :double
                 values.insert key_index, [orig_key]

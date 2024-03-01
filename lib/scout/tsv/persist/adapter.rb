@@ -34,15 +34,21 @@ module TSVAdapter
       alias orig_set []=
         alias orig_get []
 
-      def [](key)
+      def [](key, clean = false)
         self.read_lock do
-          load_value(super(key))
+          v = super(key)
+          return v if clean
+          load_value(v)
         end
       end
 
-      def []=(key, value)
+      def []=(key, value, clean = false)
         self.write_lock do
-          super(key, save_value(value))
+          if clean
+            super(key, value)
+          else
+            super(key, save_value(value))
+          end
         end
       end
 
@@ -324,9 +330,11 @@ module TSVAdapter
 
   def size(*args)
     self.read_lock do
-      super(*args)
+      super(*args) - 1 # Discount the EXTENSION_ATTR_HASH_KEY
     end
   end
+
+  alias length size
 
   def values_at(*keys)
     self.read_lock do

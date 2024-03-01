@@ -108,5 +108,37 @@ row2    A2|A22|A22    B2|B22|B22.2
     assert_equal ["B11", "B11.1"], unzip["row1:A11"]["ValueB"]
     assert_equal ["B22", "B22.2"], unzip["row2:A22"]["ValueB"]
   end
+
+  def test_unzip_replicates
+   content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b|bb|bbb    Id1|Id2|Id3
+row2    A    B    Id3
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/)
+
+      assert_equal 4, tsv.unzip_replicates.length
+      assert_equal %w(aa bb Id2), tsv.unzip_replicates["row1(1)"]
+    end
+  end
+
+
+  def test_unzip_zip
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|A|a|a    b|B|b|    Id1|Id2|Id1|Id1
+row2    aa|aa|AA|AA    b1|b2|B1|B2    Id1|Id1|Id2|Id2
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/)
+      assert_equal ["b", "b", ""], tsv.unzip("ValueA", merge: true)["row1:a"]["ValueB"]
+      assert_equal ["b", "b", "", "B"].sort, tsv.unzip("ValueA", merge: true).zip(true)["row1"]["ValueB"].sort
+    end
+
+  end
+
 end
 

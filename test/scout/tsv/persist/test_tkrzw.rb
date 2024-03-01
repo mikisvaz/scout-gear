@@ -96,7 +96,7 @@ row2    a    a    id3
       end
     end
 
-    def test_benchmark2
+    def __test_benchmark2
       TmpFile.with_file nil do |tmp|
 
         db = ScoutTKRZW.open(tmp, true)

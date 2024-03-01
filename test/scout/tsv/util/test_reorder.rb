@@ -90,5 +90,38 @@ rowa    a|aa    b|BB  C|CC
     end
   end
 
+  def test_slice_empty
+    content =<<-EOF
+#ID ValueA ValueB Comment
+row1 a b c
+row2 A B C
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :type => :list, :sep => /\s/)
+      tsv = tsv.slice []
+      assert tsv.fields.empty?
+      TmpFile.with_file do |tmpfile|
+        Open.write(tmpfile, tsv.to_s)
+        tsv = TSV.open tmpfile
+        assert tsv.fields.empty?
+      end
+    end
+  end
+
+  def test_reorder_flat
+    content =<<-EOF
+#Id    ValueA
+row1    a aa aaa
+row2    A
+row3    a
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/, :type => :flat)
+
+      assert_equal ["row1", "row3"].sort, tsv.reorder("ValueA")["a"]
+    end
+  end
 end
 

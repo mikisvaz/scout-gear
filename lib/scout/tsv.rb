@@ -107,6 +107,7 @@ module TSV
       if TSV::Parser === file
         TSV.parse(file, **options)
       else
+        options[:tsv_invert_grep] ||= invert_grep if invert_grep
         Open.open(file, grep: grep, invert_grep: invert_grep) do |f|
           TSV.parse(f, **options)
         end

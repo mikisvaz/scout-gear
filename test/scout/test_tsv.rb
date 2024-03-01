@@ -263,7 +263,7 @@ c 3
     end
   end
 
-  def TODO_test_tsv_grep
+  def test_tsv_grep
     content =<<-EOF
 #: :sep=/\\s+/#:type=:single
 #Id Value
@@ -277,8 +277,7 @@ d 22
       tsv = TSV.open(filename, :key_field => "Value", :tsv_grep => "2")
       assert_includes tsv, "2"
       refute_includes tsv, "3"
-      assert(tsv.include?("2"))
-      assert(! tsv.include?("3"))
+      refute_includes tsv, "1"
     end
   end
 

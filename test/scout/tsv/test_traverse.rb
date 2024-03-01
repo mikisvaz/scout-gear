@@ -197,5 +197,65 @@ row2    A2|A22    B2|B22
       assert_equal %w(row2), tsv.keys
     end
   end
+
+  def test_traverse_named
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row3    a    C    Id4
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/)
+
+      new_key, new_fields = tsv.through :key, ["ValueB"] do |key, values|
+        assert_include %w(b B C), values["ValueB"].first
+      end
+    end
+  end
+
+  def test_traverse_change_key
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row3    a    C    Id4
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/)
+
+      new_key, new_fields = tsv.through "ValueA" do |key, values|
+        assert_include tsv.keys, values["Id"].first
+      end
+
+      assert_equal "ValueA", new_key
+    end
+  end
+
+  def test_traverse_flat
+    content =<<-EOF
+#: :type=:flat
+#Row   vA
+row1    a    b    Id1
+row2    A    B    Id3
+row3    a    C    Id4
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/, :type => :flat)
+      keys = []
+      tsv.through "vA" do |k,v|
+        keys << k
+      end
+      assert_include keys, "B"
+
+      tsv.through :key do |k,v|
+        assert_equal 3, v.length
+      end
+
+    end
+  end
 end
 

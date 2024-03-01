@@ -21,6 +21,9 @@ module TSV
           end
           res[k] = merged
         end
+      elsif @type == :flat
+        res[k] ||= []
+        res[k].concat v
       else
         res[k] = v
       end

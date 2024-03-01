@@ -60,7 +60,7 @@ row2    a    a    id3
     end
   end
 
-  def __test_speed
+  def __test_benchmark
     tsv = TSV.setup({}, :type => :double, :key_field => "Key", :fields => %w(Field1 Field2))
 
     size = 100_000
@@ -103,8 +103,7 @@ row2    0.1  4.5 0
     EOF
 
     TmpFile.with_file(content) do |filename|
-      tsv = TSV.open(filename, :sep => /\s+/, :persist => true, :type => :list, :cast => :to_f)
-      tsv.save_extension_attr_hash
+      tsv = TSV.open(filename, :sep => /\s+/, :persist => true, :type => :list, :cast => :to_f, :persist_update => true)
       assert_equal [0.2, 0.3, 0], tsv["row1"]
       assert_equal TSVAdapter::FloatArraySerializer, tsv.serializer
       Open.cp tsv.persistence_path, tmpdir.persistence.foo
@@ -112,6 +111,21 @@ row2    0.1  4.5 0
       tsv2.extend TSVAdapter
       assert_equal [0.2, 0.3, 0], tsv2["row1"]
       assert_equal TSVAdapter::FloatArraySerializer, tsv2.serializer
+    end
+ 
+  end
+
+  def test_float_double
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1   0.2   0.3 0
+row2    0.1  4.5 0
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/, :persist => true, :type => :double, :cast => :to_f)
+      assert_equal Marshal, tsv.serializer
+      assert_equal [[0.2], [0.3], [0.0]], tsv["row1"]
     end
  
   end

@@ -143,7 +143,8 @@ module TSV
             end
 
             if ! merge || ! data.include?(key)
-              data[key] = these_items
+              these_items = these_items.collect{|i| i.empty? ? [nil] : i } if type == :double
+              data[key] ||= these_items
             elsif type == :double
               current = data[key]
               if merge == :concat
@@ -352,7 +353,16 @@ module TSV
       kwargs[:source_type] = @options[:type]
       kwargs[:data] = false if kwargs[:data].nil?
 
-      data = TSV.parse_stream(@stream, first_line: @first_line, fix: @fix, field_names: @fields, **kwargs, &block)
+      if kwargs[:tsv_grep]
+        tmp_stream = Open.open_pipe do |sin|
+          sin.puts @first_line
+          sin.write @stream.read
+        end
+        @stream = Open.grep(tmp_stream, kwargs.delete(:tsv_grep), kwargs.delete(:tsv_invert_grep))
+        data = TSV.parse_stream(@stream, first_line: nil, fix: @fix, field_names: @fields, **kwargs, &block)
+      else
+        data = TSV.parse_stream(@stream, first_line: @first_line, fix: @fix, field_names: @fields, **kwargs, &block)
+      end
 
       if data
         TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type)
@@ -396,6 +406,8 @@ module TSV
             :float
           when [:to_f, :list], [:to_f, :flat]
             :float_array
+          when [:to_f, :double], [:to_i, :double]
+            :marshal
           else
             type
           end

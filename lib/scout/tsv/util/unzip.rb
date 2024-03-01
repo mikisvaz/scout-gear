@@ -83,4 +83,60 @@ module TSV
   def unzip(*args, **kwargs)
     TSV.unzip(self, *args, **kwargs)
   end
+
+  def unzip_replicates
+    raise "Can only unzip replicates in :double TSVs" unless type == :double
+
+    new = {}
+    self.with_unnamed do
+      through do |k,vs|
+        NamedArray.zip_fields(vs).each_with_index do |v,i|
+          new[k + "(#{i})"] = v
+        end
+      end
+    end
+
+    self.annotate(new)
+    new.type = :list
+
+    new
+  end
+
+  def zip(merge = false, field = "New Field", sep = ":")
+    new = {}
+    self.annotate new
+
+    new.type = :double if merge
+
+    new.with_unnamed do
+      if merge
+        self.through do |key,values|
+          new_key, new_value = key.split(sep)
+          new_values = values + [[new_value] * values.first.length]
+          if new.include? new_key
+            current = new[new_key]
+            current.each_with_index do |v,i|
+              v.concat(new_values[i])
+            end
+          else
+            new[new_key] = new_values
+          end
+        end
+      else
+        self.through do |key,values|
+          new_key, new_value = key.split(sep)
+          new_values = values + [new_value]
+          new[new_key] = new_values
+        end
+      end
+    end
+
+    if self.key_field and self.fields
+      new.key_field = self.key_field.partition(sep).first
+      new.fields = new.fields + [field]
+    end
+
+    new
+  end
+
 end

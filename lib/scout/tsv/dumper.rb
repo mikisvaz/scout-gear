@@ -7,6 +7,8 @@ module TSV
 
       if fields.nil?
         fields_str = nil
+      elsif fields.empty?
+        fields_str = "#{header_hash}#{key_field || "Id"}"
       else
         fields_str = "#{header_hash}#{key_field || "Id"}#{sep}#{fields*sep}"
       end
@@ -74,13 +76,17 @@ module TSV
       @mutex.synchronize do
 
         key = key.to_s unless String === key
-        case @type
-        when :single
-          @sin.puts key + @sep + value.to_s
-        when :list, :flat
-          @sin.puts key + @sep + value * @sep
-        when :double
-          @sin.puts key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep
+        if value.nil? || value.empty?
+          @sin.puts key
+        else
+          case @type
+          when :single
+            @sin.puts key + @sep + value.to_s
+          when :list, :flat
+            @sin.puts key + @sep + value * @sep
+          when :double
+            @sin.puts key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep
+          end
         end
       end
     end
@@ -116,16 +122,46 @@ module TSV
   end
 
   def dumper_stream(options = {})
-    preamble = IndiferentHash.process_options options, :preamble, :preamble => true
+    preamble, unmerge, keys = IndiferentHash.process_options options, :preamble, :unmerge, :keys,
+      :preamble => true, :unmerge => false
+    unmerge = false unless @type === :double
     dumper = TSV::Dumper.new self.extension_attr_hash.merge(options)
     t = Thread.new do 
       begin
         Thread.current.report_on_exception = true
         Thread.current["name"] = "Dumper thread"
         dumper.init(preamble: preamble)
-        self.each do |k,v|
-          dumper.add k, v
+
+        dump_entry = Proc.new do |k,value_list|
+          if unmerge
+            max = value_list.collect{|v| v.length}.max
+
+            if unmerge == :expand and max > 1
+              value_list = value_list.collect do |values|
+                if values.length == 1
+                  [values.first] * max
+                else
+                  values
+                end
+              end
+            end
+
+            Misc.zip_fields(value_list).each do |values|
+              dumper.add k, values
+            end
+          else
+            dumper.add k, value_list
+          end
         end
+
+        if keys
+          keys.each do |k,value_list|
+            dump_entry.call k, value_list
+          end
+        else
+          self.each &dump_entry
+        end
+
         dumper.close
       rescue
         dumper.abort($!)
