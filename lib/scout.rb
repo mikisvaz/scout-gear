@@ -1,5 +1,4 @@
 require 'workflow-scout'
-require 'rbbt-scout'
 
 module Scout
   def self.version

@@ -46,6 +46,7 @@ class Step
     @dependencies ||= begin
                         if Open.exists?(info_file)
                           info[:dependencies].collect do |path|
+                            path = path.last if Array === path
                             Step.load(path)
                           end if info[:dependencies]
                         else

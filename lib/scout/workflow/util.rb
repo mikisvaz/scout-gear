@@ -8,6 +8,10 @@ module Workflow
     mod
   end
 
+  def self.installed_workflows
+    Scout.workflows.glob_all("*").collect{|f| File.basename(f) }.uniq
+  end
+
   def find_in_dependencies(name, dependencies)
     name = name.to_sym
     dependencies.select{|dep| dep.task_name.to_sym == name }

@@ -5,9 +5,6 @@ require 'scout/tsv'
 begin
   require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
   class TestScoutTKRZW < Test::Unit::TestCase
-    def setup
-    end
-
     def test_open
       TmpFile.with_file nil do |tmp|
         db = ScoutTKRZW.open(tmp, true)

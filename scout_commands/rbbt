@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require 'rbbt-scout'
+
 case
 when File.exist?(file = File.join(__dir__, '../modules/rbbt-util/bin/rbbt'))
   $LOAD_PATH.unshift(lib_dir = File.join(file, '../..', 'lib'))
