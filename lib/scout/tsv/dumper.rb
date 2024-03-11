@@ -146,7 +146,7 @@ module TSV
               end
             end
 
-            Misc.zip_fields(value_list).each do |values|
+            NamedArray.zip_fields(value_list).each do |values|
               dumper.add k, values
             end
           else
@@ -155,8 +155,8 @@ module TSV
         end
 
         if keys
-          keys.each do |k,value_list|
-            dump_entry.call k, value_list
+          keys.each do |k|
+            dump_entry.call k, self[k]
           end
         else
           self.each &dump_entry

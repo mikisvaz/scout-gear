@@ -134,7 +134,7 @@ module Open
               obj = obj.produce_and_find if Path === obj
               f = Open.open(obj)
               self.traverse(f, cpus: cpus, callback: callback, **options, &block)
-            when Step
+            when (defined?(Step) && Step)
               raise obj.exception if obj.error?
               self.traverse(obj.stream, cpus: cpus, callback: callback, **options, &block)
             when IO
