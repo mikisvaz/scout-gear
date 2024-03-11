@@ -367,7 +367,7 @@ module TSV
       if data
         TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type)
       else
-        [self.key_field, self.fields]
+        [key_field ||self.key_field, fields || self.fields]
       end
     end
 
