@@ -81,6 +81,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      sort.rb
      melt.rb
     }
+    entity.rb
     parser.rb
     dumper.rb
     transformer.rb
@@ -96,10 +97,12 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     traverse.rb
     attach.rb
     change_id.rb
+    meta_extension.rb
     path.rb
     stream.rb
     open.rb
    }
+   entity.rb
    offsite.rb
    offsite=offsite{
     ssh.rb

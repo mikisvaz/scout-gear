@@ -26,7 +26,7 @@ module TSV
       if fields == :all
         if just_keys
           keys = elems.sort_by{|key, value| key }.collect{|key, values| key}
-          keys = prepare_entity(keys, key_field, entity_options.merge(:dup_array => true))
+          keys = prepare_entity(keys, key_field, (entity_options || {}).merge(:dup_array => true)) unless @unnamed
         else
           elems.sort_by{|key, value| key }
         end
@@ -55,7 +55,7 @@ module TSV
         end
         if just_keys
           keys = sorted.collect{|key, value| key}
-          keys = prepare_entity(keys, key_field, entity_options.merge(:dup_array => true)) unless @unnamed
+          keys = prepare_entity(keys, key_field, (entity_options || {}).merge(:dup_array => true)) unless @unnamed
           keys
         else
           sorted.collect{|key, value| [key, self[key]]}
@@ -64,7 +64,7 @@ module TSV
     else
       if just_keys
         keys = elems.sort_by(&block).collect{|key, value| key}
-        keys = prepare_entity(keys, key_field, entity_options.merge(:dup_array => true)) unless @unnamed
+        keys = prepare_entity(keys, key_field, (entity_options || {}).merge(:dup_array => true)) unless @unnamed
         keys
       else
         elems.sort_by(&block).collect{|key, value| [key, self[key]]}
