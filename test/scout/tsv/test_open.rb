@@ -163,5 +163,34 @@ row2 aa bb cc
 
     assert_equal size, step.run.length
   end
+
+  def test_traverse_priority
+    require 'fc'
+
+    queue = FastContainers::PriorityQueue.new(:min)
+
+    array = []
+    100.times do e = rand(1000).to_i; array << e; queue.push(e,e) end
+
+    res = Open.traverse queue, :into => [] do |v|
+      v
+    end
+
+    assert_equal array.sort, res
+  end
+
+  def test_traverse_into_path
+    size = 100
+    array = (1..size).to_a.collect{|n| n.to_s}
+    TmpFile.with_file do |tmpfile|
+      Path.setup(tmpfile)
+      io = TSV.traverse array, :into => tmpfile do |e|
+        e
+      end
+      io.join
+      assert_equal size, Open.read(tmpfile).split("\n").length
+    end
+  end
+
 end
 

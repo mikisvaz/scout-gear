@@ -70,4 +70,11 @@ module TSV
     self
   end
 
+  def remove_duplicates(pivot = 0)
+    new = self.annotate({})
+    self.through do |k,values|
+      new[k] = NamedArray.zip_fields(NamedArray.zip_fields(values).uniq)
+    end
+    new
+  end
 end

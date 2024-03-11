@@ -63,5 +63,21 @@ row2    AA    BB    Id33
 
     assert_equal %w(), tsv["row1"]["ValueC"]
   end
+
+  def test_remove_duplicates
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|A|a|a    b|B|b|    Id1|Id2|Id1|Id1
+row2    aa|aa|AA|AA    b1|b2|B1|B2    Id1|Id1|Id2|Id2
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/)
+      assert_equal %w(a A a), tsv.remove_duplicates["row1"]["ValueA"]
+      assert tsv.remove_duplicates["row1"]["ValueB"].include?("")
+    end
+
+  end
+
 end
 

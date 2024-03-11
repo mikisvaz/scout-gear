@@ -40,5 +40,19 @@ a\t1|11\t2|22
       TSV.open(dumper.stream, bar: true)
     end
   end
+
+  def test_to_s_sort
+    tsv = TSV.setup({}, :key_field => "Key", :fields => %w(Field1 Field2), :type => :double)
+    tsv["b"] = [["2", "22"], ["3", "33"]]
+    tsv["a"] = [["1", "11"], ["2", "22"]]
+    txt=<<-EOF
+#: :type=:double
+#Key\tField1\tField2
+a\t1|11\t2|22
+b\t2|22\t3|33
+    EOF
+    assert_equal txt, tsv.to_s(keys: tsv.keys.sort)
+  end
+
 end
 

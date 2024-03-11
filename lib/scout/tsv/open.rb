@@ -42,6 +42,11 @@ module Open
       ConcurrentStream.setup(sin, :pair => sout)
       self.traverse(obj, into: sin, cpus: cpus, bar: bar, callback: callback, unnamed: unnamed, **options, &block)
       return sout
+    elsif Path === into
+      Open.write(into) do |io|
+        self.traverse(obj, into: io, cpus: cpus, bar: bar, callback: callback, unnamed: unnamed, **options, &block)
+      end
+      return into
     end
 
     if into || bar
@@ -161,10 +166,18 @@ module Open
                 nil
               end
             else
-              TSV.parse obj, **options do |k,v|
-                res = block.call k, v
-                callback.call res if callback
-                nil
+              if obj.respond_to?(:pop)
+                while elem = obj.pop
+                  res = block.call elem
+                  callback.call res if callback
+                  break unless obj.any?
+                end
+              else
+                TSV.parse obj, **options do |k,v|
+                  res = block.call k, v
+                  callback.call res if callback
+                  nil
+                end
               end
             end
       bar.remove if bar

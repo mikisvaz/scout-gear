@@ -176,4 +176,6 @@ module TSV
   def to_s(options = {})
     dumper_stream(options).read
   end
+
+  alias stream dumper_stream
 end
