@@ -224,4 +224,51 @@ row3        Id3
       end
     end
   end
+
+  def test_attach_index
+    content1 =<<-EOF
+#Id    ValueA    ValueB
+row1    a|aa|aaa    b
+row2    A    B
+    EOF
+
+    content2 =<<-EOF
+#ValueE    OtherID
+e    Id1|Id2
+E    Id3
+    EOF
+
+    content_index =<<-EOF
+#Id    ValueE
+row1    e
+row2    E
+    EOF
+
+    tsv1 = tsv2 = index = nil
+    TmpFile.with_file(content1) do |filename|
+      tsv1 = TSV.open(File.open(filename), type: :double, :sep => /\s+/)
+    end
+
+    TmpFile.with_file(content2) do |filename|
+      tsv2 = TSV.open(File.open(filename), type: :double, :sep => /\s+/)
+    end
+
+    TmpFile.with_file(content_index) do |filename|
+      index = TSV.open(File.open(filename), type: :flat, :sep => /\s+/)
+    end
+
+    tsv1.attach tsv2, index: index
+
+    assert_equal %w(ValueA ValueB OtherID), tsv1.fields
+    assert_equal %w(Id1 Id2), tsv1["row1"]["OtherID"]
+
+    TmpFile.with_file(content1) do |filename|
+      tsv1 = TSV.open(File.open(filename), type: :list, :sep => /\s+/)
+    end
+
+    tsv1.attach tsv2, index: index
+
+    assert_equal %w(ValueA ValueB OtherID), tsv1.fields
+    assert_equal "Id1", tsv1["row1"]["OtherID"]
+  end
 end

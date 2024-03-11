@@ -38,7 +38,7 @@ module TSV
     [match_key, other_key]
   end
 
-  def self.attach(source, other, target: nil, fields: nil, match_key: nil, other_key: nil, one2one: true, complete: false, insitu: nil, persist_input: false, bar: nil)
+  def self.attach(source, other, target: nil, fields: nil, index: nil, match_key: nil, other_key: nil, one2one: true, complete: false, insitu: nil, persist_input: false, bar: nil)
     source = TSV::Transformer.new source unless TSV === source || TSV::Parser === source
     other = TSV::Parser.new other unless TSV === other || TSV::Parser === other
 
@@ -101,6 +101,8 @@ module TSV
         source.traverse bar: bar, unnamed: true do |orig_key,current_values|
           keys = (match_key == :key || match_key_pos == :key) ? [orig_key] : current_values[match_key_pos]
           keys = [keys] unless Array === keys
+
+          keys = index.chunked_values_at(keys).flatten if index
 
           current_values = current_values.dup unless insitu
           keys.each do |current_key|
