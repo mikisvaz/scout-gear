@@ -184,4 +184,26 @@ module TSV
   def attach(*args, **kwargs)
     TSV.attach(self, *args, **kwargs)
   end
+
+  def identifier_files
+    case
+    when (identifiers and TSV === identifiers)
+      [identifiers]
+    when (identifiers and Array === identifiers)
+      case
+      when (TSV === identifiers.first or identifiers.empty?)
+        identifiers
+      else
+        identifiers.collect{|f| Path === f ? f : Path.setup(f)}
+      end
+    when identifiers
+      [ Path === identifiers ? identifiers : Path.setup(identifiers) ]
+    when Path === filename
+      filename.identifier_files
+    when filename
+      Path.setup(filename.dup).identifier_files
+    else
+      []
+    end
+  end
 end

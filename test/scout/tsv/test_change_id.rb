@@ -94,5 +94,30 @@ row2    C2|C22    D2|D22
     assert_equal ["C1","C11"], res["row1"]["ValueC"]
     assert_equal ["C2","C22"], res["row2"]["ValueC"]
   end
+
+  def test_translate
+
+    f1=<<-EOF
+#: :sep=' '
+#A B C
+a b c
+aa bb cc
+    EOF
+
+    identifiers=<<-EOF
+#: :sep=' '
+#A X
+a x
+aa xx
+    EOF
+
+    TmpFile.with_file(f1) do |tf1|
+      TmpFile.with_file(identifiers) do |ti|
+        tsv = TSV.open tf1, :identifiers => ti
+
+        assert TSV.change_key(tsv, "X").include? "x"
+      end
+    end
+  end
 end
 

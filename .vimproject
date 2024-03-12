@@ -97,12 +97,18 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     traverse.rb
     attach.rb
     change_id.rb
+    change_id=change_id{
+     translate.rb
+    }
     meta_extension.rb
     path.rb
     stream.rb
     open.rb
    }
    entity.rb
+   entity=entity{
+    format.rb
+   }
    offsite.rb
    offsite=offsite{
     ssh.rb

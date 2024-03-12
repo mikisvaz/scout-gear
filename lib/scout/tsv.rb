@@ -70,10 +70,10 @@ module TSV
   end
 
   def self.open(file, options = {})
-    grep, invert_grep = IndiferentHash.process_options options, :grep, :invert_grep, :persist => false
+    grep, invert_grep = IndiferentHash.process_options options, :grep, :invert_grep
 
     persist_options = IndiferentHash.pull_keys options, :persist
-    persist_options = IndiferentHash.add_defaults persist_options, :prefix => "TSV", :type => :HDB
+    persist_options = IndiferentHash.add_defaults persist_options, :prefix => "TSV", :type => :HDB, :persist => false
 
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
 
@@ -98,7 +98,17 @@ module TSV
         data = nil
       end
       options[:data] = data if data
-      options[:filename] = TSV::Parser === file ? file.options[:filename] : file
+      options[:filename] = if TSV::Parser === file
+                             file.options[:filename]
+                           elsif Path === file
+                             file
+                           elsif file.respond_to?(:filename)
+                             file.filename
+                           elsif Path.is_filename?(file)
+                             file
+                           else
+                             nil
+                           end
 
       if data
         Log.debug "TSV open #{Log.fingerprint file} into #{Log.fingerprint data}"

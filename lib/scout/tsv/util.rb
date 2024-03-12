@@ -149,6 +149,14 @@ Example:
     [@key_field] + @fields
   end
 
+  def self.all_fields(file)
+    if TSV === file
+      key_field = file.all_fields
+    else
+      TSV.parse_header(file)["all_fields"]
+    end
+  end
+
   def options
     self.extension_attr_hash
   end

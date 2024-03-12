@@ -370,4 +370,16 @@ row2    A    B    Id3
       refute TSV === hash
     end
   end
+
+  def test_identifiers
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/, :identifiers => Scout.share.identifiers)
+    end
+  end
 end

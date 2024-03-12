@@ -198,5 +198,19 @@ row2    a    b    id3
       end
     end
   end
+
+  def test_simple_index_key_field
+    text=<<-EOF
+#: :sep=' '
+#Y X
+y x
+yy xx
+    EOF
+
+    TmpFile.with_file(text) do |tmp|
+      assert_equal "Y", TSV.open(tmp).index(:target => "X", :fields => ["Y"]).key_field
+      assert_equal "Y", TSV.index(tmp, :target => "X", :fields => ["Y"]).key_field
+    end
+  end
 end
 

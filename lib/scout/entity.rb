@@ -1,3 +1,4 @@
+require_relative 'entity/format'
 module Entity
   def self.extended(base)
     meta = class << base; self end

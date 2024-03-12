@@ -170,6 +170,7 @@ module TSV
             end
           end
         rescue Exception
+          raise stream.stream_exception if stream.respond_to?(:stream_exception) && stream.stream_exception
           stream.abort($!) if stream.respond_to?(:abort)
           raise $!
         ensure
@@ -206,57 +207,68 @@ module TSV
         return parse_header(f, fix: fix, header_hash: header_hash, sep: sep)
       end
     end
-    raise "Closed stream" if IO === stream && stream.closed?
+
+    if IO === stream && stream.closed?
+      stream.join if stream.respond_to?(:join)
+      raise "Closed stream" 
+    end
 
     opts = {}
     preamble = []
 
     # Get line
 
-    #Thread.pass while IO.select([stream], nil, nil, 1).nil? if IO === stream
-    line = stream.gets
-    return {} if line.nil?
-    line = Misc.fixutf8 line.chomp if fix
-
-    # Process options line
-    if line and (String === header_hash && m = line.match(/^#{header_hash}: (.*)/))
-      opts = IndiferentHash.string2hash m.captures.first.chomp
+    begin
+      #Thread.pass while IO.select([stream], nil, nil, 1).nil? if IO === stream
       line = stream.gets
-      if line && fix
-        if Proc === fix
-          line = fix.call line
-        else
-          line = Misc.fixutf8 line.chomp if line && fix
+      return {} if line.nil?
+      line = Misc.fixutf8 line.chomp if fix
+
+      # Process options line
+      if line and (String === header_hash && m = line.match(/^#{header_hash}: (.*)/))
+        opts = IndiferentHash.string2hash m.captures.first.chomp
+        line = stream.gets
+        if line && fix
+          if Proc === fix
+            line = fix.call line
+          else
+            line = Misc.fixutf8 line.chomp if line && fix
+          end
         end
       end
-    end
 
-    # Determine separator
-    sep = opts[:sep] if opts[:sep]
+      # Determine separator
+      sep = opts[:sep] if opts[:sep]
 
-    # Process fields line
-    preamble << line if line
-    while line && (TrueClass === header_hash || (String === header_hash && line.start_with?(header_hash)))
-      fields = line.split(sep, -1)
-      key_field = fields.shift
-      key_field = key_field.sub(header_hash, '') if String === header_hash && ! header_hash.empty?
-
-      line = (header_hash != "" ?  stream.gets : nil)
-      line = Misc.fixutf8 line.chomp if line
+      # Process fields line
       preamble << line if line
-      break if TrueClass === header_hash || header_hash == ""
+      while line && (TrueClass === header_hash || (String === header_hash && line.start_with?(header_hash)))
+        fields = line.split(sep, -1)
+        key_field = fields.shift
+        key_field = key_field.sub(header_hash, '') if String === header_hash && ! header_hash.empty?
+
+        line = (header_hash != "" ?  stream.gets : nil)
+        line = Misc.fixutf8 line.chomp if line
+        preamble << line if line
+        break if TrueClass === header_hash || header_hash == ""
+      end
+
+      preamble = preamble[0..-3] * "\n"
+
+      line ||= stream.gets
+
+      first_line = line
+
+      opts[:type] = opts[:type].to_sym if opts[:type]
+      opts[:cast] = opts[:cast].to_sym if opts[:cast]
+
+      all_fields = [key_field] + fields if key_field && fields
+      NamedArray.setup([opts, key_field, fields, first_line, preamble, all_fields], %w(options key_field fields first_line preamble all_fields))
+    rescue Exception
+      raise stream.stream_exception if stream.respond_to?(:stream_exception) && stream.stream_exception
+      stream.abort($!) if stream.respond_to?(:abort)
+      raise $!
     end
-
-    preamble = preamble[0..-3] * "\n"
-
-    line ||= stream.gets
-
-    first_line = line
-
-    opts[:type] = opts[:type].to_sym if opts[:type]
-    opts[:cast] = opts[:cast].to_sym if opts[:cast]
-
-    NamedArray.setup([opts, key_field, fields, first_line, preamble], %w(options key_field fields first_line preamble))
   end
 
   KEY_PARAMETERS = begin
@@ -309,6 +321,7 @@ module TSV
           all_field_names ||= [@key_field] + @fields
           fields = all_field_names if fields == :all
           positions = NamedArray.identify_name(all_field_names, fields)
+          raise "Not all fields (#{Log.fingerprint fields}) identified in #{Log.fingerprint all_field_names}" if positions.include?(nil)
           kwargs[:positions] = positions
           field_names = all_field_names.values_at *positions
         elsif fields.reject{|f| Numeric === f}.empty?
@@ -389,7 +402,9 @@ module TSV
 
     cast = kwargs[:cast]
     cast = parser.options[:cast] if cast.nil?
+    identifiers = kwargs.delete(:identifiers)
     type = kwargs[:type] ||=  parser.options[:type] ||= :double
+
     if (data = kwargs[:data]) && data.respond_to?(:persistence_class)
       TSV.setup(data, type: type)
       data.extend TSVAdapter
@@ -422,7 +437,7 @@ module TSV
     data.type = type
     data.filename = filename || parser.options[:filename]
     data.namespace = namespace || parser.options[:namespace]
-    data.identifiers = parser.options[:identifiers]
+    data.identifiers = identifiers
     data.unnamed = unnamed
     data.save_extension_attr_hash if data.respond_to?(:save_extension_attr_hash)
     data

@@ -55,6 +55,7 @@ module TSV
           end
         end
 
+
         index.key_field = source_field_names * ","
         index.fields = [target_key_field]
       end

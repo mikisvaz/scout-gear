@@ -1,6 +1,9 @@
+require_relative 'change_id/translate'
+
 module TSV
   def self.change_key(source, new_key_field, identifiers: nil, one2one: false, merge: true, stream: false, keep: false, persist_identifiers: nil)
     source = TSV::Parser.new source if String === source
+    identifiers = source.identifiers if identifiers.nil? and source.respond_to?(:identifiers)
     if identifiers && source.identify_field(new_key_field, strict: true).nil?
       identifiers = identifiers.nil? ? source.identifiers : identifiers
       new = source.attach(identifiers, fields: [new_key_field], insitu: false, one2one: true, persist_input: persist_identifiers)
