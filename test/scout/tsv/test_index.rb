@@ -199,6 +199,22 @@ row2    a    b    id3
     end
   end
 
+  def test_index_fields
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/, :key_field => "OtherID", :persist => false)
+      index = tsv.index(:persist => true, :persist_update => true)
+      assert index["row1"].include? "Id1"
+      assert_equal "OtherID", index.fields.first
+    end
+  end
+
+
   def test_simple_index_key_field
     text=<<-EOF
 #: :sep=' '
@@ -212,5 +228,57 @@ yy xx
       assert_equal "Y", TSV.index(tmp, :target => "X", :fields => ["Y"]).key_field
     end
   end
+
+  def test_pos_and_range_index
+    content =<<-EOF
+#Id	ValueA    ValueB    Pos1    Pos2
+row1    a|aa|aaa    b    0|10    10|30
+row2    A    B    30   35
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), type: :double, sep: /\s+/)
+      index = tsv.pos_index("Pos1")
+      assert_equal ["row1"], index[10]
+
+      index = tsv.range_index("Pos1", "Pos2")
+      assert_equal ["row1"], index[20]
+    end
+  end
+
+
+  def test_index_static_persist
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b|A    Id1
+row2    A    a|B    Id3
+row3    A    a|B    Id4
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      index = TSV.index(filename, :target => "OtherID", :sep => /\s+/, :order => true, :persist => false)
+      assert_equal "Id1", index['a']
+      assert_equal "Id3", index['A']
+      assert_equal "OtherID", index.fields.first
+
+      index = TSV.index(filename, :target => "OtherID", :sep => /\s+/, :order => true, :persist => true)
+      assert_equal "Id1", index['a']
+      assert_equal "Id3", index['A']
+      assert_equal "OtherID", index.fields.first
+
+      Open.write(filename, Open.read(filename).sub(/row1.*Id1\n/,''))
+
+      index = TSV.index(filename, :target => "OtherID", :sep => /\s+/, :order => true, :persist => true)
+      assert_equal "Id1", index['a']
+      assert_equal "Id3", index['A']
+      assert_equal "OtherID", index.fields.first
+      assert index.include?('aaa')
+
+      index = TSV.index(filename, :target => "OtherID", :sep => /\s+/, :order => true, :persist => false)
+      assert ! index.include?('aaa')
+    end
+  end
+
+
 end
 

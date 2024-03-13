@@ -65,8 +65,8 @@ module TSVAdapter
 
     if base.include?(EXTENSION_ATTR_HASH_KEY)
       TSV.setup(base, base.load_extension_attr_hash)
-    else
-      base.instance_variable_get(:@extension_attrs).push :serializer
+    elsif TSV === base
+      base.instance_variable_get(:@extension_attrs).push(:serializer)
       base.serializer = SERIALIZER_ALIAS[base.type] if base.serializer.nil?
       base.save_extension_attr_hash
     end

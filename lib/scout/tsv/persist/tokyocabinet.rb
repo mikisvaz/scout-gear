@@ -56,7 +56,7 @@ module ScoutCabinet
   end
 
   def read(force = false)
-    return if ! write? && ! closed && ! force
+    return if ! @writable && ! @closed && ! force
     self.close
     if !self.open(@persistence_path, persistence_class::OREADER)
       ecode = self.ecode
@@ -69,8 +69,17 @@ module ScoutCabinet
     self
   end
 
+  def write?
+    @writable
+  end
+
+  def closed?
+    @closed
+  end
+
+
   def write(force = true)
-    return if write? && ! closed && ! force
+    return if write? && ! closed? && ! force
     self.close
 
     if !self.open(@persistence_path, persistence_class::OWRITER)
@@ -84,6 +93,23 @@ module ScoutCabinet
     self
   end
 
+  def write_and_read
+    begin
+      write
+      yield
+    ensure
+      read
+    end
+  end
+
+  def write_and_close
+    begin
+      write
+      yield
+    ensure
+      close
+    end
+  end
   #def self.open_tokyocabinet(path, write, serializer = nil, tokyocabinet_class = TokyoCabinet::HDB)
   #  raise
   #  write = true unless File.exist? path
@@ -111,6 +137,9 @@ module Persist
 
     database = ScoutCabinet.open(path, write, tokyocabinet_class)
 
+    database.extend TSVAdapter
+    database.serializer = serializer
+
     database
   end
 end
@@ -125,6 +154,20 @@ end
 
 Persist.load_drivers[:HDB] = proc do |file| 
   data = ScoutCabinet.open(file, false, "HDB")
+  data.extend TSVAdapter unless TSVAdapter === data
+  data
+end
+
+Persist.save_drivers[:BDB] = proc do |file, content|
+  data = ScoutCabinet.open(file, true, "BDB")
+  content.annotate(data)
+  data.extend TSVAdapter
+  data.merge!(content)
+  data
+end
+
+Persist.load_drivers[:BDB] = proc do |file| 
+  data = ScoutCabinet.open(file, false, "BDB")
   data.extend TSVAdapter unless TSVAdapter === data
   data
 end

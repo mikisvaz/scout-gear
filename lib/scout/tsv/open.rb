@@ -152,7 +152,7 @@ module Open
                 end
               else
                 Log.low "Traverse stream with parser #{Log.fingerprint obj}"
-                parser = TSV::Parser.new obj
+                parser = TSV::Parser.new obj, sep: options[:sep]
                 parser.traverse **options do |k,v,f|
                   res = block.call k,v,f
                   callback.call res if callback

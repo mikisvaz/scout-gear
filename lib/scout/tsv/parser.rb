@@ -341,7 +341,7 @@ module TSV
           all_field_names ||= [@key_field] + @fields
           key = NamedArray.identify_name(all_field_names, key_field)
           kwargs[:key] = key == :key ? 0 : key
-          key_field_name = key === :key ? @key_field : all_field_names[key]
+          key_field_name = (key.nil? || key == :key) ? @key_field : all_field_names[key]
           if fields.nil?
             field_names = all_field_names - [key_field_name]
           end

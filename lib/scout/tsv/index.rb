@@ -54,12 +54,10 @@ module TSV
             index[e] = k unless index.include?(e)
           end
         end
-
-
-        index.key_field = source_field_names * ","
-        index.fields = [target_key_field]
       end
 
+      index.key_field = source_field_names * ","
+      index.fields = [target_key_field]
 
       index
     end
@@ -129,13 +127,13 @@ module TSV
 
       max_key_size = 0
       index_data = []
-      TSV.traverse tsv_file, key_field: key_field, fields: [pos_field], type: :single, cast: :to_i, bar: bar, **kwargs do |key, pos|
+      TSV.traverse tsv_file, key_field: key_field, fields: [pos_field], type: :flat, cast: :to_i, bar: bar, **kwargs do |key, pos|
         key_size = key.length
         max_key_size = key_size if key_size > max_key_size
 
         if Array === pos
-          pos.zip(end_pos).each do |p|
-            index_pos << [key, p]
+          pos.each do |p|
+            index_data << [key, p]
           end
         else
           index_data << [key, pos]

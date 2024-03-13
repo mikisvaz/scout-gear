@@ -13,6 +13,7 @@ require_relative 'tsv/change_id'
 require_relative 'tsv/stream'
 require_relative 'tsv/entity'
 require_relative 'tsv/meta_extension'
+require_relative 'tsv/csv'
 
 module TSV
   extend MetaExtension
@@ -70,7 +71,7 @@ module TSV
   end
 
   def self.open(file, options = {})
-    grep, invert_grep = IndiferentHash.process_options options, :grep, :invert_grep
+    grep, invert_grep, monitor, entity_options = IndiferentHash.process_options options, :grep, :invert_grep, :monitor, :entity_options
 
     persist_options = IndiferentHash.pull_keys options, :persist
     persist_options = IndiferentHash.add_defaults persist_options, :prefix => "TSV", :type => :HDB, :persist => false
@@ -116,7 +117,7 @@ module TSV
         Log.debug "TSV open #{Log.fingerprint file}"
       end
 
-      if TSV::Parser === file
+      tsv = if TSV::Parser === file
         TSV.parse(file, **options)
       else
         options[:tsv_invert_grep] ||= invert_grep if invert_grep
@@ -124,6 +125,10 @@ module TSV
           TSV.parse(f, **options)
         end
       end
+
+      tsv.entity_options = entity_options
+
+      tsv
     end
   end
 
