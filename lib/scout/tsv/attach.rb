@@ -70,11 +70,23 @@ module TSV
         other_key_name = other.fields[other_key_name] if Integer === other_key
         fields = other.all_fields - [other_key_name, source.key_field] if fields.nil?
 
+        match_key_name = match_key == :key ? source.key_field : match_key_name
+
+        if index.nil? && ! source.identify_field(other_key_name)
+          identifier_files = []
+          identifier_files << source
+          identifier_files << TSV.identifier_files(source)
+          identifier_files << TSV.identifier_files(other)
+          identifier_files << other
+
+          index = TSV.translation_index(identifier_files.flatten, match_key_name, other_key_name)
+        end
+
         if other_key != :key 
           other = other.reorder other_key, fields, one2one: one2one
         end
 
-        other_field_positions = other.identify_field(fields) 
+        other_field_positions = other.identify_field(fields.dup) 
 
         log_message = "Attach #{Log.fingerprint fields - source.fields} to #{Log.fingerprint source} (#{[match_key, other_key] * "=~"})"
         Log.debug log_message
@@ -85,8 +97,11 @@ module TSV
         source.fields = (source.fields + fields).uniq
 
         overlaps = source.identify_field(fields)
+        orig_type = source.type
 
-        empty_other_values = case source.type
+        type = source.type == :single ? :list : source.type
+
+        empty_other_values = case type
                              when :list
                                [nil] * other.fields.length
                              when :flat
@@ -96,9 +111,12 @@ module TSV
                              end
 
         insitu = TSV === source ? true : false if insitu.nil?
+        insitu = false if source.type == :single
 
         match_key_pos = source.identify_field(match_key)
         source.traverse bar: bar, unnamed: true do |orig_key,current_values|
+          current_values = [current_values] if source.type == :single
+
           keys = (match_key == :key || match_key_pos == :key) ? [orig_key] : current_values[match_key_pos]
           keys = [keys] unless Array === keys
 
@@ -109,8 +127,8 @@ module TSV
             other_values = other[current_key]
 
             if other_values.nil?
-              other_values = empty_other_values
-            elsif other.type == :flat
+              other_values = other.type == :single ? nil : empty_other_values
+            elsif other.type == :flat 
               other_values = [other_values]
             elsif other.type == :list && source.type == :double
               other_values = other_values.collect{|v| [v] }
@@ -118,14 +136,25 @@ module TSV
               other_values = other_values.collect{|v| v.first }
             end
 
-            other_values = other_values.values_at *other_field_positions
+            other_values = other_field_positions.collect do |pos|
+              if pos == :key
+                current_key
+              else
+                other.type == :single ? other_values : other_values[pos]
+              end
+            end
 
             other_values.zip(overlaps).each do |v,overlap|
-              if source.type == :list
+              if type == :list
                 current_values[overlap] = v if current_values[overlap].nil? || String === current_values[overlap] && current_values[overlap].empty?
+              elsif type == :flat
+                next if v.nil?
+                v = [v] unless Array === v
+                current_values.concat v
               else
                 current_values[overlap] ||= []
                 next if v.nil?
+                v = [v] unless Array === v
                 current_values[overlap].concat (v - current_values[overlap])
               end
             end
@@ -135,7 +164,7 @@ module TSV
         end
 
         if complete && match_key == :key
-          empty_self_values = case source.type
+          empty_self_values = case type
                               when :list
                                 [nil] * source.fields.length
                               when :flat
@@ -145,15 +174,17 @@ module TSV
                               end
           other.each do |other_key,other_values|
             next if source.include?(other_key)
-            if other.type == :flat
+            if other.type == :flat 
               other_values = [other_values]
-            elsif other.type == :list && source.type == :double
+            elsif other.type == :single 
+              other_values = [other_values]
+            elsif other.type == :list && type == :double
               other_values = other_values.collect{|v| [v] }
-            elsif other.type == :double && source.type == :list
+            elsif other.type == :double && type == :list
               other_values = other_values.collect{|v| v.first }
             end
 
-            new_values = case source.type
+            new_values = case type
                          when :list
                            [nil] * source.fields.length
                          when :flat
@@ -164,17 +195,19 @@ module TSV
 
             other_values.zip(overlaps).each do |v,overlap|
               next if v.nil?
-              if false && overlap == :key
+              if overlap == :key
                 other_key = Array === v ? v : v.first
-              elsif source.type == :list
+              elsif type == :list
                 new_values[overlap] = v if v[overlap].nil? || String === v[overlap] && v[overlap].empty?
               else
+                v = [v] unless Array === v
                 new_values[overlap].concat v
               end
             end
             source[other_key] = new_values
           end
         end
+        source.type = type
       end
     end
 
@@ -199,11 +232,22 @@ module TSV
     when identifiers
       [ Path === identifiers ? identifiers : Path.setup(identifiers) ]
     when Path === filename
-      filename.identifier_files
+      path_files = filename.identifier_files
+      [path_files].flatten.compact.select{|f| f.exists?}
     when filename
       Path.setup(filename.dup).identifier_files
     else
       []
+    end
+  end
+
+  def self.identifier_files(obj)
+    if TSV === obj
+      obj.identifier_files
+    elsif Path === obj
+      obj.identifier_files
+    else
+      nil
     end
   end
 end

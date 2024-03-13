@@ -150,8 +150,8 @@ Example:
   end
 
   def self.all_fields(file)
-    if TSV === file
-      key_field = file.all_fields
+    if file.respond_to?(:all_fields)
+      file.all_fields
     else
       TSV.parse_header(file)["all_fields"]
     end

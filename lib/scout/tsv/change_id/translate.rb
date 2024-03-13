@@ -49,12 +49,12 @@ module TSV
       index = path.inject(nil) do |acc,file|
         if acc.nil?
           if TSV === file
-            tsv = file.key_field == source ? file : file.reorder(source)
+            tsv = file.key_field == source ? file.annotate(file.dup) : file.reorder(source)
           else
             tsv = TSV.open(file, :key_field => source)
           end
         else
-          acc = acc.attach file
+          acc = acc.attach file, insitu: false
         end
       end
       index.slice([target]).to_single

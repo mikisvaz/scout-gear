@@ -1,5 +1,5 @@
 module TSV
-  def self.paste_streams(streams, type: nil, sort: nil, sort_memory: nil, sep: nil, preamble: nil, header: nil, same_fields: nil, fix_flat: nil, all_match: nil, field_prefix: nil)
+  def self.paste_streams(streams, type: nil, sort: nil, merge: true, sort_memory: nil, sep: nil, preamble: nil, header: nil, same_fields: nil, fix_flat: nil, all_match: nil, field_prefix: nil)
 
     streams = streams.collect do |stream|
       case stream
@@ -9,6 +9,8 @@ module TSV
         stream.open
       when TSV::Dumper
         stream.stream
+      when TSV
+        stream.dumper_stream
       else
         stream
       end
@@ -35,7 +37,7 @@ module TSV
 
       streams = streams.collect do |stream|
 
-        parser = TSV::Parser.new stream, type: type
+        parser = TSV::Parser.new stream, type: type, sep: sep
 
         sfields = parser.fields
 
@@ -105,12 +107,13 @@ module TSV
           keys[i]= key
           parts[i]= p
         end
-        sizes[i]||= parts[i].length-1 unless parts[i].nil?
+        sizes[i] ||= parts[i].length unless parts[i].nil?
       end
       done_streams =[]
 
+      fields = nil if fields && fields.empty?
       dumper = TSV::Dumper.new key_field: key_field, fields: fields, type: type
-      dumper.init 
+      dumper.init(preamble: !!key_field)
 
       t = Thread.new do
         Thread.report_on_exception = false
@@ -141,14 +144,19 @@ module TSV
                 parts[i]= nil
               else
                 k, *p = line.chomp.split(sep, -1)
-                raise TryAgain if k == keys[i]
+                p = p.collect{|e| e.nil? ? "" : e }
+
+                if k == keys[i]
+                  new_values = NamedArray.zip_fields(new_values).zip(p).collect{|p| [p.flatten * "|"] }
+                  raise TryAgain 
+                end
                 keys[i]= k
-                parts[i]= p.collect{|e| e.nil? ? "" : e}
+                parts[i]= p
               end
             rescue TryAgain
               keys[i]= nil
               parts[i]= nil
-              Log.debug "Skipping repeated key in stream #{i}: #{keys[i]}"
+              Log.debug "Skipping repeated key in stream #{i}: #{key} - #{min}"
               retry
             end
           else
