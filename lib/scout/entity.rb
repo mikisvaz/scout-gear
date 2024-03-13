@@ -1,11 +1,18 @@
 require_relative 'entity/format'
+require_relative 'entity/property'
+require_relative 'entity/object'
+require_relative 'entity/identifiers'
 module Entity
-  def self.extended(base)
-    meta = class << base; self end
-    base.extend MetaExtension
+  class << self
+    attr_accessor :entity_property_cache, :all_formats
+  end
 
-    meta.define_method(:property) do |name,&block|
-      self.define_method(name, &block)
-    end
+  def self.extended(base)
+    base.extend MetaExtension
+    base.extend Entity::Property
+    base.instance_variable_set(:@properties, [])
+    base.instance_variable_set(:@persisted_methods, {})
+    base.include Entity::Object
+    base.include ExtendedArray
   end
 end

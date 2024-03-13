@@ -49,4 +49,20 @@ class Test::Unit::TestCase
   teardown do
     Open.rm_rf tmpdir
   end
+
+  def self.datadir_test
+    Path.setup(File.join(File.dirname(__FILE__), 'data'))
+  end
+
+  def self.datafile_test(file)
+    datadir_test[file.to_s]
+  end
+
+  def datadir_test
+    Test::Unit::TestCase.datadir_test
+  end
+
+  def datafile_test(file)
+    Test::Unit::TestCase.datafile_test(file)
+  end
 end

@@ -50,7 +50,12 @@ module MetaExtension
     extension_attrs = if MetaExtension.is_extended?(objs) 
                         objs.extension_attrs 
                       elsif (Array === objs && objs.any?)
-                        objs.compact.first.extension_attrs
+                        first = objs.compact.first
+                        if MetaExtension.is_extended?(first)
+                          objs.compact.first.extension_attrs
+                        else
+                          raise "Objects didn't have extensions"
+                        end
                       else
                         nil
                       end
@@ -73,8 +78,14 @@ module MetaExtension
     when Array === objs 
       tsv.key_field = "ID"
 
-      objs.compact.each_with_index do |obj,i|
-        tsv[obj.extended_digest + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
+      if MetaExtension.is_extended?(objs.compact.first)
+        objs.compact.each_with_index do |obj,i|
+          tsv[obj.extended_digest + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
+        end
+      elsif MetaExtension.is_extended?(objs.compact.first.compact.first)
+        objs.flatten.compact.each_with_index do |obj,i|
+          tsv[obj.extended_digest + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
+        end
       end
     else
       raise "Annotations need to be an Array to create TSV"

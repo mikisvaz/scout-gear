@@ -2,7 +2,7 @@ module TSV
 
   def self.translation_path(file_fields, source, target)
     target_files = file_fields.select{|f,fields| fields.include? target }.collect{|file,f| file }
-    source_files = file_fields.select{|f,fields| fields.include? source }.collect{|file,f| file }
+    source_files = file_fields.select{|f,fields| source.nil? || fields.include?(source) }.collect{|file,f| file }
 
     if (one_step = target_files & source_files).any?
       [one_step.first]

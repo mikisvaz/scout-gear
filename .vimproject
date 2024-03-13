@@ -107,7 +107,10 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    }
    entity.rb
    entity=entity{
+    property.rb
+    object.rb
     format.rb
+    identifiers.rb
    }
    offsite.rb
    offsite=offsite{
@@ -120,6 +123,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  test=test {
   test_helper.rb
   test_scout-gear.rb
+  data=data{
+   identifiers
+  }
   scout=scout{
    test_cmd.rb
    test_concurrent_stream.rb

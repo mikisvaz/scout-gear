@@ -3,6 +3,10 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 
 class TestEntity < Test::Unit::TestCase
 
+  setup do
+    Entity.entity_property_cache = tmpdir.property_cache
+  end
+
   module Person
     extend Entity
 
@@ -18,9 +22,7 @@ class TestEntity < Test::Unit::TestCase
     end
   end
 
-
   def test_person
-  
     person = Person.setup("Miguel", 'es')
     assert_equal "Hola Miguel", person.salutation
 
@@ -28,4 +30,3 @@ class TestEntity < Test::Unit::TestCase
     assert_equal "Hi Miguel", person.salutation
   end
 end
-

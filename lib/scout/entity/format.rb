@@ -1,4 +1,24 @@
 module Entity
+
+  def format=(formats)
+    formats = [formats] unless Array === formats
+    self.all_formats ||= []
+    self.all_formats = self.all_formats.concat(formats).uniq
+    formats.each do |format|
+      Entity.formats[format] ||= self
+    end
+  end
+
+  def all_formats
+    @all_formats ||= []
+  end
+
+  def all_formats=(formats)
+    @all_formats = formats
+  end
+
+
+
   class FormatIndex < Hash
 
     alias orig_include? include?
@@ -51,4 +71,5 @@ module Entity
   def self.formats
     FORMATS
   end
+
 end
