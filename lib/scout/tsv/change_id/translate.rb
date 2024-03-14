@@ -16,9 +16,6 @@ module TSV
   end
 
   def self.translation_path(file_fields, source, target)
-    #target_files = file_fields.select{|f,fields| fields.include? target }.collect{|file,f| file }
-    #source_files = file_fields.select{|f,fields| source.nil? || fields.include?(source) }.collect{|file,f| file }
-
     target_files = file_fields.select{|f,fields| identify_field_in_obj(fields, target) }.collect{|file,f| file }
     source_files = file_fields.select{|f,fields| identify_field_in_obj(fields, source) }.collect{|file,f| file }
 
@@ -39,7 +36,7 @@ module TSV
           target_file = target_files.select{|file| fields = file_fields[file]; (fields & middle_fields).any? }.collect{|file,f| file }.first
           [source_file, middle_file, target_file]
         else
-          raise "Could not traverse identifier path from #{source} to #{target} in #{Log.fingerprint file_fields}"
+          raise "Could not traverse identifier path from #{Log.fingerprint source} to #{Log.fingerprint target} in #{Log.fingerprint file_fields}"
         end
       end
     end
@@ -63,8 +60,8 @@ module TSV
     rescue
       exception = $!
       begin
-        target = Entity.formats.find(target) if target && defined?(Entity) && Entity.formats.find(target)
-        source = Entity.formats.find(source) if source && defined?(Entity) && Entity.formats.find(source)
+        #target = Entity.formats.find(target) if target && defined?(Entity) && Entity.formats.find(target)
+        #source = Entity.formats.find(source) if source && defined?(Entity) && Entity.formats.find(source)
         path = translation_path(file_fields, source, target)
       rescue
         raise exception

@@ -14,5 +14,6 @@ module Entity
     base.instance_variable_set(:@persisted_methods, {})
     base.include Entity::Object
     base.include ExtendedArray
+    base
   end
 end

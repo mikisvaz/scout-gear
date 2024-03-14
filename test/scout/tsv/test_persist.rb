@@ -79,5 +79,33 @@ row2    a    a    id3
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
   end
+
+  def test_persist_tsv
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+
+    tsv = nil
+    TmpFile.with_file(content) do |filename|
+      tsv = Persist.persist_tsv(filename, nil , persist_engine: :HDB) do |data|
+        TSV.open(filename, data: data)
+      end
+      assert_include tsv.keys, 'row1'
+      assert_include tsv.keys, 'row2'
+      assert_nothing_raised do
+        tsv = Persist.persist_tsv(filename, nil , persist_engine: :HDB) do |data|
+          raise
+        end
+      end
+    end
+
+    assert_include tsv.keys, 'row1'
+    assert_include tsv.keys, 'row2'
+  end
 end
 

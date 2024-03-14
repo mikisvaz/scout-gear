@@ -25,3 +25,17 @@ Persist.save_drivers[:tsv] = proc do |file,content|
 end
 
 Persist.load_drivers[:tsv] = proc do |file| TSV.open file end
+
+module Persist
+  def self.persist_tsv(file, filename = nil, options = {}, persist_options = {})
+    engine = IndiferentHash.process_options persist_options, :engine, engine: "HDB"
+    Persist.persist(file, engine, persist_options.merge(:other => options)) do |filename|
+      if filename
+        data = Persist.open_tokyocabinet(filename, true, engine)
+        yield(data)
+      else
+        yield({})
+      end
+    end
+  end
+end

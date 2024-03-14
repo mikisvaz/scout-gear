@@ -22,11 +22,19 @@ class TestEntity < Test::Unit::TestCase
     end
   end
 
+  module EmptyEntity
+    extend Entity
+  end
+
   def test_person
     person = Person.setup("Miguel", 'es')
     assert_equal "Hola Miguel", person.salutation
 
     person.language = 'en'
     assert_equal "Hi Miguel", person.salutation
+  end
+
+  def test_empty
+    refute EmptyEntity.setup("foo").nil?
   end
 end
