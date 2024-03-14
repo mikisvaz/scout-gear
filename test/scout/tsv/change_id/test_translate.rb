@@ -4,6 +4,21 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 require 'scout/tsv'
 
 class TestTSVTranslate < Test::Unit::TestCase
+  def test_marriage_index
+    marriages = datadir_test.person.marriages.tsv
+    identifiers = datadir_test.person.identifiers.tsv
+    index = TSV.translation_index [marriages, identifiers], "Husband (ID)", "Husband (Name)"
+    assert_equal 'Miguel', index["001"]
+  end
+
+  def test_translate_marriages
+    marriages = datadir_test.person.marriages.tsv
+    marriages = marriages.translate "Husband (ID)", "Husband (Name)"
+    marriages = marriages.translate "Wife (ID)", "Wife (Name)"
+    assert_equal "Cleia", marriages["Miguel"]["Wife"]
+  end
+
+
   def test_translation_path
     file_paths = {
       :file1 => %w(A B C),

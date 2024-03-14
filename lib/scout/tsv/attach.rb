@@ -110,6 +110,8 @@ module TSV
                                [[]] * other.fields.length
                              end
 
+        empty_other_values = nil if other.type == :single
+
         insitu = TSV === source ? true : false if insitu.nil?
         insitu = false if source.type == :single
 
@@ -127,7 +129,7 @@ module TSV
             other_values = other[current_key]
 
             if other_values.nil?
-              other_values = other.type == :single ? nil : empty_other_values
+              other_values = empty_other_values
             elsif other.type == :flat 
               other_values = [other_values]
             elsif other.type == :list && source.type == :double
@@ -232,10 +234,10 @@ module TSV
     when identifiers
       [ Path === identifiers ? identifiers : Path.setup(identifiers) ]
     when Path === filename
-      path_files = filename.identifier_files
+      path_files = filename.dirname.identifiers
       [path_files].flatten.compact.select{|f| f.exists?}
     when filename
-      Path.setup(filename.dup).identifier_files
+      Path.setup(filename.dup).dirname.identifiers
     else
       []
     end
@@ -245,7 +247,7 @@ module TSV
     if TSV === obj
       obj.identifier_files
     elsif Path === obj
-      obj.identifier_files
+      obj.dirname.identifiers
     else
       nil
     end

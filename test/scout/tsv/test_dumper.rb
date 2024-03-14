@@ -54,5 +54,13 @@ b\t2|22\t3|33
     assert_equal txt, tsv.to_s(keys: tsv.keys.sort)
   end
 
+  def test_filename
+    tsv = datadir_test.person.marriages.tsv
+    assert tsv.filename
+
+    tsv2 = TSV.open(tsv.dumper_stream)
+    assert tsv2.filename
+  end
+
 end
 

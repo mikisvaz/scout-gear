@@ -41,5 +41,43 @@ row2    a    a    id3
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
   end
+
+  def test_persist_with_data
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+
+    tsv = nil
+    TmpFile.with_file do |tk|
+      data = Persist.open_tokyocabinet(tk, true, "HDB")
+      assert Open.exists?(tk)
+      tsv = Persist.persist("TEST Persist TSV", :HDB, :data => data) do |data|
+        t = TmpFile.with_file(content) do |filename|
+          TSV.open(filename, data: data)
+        end
+        t
+        nil
+      end
+      refute Open.exists?(tk)
+      assert Open.exists?(data.persistence_path)
+    end
+
+    assert_include tsv.keys, 'row1'
+    assert_include tsv.keys, 'row2'
+
+    assert_nothing_raised do
+      tsv = Persist.persist("TEST Persist TSV", :HDB) do 
+        raise
+      end
+    end
+
+    assert_include tsv.keys, 'row1'
+    assert_include tsv.keys, 'row2'
+  end
 end
 

@@ -104,6 +104,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     path.rb
     stream.rb
     open.rb
+    csv.rb
    }
    entity.rb
    entity=entity{
@@ -112,6 +113,11 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     format.rb
     identifiers.rb
    }
+   association.rb
+   association=association{
+    fields.rb
+   }
+
    offsite.rb
    offsite=offsite{
     ssh.rb
@@ -124,7 +130,11 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   test_helper.rb
   test_scout-gear.rb
   data=data{
-   identifiers
+   person=person{
+    identifiers
+    marriages
+    brothers
+   }
   }
   scout=scout{
    test_cmd.rb
@@ -214,603 +224,162 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   }
  }
 
-
-
- modules=modules{
+ modules=modules_{
   rbbt-util=rbbt-util filter="*.rb *.rake Rakefile *.rdoc *.R *.sh *.js *.haml *.sass *.txt *.conf LICENSE" {
-   Migration-1.9.txt
-   Troubleshooting.txt
-   ToDo.txt
-   Rakefile
-   LICENSE
-   README.rdoc
    bin=bin filter="*" {
-    excel2tsv.rb
-    rbbt
-    rbbt_Rutil.rb
-    rbbt_dangling_locks.rb
-    rbbt_exec.rb
-    rbbt_query.rb
-    rbbt_find.rb
    }
    lib=lib{
-    rbbt.rb
-
-    rbbt-util.rb
-
     rbbt=rbbt{
-     refactor.rb
-
      util=util{
-      misc.rb
       misc=misc{
-       refactor.rb
-
-       serialize.rb
-       exceptions.rb
-       concurrent_stream.rb
-       indiferent_hash.rb
-       pipes.rb
-       format.rb
-       omics.rb
-       inspect.rb
-       math.rb
-       development.rb
-       lock.rb
-       options.rb
-       system.rb
-       objects.rb
-       manipulation.rb
-       bgzf.rb
-       multipart_payload.rb
-       annotated_module.rb
-       communication.rb
       }
-      version.rb
-      tar.rb
-      color.rb
-      colorize.rb
-      named_array.rb
-      cmd.rb
-      docker.rb
-      config.rb
-      log.rb
       log=log{
-       refactor.rb
-       progress.rb
        progress=progress{
-        util.rb
-        report.rb
        }
       }
-      open.rb
-      semaphore.rb
-
-      simpleopt.rb
       simpleopt=simpleopt{
-       accessor.rb
-       doc.rb
-       parse.rb
-       get.rb
-       setup.rb
       }
-
-      ssh.rb
-
-      simpleDSL.rb
-
-      chain_methods.rb
-
-      tmpfile.rb
-      tc_cache.rb
-      filecache.rb
-
-      R.rb
       R=R{
-       eval.rb
-       model.rb
-       plot.rb
       }
-
-      python.rb
       python=python{
-       util.rb
       }
-
-      excel2tsv.rb
-
-      concurrency.rb
       concurrency=concurrency{
-       processes.rb
-       threads.rb
        processes=processes{
-        socket.rb
-        worker.rb
        }
       }
-
-      procpath.rb
-
-      migrate.rb
      }
-
-     monitor.rb
-
-     workflow.rb
      workflow=workflow{
-      refactor.rb
-      annotate.rb
-
-      definition.rb
-      dependencies.rb
-
-      accessor.rb
-
-      task.rb
-
-      step.rb
       step=step{
-       accessor.rb
-       dependencies.rb
-       info.rb
-       prepare.rb
-       run.rb
-       save_load_inputs.rb
-       status.rb
       }
-
-      examples.rb
-      doc.rb
-      usage.rb
-
-      soap.rb
-
       util=util{
-       archive.rb
-       provenance.rb
-       orchestrator.rb
-       trace.rb
-       data.rb
       }
-
-      remote_workflow.rb
       remote_workflow=remote_workflow{
-       driver.rb
        driver=driver{
-        rest.rb
-        ssh.rb
        }
-
-       remote_step.rb
        remote_step=remote_step{
-        rest.rb
-        ssh.rb
        }
       }
-
       integration=integration{
-       cromwell.rb
-       nextflow.rb
-       ansible.rb
        ansible=ansible{
-        workflow.rb
        }
       }
      }
-
-     hpc.rb
      hpc=hpc{
       old=old{
-       slurm.rb
       }
-      orchestrate.old.rb
-
-      batch.rb
-      slurm.rb
-      lsf.rb
-
-      orchestrate.rb
       orchestrate=orchestrate{
-       rules.rb
-       chains.rb
-       batches.rb
       }
-      trace.rb
      }
-
-     tsv.rb
      tsv=tsv{
-      refactor.rb
-      parser.rb
-      dumper.rb
-
-      matrix.rb
-
-      accessor.rb
-      util.rb
-      marshal.rb
-      serializers.rb
-      manipulate.rb
-      index.rb
-      stream.rb
-      attach.rb
       attach=attach{
-       util.rb
       }
-      melt.rb
-      excel.rb
-      csv.rb
-      filter.rb
-      field_index.rb
-      change_id.rb
-      parallel.rb
       parallel=parallel{
-       traverse.rb
-       through.rb
       }
      }
-
-     packed_index.rb
-     fix_width_table.rb
-
-     persist.rb
      persist=persist{
-      refactor.rb
-      tsv.rb
       tsv=tsv{
-       adapter.rb
-
-       sharder.rb
-       tokyocabinet.rb
        tokyocabinet=tokyocabinet{
-        marshal.rb
        }
-       fix_width_table.rb
-       packed_index.rb
-       kyotocabinet.rb
-       lmdb.rb
-       cdb.rb
-       leveldb.rb
       }
      }
-
-     resource.rb
      resource=resource{
-      path.rb
       path=path{
-       refactor.rb
       }
-      util.rb
-      with_key.rb
-      rake.rb
      }
-
-     annotations.rb
      annotations=annotations{
-      util.rb
-      annotated_array.rb
      }
-
-     entity.rb
      entity=entity{
-      identifiers.rb
      }
-
-     association.rb
      association=association{
-      util.rb
-      database.rb
-      open.rb
-      index.rb
-      item.rb
      }
-
-     knowledge_base.rb
      knowledge_base=knowledge_base{
-      enrichment.rb
-      entity.rb
-      query.rb
-      registry.rb
-      syndicate.rb
-      traverse.rb
      }
     }
    }
    test=test {
-    test_helper.rb
     data=data filter="*"{
-     Test.xls
-     dose_response
-     dose_response2
-     dose_response3
-     example.pdf
-     gene_ages
-     identifiers
-     test.tsv
     }
     rbbt=rbbt{
-     test_annotations.rb
-     test_association.rb
-     test_entity.rb
-     test_fix_width_table.rb
-     test_knowledge_base.rb
-     test_monitor.rb
-     test_packed_index.rb
-     test_persist.rb
-     test_resource.rb
-     test_tsv.rb
-     test_workflow.rb
      resource=resource{
-      test_path.rb
      }
      workflow=workflow{
-      test_soap.rb
-      test_doc.rb
-      test_step.rb
-      test_task.rb
      }
      association=association{
-      test_database.rb
-      test_index.rb
-      test_item.rb
-      test_open.rb
-      test_util.rb
      }
      knowledge_base=knowledge_base{
-      test_enrichment.rb
-      test_query.rb
-      test_registry.rb
      }
      persist=persist{
       tsv=tsv{
-       test_cdb.rb
-       test_kyotocabinet.rb
-       test_leveldb.rb
-       test_lmdb.rb
-       test_sharder.rb
-       test_tokyocabinet.rb
       }
-      test_tsv.rb
      }
      tsv=tsv{
-      test_accessor.rb
-      test_attach.rb
-      test_change_id.rb
-      test_csv.rb
-      test_excel.rb
-      test_field_index.rb
-      test_filter.rb
-      test_index.rb
-      test_manipulate.rb
-      test_marshal.rb
-      test_matrix.rb
-      test_parallel.rb
-      test_parser.rb
-      test_stream.rb
-      test_util.rb
       parallel=parallel{
-       test_through.rb
-       test_traverse.rb
       }
      }
      entity=entity{
-      test_identifiers.rb
      }
      util=util{
-      test_R.rb
-      test_chain_methods.rb
-      test_cmd.rb
-      test_colorize.rb
-      test_concurrency.rb
-      test_config.rb
-      test_excel2tsv.rb
-      test_filecache.rb
-      test_log.rb
-      test_misc.rb
-      test_open.rb
-      test_python.rb
-      test_semaphore.rb
-      test_simpleDSL.rb
-      test_simpleopt.rb
-      test_tmpfile.rb
       R=R{
-       test_eval.rb
-       test_model.rb
-       test_plot.rb
       }
       misc=misc{
-       test_bgzf.rb
-       test_format.rb
-       test_lock.rb
-       test_multipart_payload.rb
-       test_omics.rb
-       test_pipes.rb
       }
       simpleopt=simpleopt{
-       test_get.rb
-       test_parse.rb
-       test_setup.rb
       }
       concurrency=concurrency{
-       test_processes.rb
-       test_threads.rb
       }
      }
     }
    }
    python=python filter="*"{
-    rbbt.py
    }
    integration_test=integration_test{
-    test_bed.rb
-    test_helper.rb
-    test_namespaces.rb
-    test_workflow.rb
    }
    etc=etc filter="*"{
     app.d=app.d{
-     init.rb
-
-     base.rb
-
-     requires.rb
-     entities.rb
-     finder.rb
-     foundation.rb
-     grid_system.rb
-     knowledge_bases.rb
-     resources.rb
-     workflows.rb
-     semaphores.rb
-     remote_workflow_tasks.rb
     }
    }
    share=share{
-    config.ru
-    workflow_config.ru
-    unicorn.rb
     color=color filter="*"{
-     diverging_colors.hex
-     color_names
     }
     rbbt_commands=rbbt_commands filter="*"{
-     alias
-     ansible
-     check_bgzf
-     cmd
-     color
-     log
-     migrate
-     migrate_job
-     purge_job
-     rsync
-     watch
      system=system{
-      clean
-      deleted_files
-      optimize
-      purge
-      report
-      status
      }
      conf=conf{
       web_user=web_user{
-       add
-       list
-       remove
       }
      }
      resource=resource{
-      exists
-      find
-      glob
-      get
-      produce
-      read
      }
      workflow=workflow{
-      archive
-      archive_all
-      cmd
-      example
-      forget_deps
-      info
-      write_info
-      init
-      install
-      jobs
-      knowledge_base
-      list
-      monitor
-      prov
-      server
-      task
-      trace
       remote=remote{
-       add
-       list
-       remove
       }
      }
      hpc=hpc{
-      task
-      orchestrate
-      tail
-      list
-      clean
      }
      app=app{
-      install
-      start
-      template
      }
      association=association{
-      subset
      }
      tsv=tsv{
-      assemble_pdf_table
-      attach
-      change_id
-      collapse
-      get
-      head
-      info
-      json
-      keys
-      query
-      read
-      read_excel
-      slice
-      sort
-      subset
-      select
-      transpose
-      uncollapse
-      unzip
-      values
-      write_excel
-      zip
-      view
      }
      stat=stat{
-      abs
-      boxplot
-      compare_lists
-      density
-      heatmap
-      log
-      pvalue.qqplot
      }
      study=study{
-      maf2study
-      task
      }
      file_server=file_server{
-      add
-      list
-      remove
      }
      benchmark=benchmark{
-      pthrough
-      throughput
-      tsv
      }
     }
     Rlib=Rlib{
-     plot.R
-     svg.R
-     util.R
     }
     software=install/software filter="*"{
      zran=zran{
-      zran.c
      }
      lib=lib{
-      install_helpers
      }
     }
    }
   }
-
  }
 }

@@ -26,7 +26,7 @@ module TSV
     end
 
 
-    attr_accessor :options, :initialized, :type, :sep
+    attr_accessor :options, :initialized, :type, :sep, :filename
     def initialize(options = {})
       options = options.options.merge(sep: nil) if TSV::Parser === options || TSV === options
       @sep, @type = IndiferentHash.process_options options, 

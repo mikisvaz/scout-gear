@@ -6,6 +6,7 @@ module Entity
   end
 
   module Identified
+    NAMESPACE_TAG = 'NAMESPACE'
 
     def self.included(base)
       base.extension_attr :format
@@ -46,11 +47,11 @@ module Entity
 
     def identifier_files 
       files = identity_type.identifier_files.dup
-      files.collect!{|f| f.annotate f.gsub(/\bNAMESPACE\b/, namespace) } if extension_attrs.include? :namespace and self.namespace
-      if files.select{|f| f =~ /\bNAMESPACE\b/ }.any?
-        Log.warn "Rejecting some identifier files for lack of 'namespace': " << files.select{|f| f =~ /\bNAMESPACE\b/ } * ", "
+      files.collect!{|f| f.annotate f.gsub(/\b#{NAMESPACE_TAG}\b/, namespace.to_s) } if extension_attrs.include? :namespace and self.namespace
+      if files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ }.any?
+        Log.warn "Rejecting some identifier files for lack of 'namespace': " << files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ } * ", "
       end
-      files.reject!{|f| f =~ /\bNAMESPACE\b/ } 
+      files.reject!{|f| f =~ /\b#{NAMESPACE_TAG}\b/ } 
       files
     end
 
@@ -80,8 +81,8 @@ module Entity
     if TSV === file
       all_fields = file.all_fields
     else
-      if file =~ /NAMESPACE/
-        all_fields = file.sub(/NAMESPACE/,'**').glob.collect do |f|
+      if file =~ /#{Identified::NAMESPACE_TAG}/
+        all_fields = file.sub(/#{Identified::NAMESPACE_TAG}/,'**').glob.collect do |f|
           TSV.parse_header(f)["all_fields"]
         end.flatten.compact.uniq
       else

@@ -145,11 +145,17 @@ module Persist
 end
 
 Persist.save_drivers[:HDB] = proc do |file, content|
-  data = ScoutCabinet.open(file, true, "HDB")
-  content.annotate(data)
-  data.extend TSVAdapter
-  data.merge!(content)
-  data
+  if ScoutCabinet === content
+    Open.mv(content.persistence_path, file)
+    content.persistence_path = file
+    content
+  else
+    data = ScoutCabinet.open(file, true, "HDB")
+    content.annotate(data)
+    data.extend TSVAdapter
+    data.merge!(content)
+    data
+  end
 end
 
 Persist.load_drivers[:HDB] = proc do |file| 
@@ -159,11 +165,17 @@ Persist.load_drivers[:HDB] = proc do |file|
 end
 
 Persist.save_drivers[:BDB] = proc do |file, content|
-  data = ScoutCabinet.open(file, true, "BDB")
-  content.annotate(data)
-  data.extend TSVAdapter
-  data.merge!(content)
-  data
+  if ScoutCabinet === content
+    Open.mv(content.persistence_path, file)
+    content.persistence_path = file
+    content
+  else
+    data = ScoutCabinet.open(file, true, "BDB")
+    content.annotate(data)
+    data.extend TSVAdapter
+    data.merge!(content)
+    data
+  end
 end
 
 Persist.load_drivers[:BDB] = proc do |file| 

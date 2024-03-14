@@ -1,8 +1,26 @@
 module TSV
 
+  def self.identify_field_in_obj(obj, field)
+    case obj
+    when TSV
+      obj.identify_field(field)
+    when TSV::Parser, TSV::Dumper
+      TSV.identify_field(obj.key_field, obj.fields, field)
+    when Path, String
+      all_fields = TSV.parse_header(obj)["all_fields"]
+      identify_field_in_obj(all_fields, field)
+    when Array
+      key_field, *fields = obj
+      TSV.identify_field(key_field, fields, field)
+    end
+  end
+
   def self.translation_path(file_fields, source, target)
-    target_files = file_fields.select{|f,fields| fields.include? target }.collect{|file,f| file }
-    source_files = file_fields.select{|f,fields| source.nil? || fields.include?(source) }.collect{|file,f| file }
+    #target_files = file_fields.select{|f,fields| fields.include? target }.collect{|file,f| file }
+    #source_files = file_fields.select{|f,fields| source.nil? || fields.include?(source) }.collect{|file,f| file }
+
+    target_files = file_fields.select{|f,fields| identify_field_in_obj(fields, target) }.collect{|file,f| file }
+    source_files = file_fields.select{|f,fields| identify_field_in_obj(fields, source) }.collect{|file,f| file }
 
     if (one_step = target_files & source_files).any?
       [one_step.first]
@@ -21,7 +39,7 @@ module TSV
           target_file = target_files.select{|file| fields = file_fields[file]; (fields & middle_fields).any? }.collect{|file,f| file }.first
           [source_file, middle_file, target_file]
         else
-          raise "Could not traverse identifier path from #{Log.fingerprint file_fields}"
+          raise "Could not traverse identifier path from #{source} to #{target} in #{Log.fingerprint file_fields}"
         end
       end
     end
@@ -31,20 +49,30 @@ module TSV
     return nil if source == target
     persist_options = IndiferentHash.add_defaults persist_options.dup, :persist => true, :prefix => "Translation index"
 
-    target = Entity.formats.find(target) if target && defined?(Entity) && Entity.formats.find(target)
-    source = Entity.formats.find(source) if source && defined?(Entity) && Entity.formats.find(source)
-
     file_fields = {}
 
     files = [files] unless Array === files
 
     files.each do |file|
+      next if Path === file && ! Open.exist?(file)
       file_fields[file] = all_fields(file)
     end
 
-    path = translation_path(file_fields, source, target)
+    begin
+      path = translation_path(file_fields, source, target)
+    rescue
+      exception = $!
+      begin
+        target = Entity.formats.find(target) if target && defined?(Entity) && Entity.formats.find(target)
+        source = Entity.formats.find(source) if source && defined?(Entity) && Entity.formats.find(source)
+        path = translation_path(file_fields, source, target)
+      rescue
+        raise exception
+      end
+    end
 
-    name = [source, target] * "->" + "  (#{files.length} files - #{Misc.digest(files)})"
+
+    name = [source, target] * "->" + " (#{files.length} files - #{Misc.digest(files)})"
     Persist.persist(name, "HDB", persist_options) do 
       index = path.inject(nil) do |acc,file|
         if acc.nil?
@@ -63,8 +91,8 @@ module TSV
 
   def self.translate(tsv, field, format, identifiers: nil, one2one: false, merge: true, stream: false, keep: false, persist_index: true)
 
-    identifiers ||= tsv.identifiers
-    index = translation_index([tsv, identifiers].flatten, field, format, persist: persist_index)
+    identifiers ||= tsv.identifier_files
+    index = translation_index([tsv, identifiers].flatten.compact, field, format, persist: persist_index)
 
     key_field, *fields = TSV.all_fields(tsv)
     if field == key_field
@@ -95,6 +123,10 @@ module TSV
     end
 
     stream ? transformer : transformer.tsv(merge: merge, one2one: one2one)
+  end
+
+  def translate(*args, **kwargs)
+    TSV.translate(self, *args, **kwargs)
   end
 
 end

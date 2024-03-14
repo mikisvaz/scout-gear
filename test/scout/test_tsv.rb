@@ -2,6 +2,11 @@ require File.expand_path(__FILE__).sub(%r(/test/.*), '/test/test_helper.rb')
 require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
 
 class TestTSV < Test::Unit::TestCase
+  def test_identifier_file
+    tsv = datadir_test.person.marriages.tsv
+    assert tsv.identifier_files.any?
+  end
+
   def test_open_with_data
     content =<<-'EOF'
 #: :sep=/\s+/#:type=:double#:merge=:concat

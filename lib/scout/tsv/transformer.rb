@@ -107,7 +107,7 @@ module TSV
     end
 
     def tsv(*args)
-      TSV === @dumper ? @dumper : TSV.open(stream, *args)
+      TSV === @dumper ? @dumper : TSV.open(@dumper, *args)
     end
   end
 
