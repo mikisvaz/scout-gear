@@ -55,7 +55,7 @@ module TSV
 
   def [](key, *rest)
     v = super(key, *rest)
-    NamedArray.setup(v, @fields, key) unless @unnamed || ! (Array === v)
+    NamedArray.setup(v, @fields, key) unless @unnamed || @type == :flat || ! (Array === v)
     v
   end
 
@@ -85,7 +85,7 @@ module TSV
   def each(*args, &block)
     if block_given?
       super(*args) do |k,v|
-        NamedArray.setup(v, @fields) unless @unnamed || ! (Array === v)
+        NamedArray.setup(v, @fields) unless @unnamed || @type == :flat || ! (Array === v)
         block.call(k, v)
       end
     else
