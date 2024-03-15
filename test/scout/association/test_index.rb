@@ -16,13 +16,13 @@ class TestAssociationIndex < Test::Unit::TestCase
   end
 
   def test_brothers
-    index = Association.index datadir_test.person.brothers, undirected: true
+    index = Association.index datadir_test.person.brothers, undirected: true, persist: false
     assert_include index, "Clei~Guille"
     assert_include index, "Guille~Clei"
   end
 
   def test_brothers_match
-    index = Association.index datadir_test.person.brothers, undirected: true, persist: true
+    index = Association.index datadir_test.person.brothers, undirected: true
     assert_equal ["Clei~Guille"], index.match("Clei")
     assert_equal ["Guille~Clei"], index.match("Guille")
   end
