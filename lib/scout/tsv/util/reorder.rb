@@ -5,27 +5,33 @@ module TSV
     res = self.annotate({})
     res.type = kwargs[:type] if kwargs.include?(:type)
     kwargs[:one2one] = one2one
-    key_field_name, field_names = traverse key_field, fields, **kwargs do |k,v|
-      if @type == :double && merge && res.include?(k)
-        current = res[k]
-        if merge == :concat
-          v.each_with_index do |new,i|
-            next if new.empty?
-            current[i].concat(new)
+    key_field_name, field_names = with_unnamed do
+      traverse key_field, fields, **kwargs do |k,v|
+        if @type == :double && merge && res.include?(k)
+          current = res[k]
+          if merge == :concat
+            v.each_with_index do |new,i|
+              next if new.empty?
+              current[i].concat(new)
+            end
+          else
+            merged = []
+            v.each_with_index do |new,i|
+              next if new.empty?
+              merged[i] = current[i] + new
+            end
+            res[k] = merged
+          end
+        elsif @type == :flat
+          res[k] ||= []
+          if merge == :concat
+            res[k].concat v
+          else
+            res[k] += v
           end
         else
-          merged = []
-          v.each_with_index do |new,i|
-            next if new.empty?
-            merged[i] = current[i] + new
-          end
-          res[k] = merged
+          res[k] = v
         end
-      elsif @type == :flat
-        res[k] ||= []
-        res[k].concat v
-      else
-        res[k] = v
       end
     end
 
