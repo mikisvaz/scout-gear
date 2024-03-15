@@ -237,7 +237,7 @@ module TSV
       path_files = filename.dirname.identifiers
       [path_files].flatten.compact.select{|f| f.exists?}
     when filename
-      Path.setup(filename.dup).dirname.identifiers
+      [Path.setup(filename.dup).dirname.identifiers]
     else
       []
     end

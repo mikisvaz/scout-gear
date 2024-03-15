@@ -1,8 +1,8 @@
 module TSV
   class Transformer
-    attr_accessor :unnamed, :parser, :dumper
+    attr_accessor :unnamed, :parser, :dumper, :namespace
 
-    def initialize(parser, dumper = nil, unnamed: nil)
+    def initialize(parser, dumper = nil, unnamed: nil, namespace: nil)
       if TSV::Parser === parser
         @parser = parser
       elsif TSV === parser
@@ -68,6 +68,7 @@ module TSV
     def traverse(*args, **kwargs, &block)
       kwargs[:into] = @dumper
       kwargs[:bar] = "Transform #{Log.fingerprint @parser} into #{Log.fingerprint @target}" if TrueClass === kwargs[:bar]
+      @dumper.namespace ||= @namespace
       @dumper.init if @dumper.respond_to?(:init) && ! @dumper.initialized
       Log.debug "Transform #{Log.fingerprint @parser} into #{Log.fingerprint @dumper}"
       Open.traverse(@parser, *args, **kwargs) do |k,v|

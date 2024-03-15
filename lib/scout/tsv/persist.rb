@@ -31,8 +31,10 @@ module Persist
     engine = IndiferentHash.process_options persist_options, :engine, engine: "HDB"
     Persist.persist(file, engine, persist_options.merge(:other => options)) do |filename|
       if filename
-        data = Persist.open_tokyocabinet(filename, true, engine)
+        data = Persist.open_tokyocabinet(filename, true, nil, engine)
         yield(data)
+        data.save_extension_attr_hash
+        data
       else
         yield({})
       end

@@ -20,6 +20,8 @@ row2    a    a    id3
       end
     end
 
+    assert NamedArray === tsv["row1"]
+
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
 
@@ -95,6 +97,9 @@ row2    a    a    id3
       tsv = Persist.persist_tsv(filename, nil , persist_engine: :HDB) do |data|
         TSV.open(filename, data: data)
       end
+      assert_equal ['b'], tsv["row1"][1]
+      assert NamedArray === tsv["row1"]
+      assert_equal ['b'], tsv["row1"]["ValueB"]
       assert_include tsv.keys, 'row1'
       assert_include tsv.keys, 'row2'
       assert_nothing_raised do

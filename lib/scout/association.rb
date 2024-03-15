@@ -71,6 +71,7 @@ module Association
     transformer = TSV::Transformer.new obj
     transformer.key_field = final_key_field
     transformer.fields = final_fields
+    transformer.type ||= kwargs[:type] if kwargs.include?(:type)
 
     transformer.traverse key_field: original_source_header, fields: all_fields.values_at(*field_pos) do |k,v|
       k = source_index[k] if source_index
@@ -83,6 +84,6 @@ module Association
 
   def self.database(*args, **kwargs)
     tsv = open(*args, **kwargs)
-    TSV::Transformer === tsv ? tsv.tsv : tsv
+    TSV::Transformer === tsv ? tsv.tsv(merge: true) : tsv
   end
 end

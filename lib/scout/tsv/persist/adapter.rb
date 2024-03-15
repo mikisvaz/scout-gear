@@ -38,7 +38,9 @@ module TSVAdapter
         self.read_lock do
           v = super(key)
           return v if clean
-          load_value(v)
+          v = load_value(v)
+          NamedArray.setup(v, @fields, key) unless @unnamed || ! (Array === v)
+          v
         end
       end
 
