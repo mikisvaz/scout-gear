@@ -2,24 +2,56 @@ require 'scout/meta_extension'
 module Association
 
   def self.index(file, source: nil, target: nil, **kwargs)
-    recycle, undirected = IndiferentHash.process_options kwargs, :recycle, :undirected
+    persist_options = IndiferentHash.pull_keys kwargs, :persist
+    index_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, prefix: "Association::Index", other: kwargs, engine: "BDB"
 
-    database = Association.open(file, source: source, target: target, **kwargs.merge(persist_prefix: "Association::Database"))
+    index = Persist.persist_tsv(file, nil, {}, index_persist_options) do |data|
+      recycle, undirected = IndiferentHash.process_options kwargs, :recycle, :undirected
 
-    source_field = database.key_field
-    target_field, *fields = database.fields
+      database = Association.open(file, source: source, target: target, **kwargs.merge(persist_prefix: "Association::Database"))
 
-    undirected = true if undirected.nil? and source_field == target_field
+      source_field = database.key_field
+      target_field, *fields = database.fields
 
-    key_field = [source_field, target_field, undirected ? "undirected" : nil].compact * "~"
+      undirected = true if undirected.nil? and source_field == target_field
 
-    dumper = TSV::Dumper.new database.options.merge(key_field: key_field, fields: fields, type: :list)
-    transformer = TSV::Transformer.new database, dumper
+      key_field = [source_field, target_field, undirected ? "undirected" : nil].compact * "~"
 
-    if database.type == :double
-      transformer.traverse do |source,value_list|
-        res = []
-        NamedArray.zip_fields(value_list).collect do |values|
+      dumper = TSV::Dumper.new database.options.merge(key_field: key_field, fields: fields, type: :list)
+      transformer = TSV::Transformer.new database, dumper
+
+      if database.type == :double
+        transformer.traverse do |source,value_list|
+          res = []
+          NamedArray.zip_fields(value_list).collect do |values|
+            target, *info = values
+            key = [source, target] * "~"
+            res << [key, info]
+            if undirected
+              key = [target, source] * "~"
+              res << [key, info]
+            end
+          end
+          res.extend MultipleResult
+        end
+      elsif database.type == :flat
+        transformer.traverse do |source,targets|
+          res = []
+          res.extend MultipleResult
+          targets.each do |target|
+            key = [source, target] * "~"
+            res << [key, []]
+            if undirected
+              key = [target, source] * "~"
+              res << [key, []]
+            end
+          end
+          res
+        end
+      else
+        transformer.traverse do |source,values|
+          res = []
+          res.extend MultipleResult
           target, *info = values
           key = [source, target] * "~"
           res << [key, info]
@@ -27,43 +59,15 @@ module Association
             key = [target, source] * "~"
             res << [key, info]
           end
+          res
         end
-        res.extend MultipleResult
       end
-    elsif database.type == :flat
-      transformer.traverse do |source,targets|
-        res = []
-        res.extend MultipleResult
-        targets.each do |target|
-          key = [source, target] * "~"
-          res << [key, []]
-          if undirected
-            key = [target, source] * "~"
-            res << [key, []]
-          end
-        end
-        res
-      end
-    else
-      transformer.traverse do |source,values|
-        res = []
-        res.extend MultipleResult
-        target, *info = values
-        key = [source, target] * "~"
-        res << [key, info]
-        if undirected
-          key = [target, source] * "~"
-          res << [key, info]
-        end
-        res
-      end
-    end
 
-    kwargs = IndiferentHash.add_defaults kwargs, persist: true
-    tsv = transformer.tsv **kwargs.merge(persist_type:  'BDB', persist_prefix: "Association::Index")
-    tsv.extend Index
-    tsv.parse_key_field
-    tsv
+      tsv = transformer.tsv **kwargs.merge(data: data)
+    end
+    index.extend Index
+    index.parse_key_field
+    index
   end
 
   module Index
