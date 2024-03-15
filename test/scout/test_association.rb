@@ -36,5 +36,11 @@ class TestAssociation < Test::Unit::TestCase
     database = Association.database(datadir_test.person.brothers, :source => "Older=~Older (Alias)=>Name", :target => "Younger=~Younger (Alias)=>ID")
     assert_equal '001', database["Isabel"]["Younger"]
   end
+
+  def test_parents_flat
+    tsv = datadir_test.person.parents.tsv type: :flat, fields: ["Parent"]
+    database = Association.database(tsv)
+    assert_equal database["Miki"], %w(Juan Mariluz)
+  end
 end
 

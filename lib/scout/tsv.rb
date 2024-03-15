@@ -90,7 +90,7 @@ module TSV
     Persist.persist(source_name, persist_options[:type], persist_options.merge(:other_options => other_options)) do |filename|
       if filename
         data = case persist_options[:type]
-               when :HDB, :BDB
+               when :HDB, :BDB, "HDB", "BDB"
                  ScoutCabinet.open(filename, true, persist_options[:type])
                when :tkh, :tkt, :tks
                  ScoutTKRZW.open(filename, true, persist_options[:type])

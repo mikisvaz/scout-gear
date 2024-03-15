@@ -123,5 +123,22 @@ row3    a
       assert_equal ["row1", "row3"].sort, tsv.reorder("ValueA")["a"]
     end
   end
+
+  def test_reorder_flat_same
+    content =<<-EOF
+#Id    ValueA
+row1    a aa aaa
+row2    A
+row3    a
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/, :type => :flat)
+
+      reordered = tsv.reorder("Id", ["ValueA"])
+      assert_equal %w(ValueA), reordered.fields
+      assert_equal ["a", "aa", "aaa"].sort, reordered["row1"]
+    end
+  end
 end
 

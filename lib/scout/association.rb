@@ -1,6 +1,8 @@
 require_relative 'tsv'
 require_relative 'association/fields'
 require_relative 'association/util'
+require_relative 'association/index'
+require_relative 'association/item'
 
 module Association
   def self.open(obj, source: nil, target: nil, fields: nil, **kwargs)
@@ -11,21 +13,23 @@ module Association
     original_field_headers = all_fields.values_at(*field_pos)
     original_target_header = all_fields[field_pos.first]
 
+    type, identifiers = IndiferentHash.process_options kwargs, :type, :identifiers
+
     if source_format
-      translation_files = [TSV.identifier_files(obj), Entity.identifier_files(source_format)]
+      translation_files = [TSV.identifier_files(obj), Entity.identifier_files(source_format), identifiers].flatten.compact
       source_index = begin
-                       TSV.translation_index(translation_files.flatten, source_header, source_format)
+                       TSV.translation_index(translation_files, source_header, source_format)
                      rescue
-                       TSV.translation_index(translation_files.flatten, original_source_header, source_format)
+                       TSV.translation_index(translation_files, original_source_header, source_format)
                      end
     end
 
     if target_format
-      translation_files = [TSV.identifier_files(obj), Entity.identifier_files(target_format)]
+      translation_files = [TSV.identifier_files(obj), Entity.identifier_files(target_format), identifiers].flatten.compact
       target_index = begin
-                       TSV.translation_index(translation_files.flatten, field_headers.first, target_format)
+                       TSV.translation_index(translation_files, field_headers.first, target_format)
                      rescue
-                       TSV.translation_index(translation_files.flatten, original_target_header, target_format)
+                       TSV.translation_index(translation_files, original_target_header, target_format)
                      end
     end
 
@@ -58,9 +62,11 @@ module Association
 
     if source_index.nil? && target_index.nil?
       if TSV === obj
-        res = obj.reorder original_source_header, all_fields.values_at(*field_pos)
+        IndiferentHash.pull_keys kwargs, :persist
+        type = kwargs[:type] || obj.type
+        res = obj.reorder original_source_header, all_fields.values_at(*field_pos), **kwargs.merge(type: type, merge: true)
       else
-        res = TSV.open(obj, key_field: original_source_header, fields: all_fields.values_at(*field_pos))
+        res = TSV.open(obj, key_field: original_source_header, fields: all_fields.values_at(*field_pos), **kwargs.merge(type: type))
       end
       res.key_field = final_key_field
       res.fields = final_fields
@@ -71,7 +77,7 @@ module Association
     transformer = TSV::Transformer.new obj
     transformer.key_field = final_key_field
     transformer.fields = final_fields
-    transformer.type ||= kwargs[:type] if kwargs.include?(:type)
+    transformer.type = type if type
 
     transformer.traverse key_field: original_source_header, fields: all_fields.values_at(*field_pos) do |k,v|
       k = source_index[k] if source_index

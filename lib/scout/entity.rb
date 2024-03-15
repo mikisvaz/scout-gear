@@ -1,3 +1,4 @@
+require 'scout/meta_extension'
 require_relative 'entity/format'
 require_relative 'entity/property'
 require_relative 'entity/object'

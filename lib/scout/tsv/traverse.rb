@@ -8,6 +8,7 @@ module TSV
     fields = self.all_fields if fields == :all
     fields = [fields] unless fields.nil? || Array === fields
     positions = (fields.nil? || fields == :all) ? nil : self.identify_field(fields)
+    positions = nil if fields == self.fields
 
     if key_pos == :key
       key_name = @key_field
@@ -23,7 +24,7 @@ module TSV
     fields = positions.collect{|p| p == :key ? self.key_field : self.fields[p] } if positions
 
     if positions.nil? && key_pos == :key
-      field_names = @fields
+      field_names = @fields.dup
     elsif positions.nil? && key_pos != :key
       field_names = @fields.dup
       field_names.delete_at key_pos unless fields == :all

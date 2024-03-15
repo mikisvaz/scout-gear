@@ -28,6 +28,7 @@ module TSV
         res[k] = v
       end
     end
+
     res.key_field = key_field_name
     res.fields = field_names
     res

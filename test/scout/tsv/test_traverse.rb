@@ -258,5 +258,22 @@ row3    a    C    Id4
     end
   end
 
+  def test_traverse_flat_same
+    content =<<-EOF
+#Id    ValueA
+row1    a aa aaa
+row2    A
+row3    a
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/, :type => :flat)
+      data = {}
+      k, f = tsv.traverse "Id", ["ValueA"] do |k,v|
+        data[k] = v
+      end
+      assert_equal %w(a aa aaa), data["row1"]
+    end
+  end
 end
 

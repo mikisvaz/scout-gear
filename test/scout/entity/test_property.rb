@@ -94,7 +94,7 @@ class TestEntityProperty < Test::Unit::TestCase
   end
 
 
-  def _test_property_ary_make_list
+  def test_property_ary_make_list
     $count = 0
     a = "String1"
     ReversableString.setup(a)
@@ -102,7 +102,7 @@ class TestEntityProperty < Test::Unit::TestCase
     assert_equal "1gnirtS", a.reverse_text_ary
   end
 
-  def _test_property_both
+  def test_property_both
     a = "String1"
     ReversableString.setup(a)
 
@@ -116,7 +116,7 @@ class TestEntityProperty < Test::Unit::TestCase
     assert_equal "1gnirtS", a.reverse_both.last
   end
 
-  def _test_property_single_simple
+  def test_property_single_simple
     a = "String1"
     ReversableString.setup(a)
 
@@ -125,7 +125,7 @@ class TestEntityProperty < Test::Unit::TestCase
     assert_equal "1gnirtS", a.reverse_text_single
   end
 
-  def _test_property_ary
+  def test_property_ary
     a = ["String1", "String2"]
     ReversableString.setup(a)
 
@@ -147,7 +147,7 @@ class TestEntityProperty < Test::Unit::TestCase
     end
   end
 
-  def _test_property_ary_hash
+  def test_property_ary_hash
     a = ["String1", "String2"]
     ReversableString.setup(a)
 
@@ -167,7 +167,7 @@ class TestEntityProperty < Test::Unit::TestCase
     end
   end
 
-  def _test_property_single
+  def test_property_single
     a = ["String1", "String2"]
     ReversableString.setup a
 
@@ -179,7 +179,7 @@ class TestEntityProperty < Test::Unit::TestCase
     assert_equal 3, $count
   end
 
-  def _test_property_ary_p
+  def test_property_ary_p
     a = ["String1", "String2"]
     ReversableString.setup a
 
@@ -192,7 +192,7 @@ class TestEntityProperty < Test::Unit::TestCase
     assert_equal 0, $count
   end
 
-  def _test_property_single_p
+  def test_property_single_p
     a = ["String1", "String2"]
     ReversableString.setup a
 
@@ -213,7 +213,7 @@ class TestEntityProperty < Test::Unit::TestCase
     assert_equal 3, $count
   end
 
-  def _test_property_ary_p_array
+  def test_property_ary_p_array
     a = ["String1", "String2"]
     ReversableString.setup a
 
@@ -227,7 +227,7 @@ class TestEntityProperty < Test::Unit::TestCase
     assert_equal 0, $count
   end
 
-  def _test_unpersist
+  def test_unpersist
     a = ["String1", "String2"]
     ReversableString.setup a
 
@@ -256,7 +256,7 @@ class TestEntityProperty < Test::Unit::TestCase
 
   end
 
-  def _test_persist_annotations
+  def test_persist_annotations
     string = 'aaabbbccc'
     ReversableString.setup(string)
     assert_equal string.length, string.annotation_list.length
@@ -305,7 +305,7 @@ class TestEntityProperty < Test::Unit::TestCase
 
   end
 
-  def _test_clean_annotations
+  def test_clean_annotations
 
     string = "test_string"
     ReversableString.setup string
@@ -314,7 +314,7 @@ class TestEntityProperty < Test::Unit::TestCase
 
   end
 
-  def _test_all_properties
+  def test_all_properties
     assert ReversableString.setup("TEST").all_properties.include?(:reverse_text_ary)
     assert_equal ReversableString.setup("TEST").all_properties, ReversableString.properties
   end

@@ -116,6 +116,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    association.rb
    association=association{
     fields.rb
+    index.rb
+    item.rb
    }
 
    offsite.rb
@@ -134,6 +136,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     identifiers
     marriages
     brothers
+    parents
    }
   }
   scout=scout{
