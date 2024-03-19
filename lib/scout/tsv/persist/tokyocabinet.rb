@@ -1,5 +1,6 @@
 require 'tokyocabinet'
 require_relative 'adapter'
+require_relative 'serialize'
 
 module ScoutCabinet
   attr_accessor :persistence_path, :persistence_class
@@ -138,7 +139,7 @@ module Persist
     database = ScoutCabinet.open(path, write, tokyocabinet_class)
 
     database.extend TSVAdapter
-    database.serializer = serializer
+    database.serializer = TSVAdapter::SERIALIZER_ALIAS[serializer] || serializer
 
     database
   end

@@ -53,5 +53,18 @@ class TestAssociationIndex < Test::Unit::TestCase
     assert_include index, "Isa~Mariluz"
   end
 
+  def test_list_serializer
+    TmpFile.with_file <<-EOF do |f|
+#: :sep=,#:type=:list
+#lowcase,upcase,double,triple
+a,A,aa,aaa
+b,B,bb,bbb
+      EOF
+      tsv = TSV.open(f)
+      i = Association.index tsv
+      assert_equal ['aa', 'aaa'], i["a~A"]
+    end
+  end
+
 end
 

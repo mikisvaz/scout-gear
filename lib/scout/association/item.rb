@@ -37,7 +37,7 @@ module AssociationItem
   end
 
   property :part => :array2single do
-    self.clean_annotations.collect{|p| p.partition("~") }
+    self.purge.collect{|p| p.partition("~") }
   end
 
   property :target => :array2single do
@@ -45,7 +45,7 @@ module AssociationItem
   end
 
   property :source => :array2single do
-    self.clean_annotations.collect{|p| p[/[^~]+/] }
+    self.purge.collect{|p| p[/[^~]+/] }
   end
 
   property :target_entity_type => :both do

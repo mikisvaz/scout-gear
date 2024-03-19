@@ -5,9 +5,9 @@ require_relative 'association/index'
 require_relative 'association/item'
 
 module Association
-  def self.open(obj, source: nil, target: nil, fields: nil, **kwargs)
+  def self.open(obj, source: nil, target: nil, fields: nil, source_format: nil, target_format: nil, **kwargs)
     all_fields = TSV.all_fields(obj)
-    source_pos, field_pos, source_header, field_headers, source_format, target_format = headers(all_fields, fields, kwargs.merge(source: source, target: target))
+    source_pos, field_pos, source_header, field_headers, source_format, target_format = headers(all_fields, fields, kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format))
 
     original_source_header = all_fields[source_pos]
     original_field_headers = all_fields.values_at(*field_pos)
@@ -42,7 +42,7 @@ module Association
                           source_format
                         end
                       else
-                        original_source_header
+                        source_header || original_source_header
                       end
 
     final_fields = if target_format
@@ -80,6 +80,7 @@ module Association
     transformer.type = type if type
 
     transformer.traverse key_field: original_source_header, fields: all_fields.values_at(*field_pos) do |k,v|
+      v = v.dup if TSV === obj
       k = source_index[k] if source_index
       v[0] = Array === v[0] ? target_index.values_at(*v[0]) : target_index[v[0]] if target_index
       [k, v]

@@ -17,7 +17,7 @@ require_relative 'tsv/csv'
 
 module TSV
   extend MetaExtension
-  extension_attr :key_field, :fields, :type, :cast, :filename, :namespace, :unnamed, :identifiers, :entity_options
+  extension_attr :key_field, :fields, :type, :cast, :filename, :namespace, :unnamed, :identifiers, :entity_options, :serializer
 
   def self.str2options(str)
     field_options,_sep, rest =  str.partition("#")

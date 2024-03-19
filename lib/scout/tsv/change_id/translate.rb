@@ -60,8 +60,6 @@ module TSV
     rescue
       exception = $!
       begin
-        #target = Entity.formats.find(target) if target && defined?(Entity) && Entity.formats.find(target)
-        #source = Entity.formats.find(source) if source && defined?(Entity) && Entity.formats.find(source)
         path = translation_path(file_fields, source, target)
       rescue
         raise exception

@@ -1,14 +1,17 @@
 require 'scout/meta_extension'
 module Association
 
-  def self.index(file, source: nil, target: nil, **kwargs)
+  def self.index(file, source: nil, target: nil, source_format: nil, target_format: nil, **kwargs)
     persist_options = IndiferentHash.pull_keys kwargs, :persist
-    index_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, prefix: "Association::Index", other: kwargs, engine: "BDB"
+    index_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, 
+      prefix: "Association::Index", 
+      other: kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format), 
+      engine: "BDB"
 
     index = Persist.persist_tsv(file, nil, {}, index_persist_options) do |data|
       recycle, undirected = IndiferentHash.process_options kwargs, :recycle, :undirected
 
-      database = Association.open(file, source: source, target: target, **kwargs.merge(persist_prefix: "Association::Database"))
+      database = Association.open(file, source: source, target: target, source_format: source_format, target_format: target_format, **kwargs.merge(persist_prefix: "Association::Database"))
 
       source_field = database.key_field
       target_field, *fields = database.fields
@@ -63,7 +66,7 @@ module Association
         end
       end
 
-      tsv = transformer.tsv **kwargs.merge(data: data)
+      tsv = transformer.tsv **kwargs.merge(data: data, fields: fields)
     end
     index.extend Index
     index.parse_key_field
@@ -132,7 +135,7 @@ module Association
                      if Open.exist?(reverse_filename)
                        new = Persist.open_tokyocabinet(reverse_filename, false, serializer, TokyoCabinet::BDB)
                        raise "Index has no info: #{reverse_filename}" if new.key_field.nil?
-                       Association::Index.setup new
+                       new.extend Index
                        new
                      else
                        FileUtils.mkdir_p File.dirname(reverse_filename) unless File.exist?(File.dirname(reverse_filename))
@@ -147,6 +150,7 @@ module Association
                        end
                        annotate(new)
                        new.key_field = key_field.split("~").values_at(1,0,2).compact * "~"
+                       new.save_extension_attr_hash
                        new.read_and_close do
                          Association::Index.setup new
                        end

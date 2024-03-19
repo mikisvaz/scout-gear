@@ -17,13 +17,6 @@ class TestAssociation < Test::Unit::TestCase
     assert_include database.key_field, "Alias"
   end
 
-  def test_marriages_open_from_tsv
-    database = Association.database(datadir_test.person.marriages.tsv, :source => "Wife (ID)=>Alias", :target => "Husband (ID)=>Name")
-    assert_equal "Miguel", database["Clei"]["Husband"]
-    assert_equal "2021", database["Clei"]["Date"]
-    assert_include database.key_field, "Alias"
-  end
-  
   def test_marriages_partial_field
     database = Association.database(datadir_test.person.marriages, :source => "Wife=>Alias", :target => "Husband=>Name")
     assert_equal "Miguel", database["Clei"]["Husband"]
@@ -32,9 +25,21 @@ class TestAssociation < Test::Unit::TestCase
     assert_include database.fields.first, "Name"
   end
 
+  def test_marriages_open_from_tsv
+    database = Association.database(datadir_test.person.marriages.tsv, :source => "Wife (ID)=>Alias", :target => "Husband (ID)=>Name")
+    assert_equal "Miguel", database["Clei"]["Husband"]
+    assert_equal "2021", database["Clei"]["Date"]
+    assert_include database.key_field, "Alias"
+  end
+  
   def test_brothers_id
     database = Association.database(datadir_test.person.brothers, :source => "Older=~Older (Alias)=>Name", :target => "Younger=~Younger (Alias)=>ID")
     assert_equal '001', database["Isabel"]["Younger"]
+  end
+
+  def test_brothers_rename
+    database = Association.database(datadir_test.person.brothers, :source => "Older=~Older (Alias)=>Name")
+    assert_equal "Older (Name)", database.key_field
   end
 
   def test_parents_flat

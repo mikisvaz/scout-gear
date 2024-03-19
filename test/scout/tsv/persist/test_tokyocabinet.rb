@@ -126,6 +126,13 @@ row2    0.1  4.5 0
       tsv = TSV.open(filename, :sep => /\s+/, :persist => true, :type => :double, :cast => :to_f)
       assert_equal Marshal, tsv.serializer
       assert_equal [[0.2], [0.3], [0.0]], tsv["row1"]
+      tsv.close
+
+      Persist::CONNECTIONS.clear
+
+      tsv = TSV.open(filename, :sep => /\s+/, :persist => true, :type => :double, :cast => :to_f)
+      assert_equal Marshal, tsv.serializer
+      assert_equal [[0.2], [0.3], [0.0]], tsv["row1"]
     end
  
   end

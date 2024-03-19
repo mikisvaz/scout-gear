@@ -45,7 +45,7 @@ module TSV
 
   def self.identify_field(key_field, fields, name, strict: nil)
     return :key if name == :key || (! strict && NamedArray.field_match(key_field, name))
-    name.collect!{|n| key_field == n ? :key : n } if Array === name
+    name.collect!{|n| NamedArray.field_match(key_field, n) ? :key : n } if Array === name
     NamedArray.identify_name(fields, name, strict: strict)
   end
 

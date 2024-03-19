@@ -408,27 +408,25 @@ module TSV
     if (data = kwargs[:data]) && data.respond_to?(:persistence_class)
       TSV.setup(data, type: type)
       data.extend TSVAdapter
-      if serializer
-        data.serializer = serializer
-      elsif cast
-        data.serializer = 
-          case [cast, type]
-          when [:to_i, :single]
-            :integer
-          when [:to_i, :list], [:to_i, :flat]
-            :integer_array
-          when [:to_f, :single]
-            :float
-          when [:to_f, :list], [:to_f, :flat]
-            :float_array
-          when [:to_f, :double], [:to_i, :double]
-            :marshal
-          else
-            type
-          end
-      else
-        data.serializer = type
-      end
+      serializer ||= if cast
+                       case [cast, type]
+                       when [:to_i, :single]
+                         :integer
+                       when [:to_i, :list], [:to_i, :flat]
+                         :integer_array
+                       when [:to_f, :single]
+                         :float
+                       when [:to_f, :list], [:to_f, :flat]
+                         :float_array
+                       when [:to_f, :double], [:to_i, :double]
+                         :marshal
+                       else
+                         type
+                       end
+                     else
+                       type
+                     end
+      data.serializer = TSVAdapter::SERIALIZER_ALIAS[serializer] || serializer
     end
 
     kwargs[:data] = {} if kwargs[:data].nil?
