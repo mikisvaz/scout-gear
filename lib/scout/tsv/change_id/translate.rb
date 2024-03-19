@@ -17,9 +17,13 @@ module TSV
 
   def self.translation_path(file_fields, source, target)
     target_files = file_fields.select{|f,fields| identify_field_in_obj(fields, target) }.collect{|file,f| file }
-    source_files = file_fields.select{|f,fields| identify_field_in_obj(fields, source) }.collect{|file,f| file }
+    if source.nil?
+      source_files = file_fields.keys
+    else
+      source_files = file_fields.select{|f,fields| identify_field_in_obj(fields, source) }.collect{|file,f| file }
+    end
 
-    if (one_step = target_files & source_files).any?
+    if source && (one_step = target_files & source_files).any?
       [one_step.first]
     else
       source_fields = file_fields.values_at(*source_files).flatten
@@ -66,19 +70,35 @@ module TSV
       end
     end
 
-
-    name = [source, target] * "->" + " (#{files.length} files - #{Misc.digest(files)})"
+    name = [source || "all", target] * "->" + " (#{files.length} files - #{Misc.digest(files)})"
+    second_target = if path.length == 1
+                      target
+                    else
+                      file1, file2 = path.values_at 0, 1
+                      pos = NamedArray.identify_name(TSV.all_fields(file1), TSV.all_fields(file2))
+                      TSV.all_fields(file1)[pos.compact.first]
+                    end
     Persist.persist(name, "HDB", persist_options) do 
       index = path.inject(nil) do |acc,file|
         if acc.nil?
-          if TSV === file
-            tsv = file.key_field == source ? file.annotate(file.dup) : file.reorder(source)
+          if source.nil?
+            if TSV === file
+              acc = file.index target: second_target
+            else
+              acc = TSV.index(file, target: second_target)
+            end
           else
-            tsv = TSV.open(file, :key_field => source)
+            if TSV === file
+              acc = (file.key_field == source || source.nil?) ? file.annotate(file.dup) : file.reorder(source)
+            else
+              acc = TSV.open(file, key_field: source)
+            end
           end
         else
           acc = acc.attach file, insitu: false
         end
+
+        acc
       end
       index.slice([target]).to_single
     end

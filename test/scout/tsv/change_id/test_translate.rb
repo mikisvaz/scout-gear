@@ -83,6 +83,38 @@ yy xx
     end
   end
 
+  def test_translation_index_no_source
+    f1=<<-EOF
+#: :sep=' '
+#A B C
+a b c
+aa bb cc
+    EOF
+
+    f2=<<-EOF
+#: :sep=' '
+#Y Z A
+y z a
+yy zz aa
+    EOF
+
+    f3=<<-EOF
+#: :sep=' '
+#Y X
+y x
+yy xx
+    EOF
+
+    TmpFile.with_file(f1) do |tf1|
+      TmpFile.with_file(f2) do |tf2|
+        TmpFile.with_file(f3) do |tf3|
+          index = TSV.translation_index([tf2,tf3],nil , 'X')
+          assert_equal 'x', index['a']
+          assert_equal 'xx', index['aa']
+        end
+      end
+    end
+  end
   def test_translate
 
     f1=<<-EOF
@@ -141,5 +173,6 @@ yy xx
       end
     end
   end
+
 end
 

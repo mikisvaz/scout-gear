@@ -5,9 +5,9 @@ require_relative 'association/index'
 require_relative 'association/item'
 
 module Association
-  def self.open(obj, source: nil, target: nil, fields: nil, source_format: nil, target_format: nil, **kwargs)
+  def self.open(obj, source: nil, target: nil, fields: nil, source_format: nil, target_format: nil, format: nil, **kwargs)
     all_fields = TSV.all_fields(obj)
-    source_pos, field_pos, source_header, field_headers, source_format, target_format = headers(all_fields, fields, kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format))
+    source_pos, field_pos, source_header, field_headers, source_format, target_format = headers(all_fields, fields, kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format, format: format))
 
     original_source_header = all_fields[source_pos]
     original_field_headers = all_fields.values_at(*field_pos)
@@ -42,23 +42,27 @@ module Association
                           source_format
                         end
                       else
-                        source_header || original_source_header
+                        if source_header
+                          original_source_header.include?(source_header) ? original_source_header : source_header
+                        else
+                          original_source_header
+                        end
                       end
 
-    final_fields = if target_format
-                     fields = original_field_headers
+    fields = original_field_headers
+    final_target_field = if target_format
                      if m = original_target_header.match(/(.*) \(.*\)/)
-                       fields[0] = m[1] + " (#{target_format})"
+                       m[1] + " (#{target_format})"
                      elsif m = field_headers.first.match(/(.*) \(.*\)/)
-                       fields[0] = m[1] + " (#{target_format})"
+                       m[1] + " (#{target_format})"
                      else
-                       fields[0] = target_format
+                       target_format
                      end
-                     fields
                    else
-                     original_field_headers
+                     target_header = field_headers.first
+                     original_target_header.include?(target_header) ? original_target_header : target_header
                    end
-
+    final_fields = [final_target_field] + original_field_headers[1..-1]
 
     if source_index.nil? && target_index.nil?
       if TSV === obj

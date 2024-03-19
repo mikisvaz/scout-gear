@@ -1,11 +1,11 @@
 require 'scout/meta_extension'
 module Association
 
-  def self.index(file, source: nil, target: nil, source_format: nil, target_format: nil, **kwargs)
+  def self.index(file, source: nil, target: nil, source_format: nil, target_format: nil, format: nil, **kwargs)
     persist_options = IndiferentHash.pull_keys kwargs, :persist
     index_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, 
       prefix: "Association::Index", 
-      other: kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format), 
+      other: kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format, format: format), 
       engine: "BDB"
 
     index = Persist.persist_tsv(file, nil, {}, index_persist_options) do |data|
