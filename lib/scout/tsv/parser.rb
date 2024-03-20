@@ -437,7 +437,7 @@ module TSV
     data.namespace = namespace || parser.options[:namespace]
     data.identifiers = identifiers
     data.unnamed = unnamed
-    data.save_extension_attr_hash if data.respond_to?(:save_extension_attr_hash)
+    data.save_annotation_hash if data.respond_to?(:save_annotation_hash)
     data
   end
 end

@@ -100,7 +100,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     change_id=change_id{
      translate.rb
     }
-    meta_extension.rb
+    annotation.rb
     path.rb
     stream.rb
     open.rb
@@ -131,32 +131,19 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  test=test {
   test_helper.rb
   test_scout-gear.rb
+  test_scout.rb
   data=data{
    person=person{
-    identifiers
-    marriages
-    brothers
-    parents
    }
   }
   scout=scout{
-   test_cmd.rb
-   test_concurrent_stream.rb
-   test_config.rb
-   test_indiferent_hash.rb
-   test_log.rb
-   test_meta_extension.rb
-   test_misc.rb
-   test_named_array.rb
-   test_open.rb
-   test_path.rb
-   test_persist.rb
-   test_resource.rb
+   test_association.rb
+   test_entity.rb
+   test_offsite.rb
    test_semaphore.rb
-   test_tmpfile.rb
    test_tsv.rb
-   test_work_queue.rb
    test_workflow.rb
+   test_work_queue.rb
    work_queue=work_queue{
     test_socket.rb
     test_worker.rb
@@ -184,9 +171,12 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     }
    }
    tsv=tsv{
+    test_annotation.rb
     test_attach.rb
     test_change_id.rb
+    test_csv.rb
     test_dumper.rb
+    test_entity.rb
     test_index.rb
     test_open.rb
     test_parser.rb
@@ -207,6 +197,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     persist=persist{
      test_adapter.rb
      test_fix_width_table.rb
+     test_tkrzw.rb
      test_tokyocabinet.rb
     }
    }

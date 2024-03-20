@@ -1,9 +1,9 @@
-module MetaExtension
+module Annotation
 
   def self.obj_tsv_values(obj, fields)
 
-    extension_info = obj.extension_info
-    extension_info[:extended_array] = true if ExtendedArray === obj
+    annotation_info = obj.annotation_info
+    annotation_info[:annotated_array] = true if AnnotatedArray === obj
 
     fields.collect do |field|
       field = field.to_s if Symbol === field
@@ -12,20 +12,20 @@ module MetaExtension
         field.call(obj)
 
       when "JSON"
-        extension_info.to_json
+        annotation_info.to_json
 
-      when "extension_types"
-        extension_info[:extension_types].collect{|t| t.to_s} * "|"
+      when "annotation_types"
+        annotation_info[:annotation_types].collect{|t| t.to_s} * "|"
 
-      when "extended_array"
-        ExtendedArray === obj
+      when "annotated_array"
+        AnnotatedArray === obj
 
       when "literal"
         (Array === obj ? "Array:" << obj * "|" : obj).gsub(/\n|\t/, ' ')
 
       else
-        if extension_info.include?(field.to_sym)
-          res = extension_info[field.to_sym]
+        if annotation_info.include?(field.to_sym)
+          res = annotation_info[field.to_sym]
           Array === res ? "Array:" << res * "|" : res
         elsif self.respond_to?(field)
           res = self.send(field)
@@ -47,23 +47,23 @@ module MetaExtension
 
     fields = fields.flatten.compact.uniq
 
-    extension_attrs = if MetaExtension.is_extended?(objs) 
-                        objs.extension_attrs 
+    annotations = if Annotation.is_annotated?(objs) 
+                        objs.annotations 
                       elsif (Array === objs && objs.any?)
                         first = objs.compact.first
-                        if MetaExtension.is_extended?(first)
-                          objs.compact.first.extension_attrs
+                        if Annotation.is_annotated?(first)
+                          objs.compact.first.annotations
                         else
-                          raise "Objects didn't have extensions"
+                          raise "Objects didn't have annotations"
                         end
                       else
                         nil
                       end
 
     if fields.empty?
-      fields = extension_attrs + [:extension_types]
+      fields = annotations + [:annotation_types]
     elsif fields == ["all"] || fields == [:all]
-      fields = extension_attrs + [:extension_types, :literal]
+      fields = annotations + [:annotation_types, :literal]
     end
 
     fields = fields.collect{|f| Symbol === f ? f.to_s : f }
@@ -71,20 +71,20 @@ module MetaExtension
     tsv = TSV.setup({}, :key_field => nil, :fields => fields, :type => :list, :unnamed => true)
 
     case
-    when MetaExtension.is_extended?(objs)
+    when Annotation.is_annotated?(objs)
       tsv.key_field = "List"
 
-      tsv[objs.extended_digest] = self.list_tsv_values(objs, fields).dup
+      tsv[objs.annotation_id] = self.list_tsv_values(objs, fields).dup
     when Array === objs 
       tsv.key_field = "ID"
 
-      if MetaExtension.is_extended?(objs.compact.first)
+      if Annotation.is_annotated?(objs.compact.first)
         objs.compact.each_with_index do |obj,i|
-          tsv[obj.extended_digest + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
+          tsv[obj.annotation_id + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
         end
-      elsif MetaExtension.is_extended?(objs.compact.first.compact.first)
+      elsif Annotation.is_annotated?(objs.compact.first.compact.first)
         objs.flatten.compact.each_with_index do |obj,i|
-          tsv[obj.extended_digest + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
+          tsv[obj.annotation_id + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
         end
       end
     else
@@ -144,22 +144,22 @@ module MetaExtension
       info = load_info(fields, values)
     end
 
-    self.setup(object, info[:extension_types], info)
+    self.setup(object, info[:annotation_types], info)
 
     object
   end
 
   def self.load_tsv(tsv)
     tsv.with_unnamed do
-      extended_objects = tsv.collect do |id, values|
-        MetaExtension.load_tsv_values(id, values, tsv.fields)
+      annotated_objects = tsv.collect do |id, values|
+        Annotation.load_tsv_values(id, values, tsv.fields)
       end
 
       case tsv.key_field 
       when "List"
-        extended_objects.first
+        annotated_objects.first
       else
-        extended_objects
+        annotated_objects
       end
     end
   end

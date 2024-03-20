@@ -23,8 +23,8 @@ row2    a    a    id3
 
     assert TSVAdapter === tsv
     assert TSV === tsv
-    assert_include tsv.instance_variable_get(:@extension_attrs), :key_field
-    assert_include tsv.instance_variable_get(:@extension_attrs), :serializer
+    assert_include tsv.instance_variable_get(:@annotations), :key_field
+    assert_include tsv.instance_variable_get(:@annotations), :serializer
 
     tsv_loaded = assert_nothing_raised do
       TmpFile.with_file(content) do |filename|

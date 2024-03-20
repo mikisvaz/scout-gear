@@ -1,12 +1,12 @@
-require 'scout/meta_extension'
+require 'scout/annotation'
 require 'scout/named_array'
 require_relative 'step'
 require_relative 'task/inputs'
 require_relative 'task/dependencies'
 
 module Task
-  extend MetaExtension
-  extension_attr :name, :type, :inputs, :deps, :directory, :description, :returns, :extension, :workflow
+  extend Annotation
+  annotation :name, :type, :inputs, :deps, :directory, :description, :returns, :annotation, :workflow
 
   DEFAULT_NAME = "Default"
 
@@ -78,18 +78,18 @@ module Task
       name = id
     end
 
-    extension = self.extension
-    if extension == :dep_task
-      extension = nil
+    annotation = self.annotation
+    if annotation == :dep_task
+      annotation = nil
       if dependencies.any?
         dep_basename = File.basename(dependencies.last.path)
         if dep_basename.include? "."
           parts = dep_basename.split(".")
-          extension = [parts.pop]
+          annotation = [parts.pop]
           while parts.last.length <= 4
-            extension << parts.pop
+            annotation << parts.pop
           end
-          extension = extension.reverse * "."
+          annotation = annotation.reverse * "."
         end
       end
     end
@@ -97,7 +97,7 @@ module Task
 
     path = directory[name]
 
-    path = path.set_extension(extension) if extension
+    path = path.set_annotation(annotation) if annotation
 
     Persist.memory(path) do 
       if hash
@@ -112,6 +112,6 @@ module Task
   end
 
   def alias?
-    @extension == :dep_task
+    @annotation == :dep_task
   end
 end

@@ -9,8 +9,8 @@ module Entity
     NAMESPACE_TAG = 'NAMESPACE'
 
     def self.included(base)
-      base.extension_attr :format
-      base.extension_attr :namespace
+      base.annotation :format
+      base.annotation :namespace
 
       class << base
         attr_accessor :identifier_files, :formats, :default_format, :name_format, :description_format
@@ -48,7 +48,7 @@ module Entity
     def identifier_files 
       files = identity_type.identifier_files.dup
       return [] if files.nil?
-      files.collect!{|f| f.annotate f.gsub(/\b#{NAMESPACE_TAG}\b/, namespace.to_s) } if extension_attrs.include? :namespace and self.namespace
+      files.collect!{|f| f.annotate f.gsub(/\b#{NAMESPACE_TAG}\b/, namespace.to_s) } if annotations.include? :namespace and self.namespace
       if files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ }.any?
         Log.warn "Rejecting some identifier files for lack of 'namespace': " << files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ } * ", "
       end
@@ -57,7 +57,7 @@ module Entity
     end
 
     def identity_type
-      self.extension_types.select{|m| m.include? Entity::Identified }.last
+      self.annotation_types.select{|m| m.include? Entity::Identified }.last
     end
 
     def identifier_index(format = nil, source = nil)

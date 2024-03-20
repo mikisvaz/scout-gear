@@ -130,7 +130,7 @@ module TSV
     preamble, unmerge, keys = IndiferentHash.process_options options, :preamble, :unmerge, :keys,
       :preamble => true, :unmerge => false
     unmerge = false unless @type === :double
-    dumper = TSV::Dumper.new self.extension_attr_hash.merge(options)
+    dumper = TSV::Dumper.new self.annotation_hash.merge(options)
     t = Thread.new do 
       begin
         Thread.current.report_on_exception = true

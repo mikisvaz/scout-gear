@@ -1,8 +1,8 @@
-require 'scout/meta_extension'
+require 'scout/annotation'
 
 module Workflow
-  extend MetaExtension
-  extension_attr :name, :tasks, :helpers
+  extend Annotation
+  annotation :name, :tasks, :helpers
 
   class << self
     attr_accessor :directory
@@ -98,8 +98,8 @@ module Workflow
     annotate_next_task_single(:returns, type)
   end
 
-  def extension(extension)
-    annotate_next_task_single(:extension, extension)
+  def annotation(annotation)
+    annotate_next_task_single(:annotation, annotation)
   end
 
   def task(name_and_type, &block)
@@ -117,7 +117,7 @@ module Workflow
     block = lambda &self.method(name) if block.nil?
     begin
       @annotate_next_task ||= {}
-      @annotate_next_task[:extension] ||=  
+      @annotate_next_task[:annotation] ||=  
         case type
         when :tsv
           "tsv"
@@ -142,7 +142,7 @@ module Workflow
   REMOVE_DEP_TASKS = ENV["SCOUT_REMOVE_DEP_TASKS"] == "true"
   def task_alias(name, workflow, oname, *rest, &block)
     dep(workflow, oname, *rest, &block) 
-    extension :dep_task unless @extension
+    annotation :dep_task unless @annotation
     task_proc = workflow.tasks[oname] if workflow.tasks
     if task_proc
       returns task_proc.returns if @returns.nil?

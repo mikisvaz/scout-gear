@@ -18,7 +18,7 @@ class TestEntityProperty < Test::Unit::TestCase
   module ReversableString
     extend Entity
 
-    self.extension_attr :foo, :bar
+    self.annotation :foo, :bar
 
     property :reverse_both => :both do
       if Array === self
@@ -76,7 +76,7 @@ class TestEntityProperty < Test::Unit::TestCase
 
     persist :reverse_text_ary_p_array, :array, :dir => TmpFile.tmp_file
 
-    persist :annotation_list, :meta_extension, :dir => TmpFile.tmp_file
+    persist :annotation_list, :annotation, :dir => TmpFile.tmp_file
 
     $processed_multiple = []
     property :multiple_annotation_list => :multiple do 
@@ -89,8 +89,8 @@ class TestEntityProperty < Test::Unit::TestCase
       end
     end
 
-    persist :multiple_annotation_list, :meta_extension, :dir => TmpFile.tmp_file
-    #persist :multiple_annotation_list, :meta_extension, :dir => Rbbt.tmp.test.annots
+    persist :multiple_annotation_list, :annotation, :dir => TmpFile.tmp_file
+    #persist :multiple_annotation_list, :annotation, :dir => Rbbt.tmp.test.annots
   end
 
 

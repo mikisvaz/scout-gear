@@ -34,7 +34,7 @@ module Persist
       if filename
         data = Persist.open_tokyocabinet(filename, true, nil, engine)
         yield(data)
-        data.save_extension_attr_hash
+        data.save_annotation_hash
         data
       else
         yield({})

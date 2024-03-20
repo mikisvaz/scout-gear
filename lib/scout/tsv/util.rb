@@ -60,7 +60,7 @@ module TSV
   end
 
   def options
-    extension_attr_hash
+    annotation_hash
   end
 
   def zip_new(key, values, insitu: :lax)
@@ -158,7 +158,7 @@ Example:
   end
 
   def options
-    self.extension_attr_hash
+    self.annotation_hash
   end
 
   def fingerprint

@@ -2,7 +2,7 @@ module Entity
   module Object
 
     def entity_classes
-      extension_types.select{|t| Entity === t}
+      annotation_types.select{|t| Entity === t}
     end
 
     def base_entity

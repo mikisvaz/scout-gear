@@ -1,4 +1,4 @@
-require 'scout/meta_extension'
+require 'scout/annotation'
 require_relative 'entity/format'
 require_relative 'entity/property'
 require_relative 'entity/object'
@@ -9,12 +9,12 @@ module Entity
   end
 
   def self.extended(base)
-    base.extend MetaExtension
+    base.extend Annotation
     base.extend Entity::Property
     base.instance_variable_set(:@properties, [])
     base.instance_variable_set(:@persisted_methods, {})
     base.include Entity::Object
-    base.include ExtendedArray
+    base.include AnnotatedArray
     base
   end
 

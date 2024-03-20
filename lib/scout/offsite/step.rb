@@ -4,8 +4,8 @@ require_relative 'sync'
 
 module OffsiteStep
 
-  extend MetaExtension
-  extension_attr :server, :workflow_name, :clean_id, :slurm
+  extend Annotation
+  annotation :server, :workflow_name, :clean_id, :slurm
 
   def inputs_directory
     @inputs_directory ||= begin

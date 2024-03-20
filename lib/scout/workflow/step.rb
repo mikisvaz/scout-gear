@@ -136,7 +136,7 @@ class Step
         merge_info :status => :start, :start => Time.now,
           :pid => Process.pid, :pid_hostname => Misc.hostname, 
           :task_name => task_name, :workflow => workflow.to_s,
-          :inputs => MetaExtension.purge(inputs), :input_names => input_names, :type => type,
+          :inputs => Annotation.purge(inputs), :input_names => input_names, :type => type,
           :dependencies => dependencies.collect{|d| d.path }
 
         @exec_result = exec

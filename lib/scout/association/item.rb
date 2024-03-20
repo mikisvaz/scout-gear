@@ -3,9 +3,9 @@ require_relative '../entity'
 module AssociationItem
   extend Entity
 
-  extension_attr :knowledge_base
-  extension_attr :database
-  extension_attr :reverse
+  annotation :knowledge_base
+  annotation :database
+  annotation :reverse
 
   property :name => :single do
     [source_entity, target_entity].collect{|e| e.respond_to?(:name)? e.name || e : e } * "~"

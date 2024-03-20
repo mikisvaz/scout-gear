@@ -47,7 +47,7 @@ class Step
   def merge_info(new_info)
     info = self.info
     new_info.each do |key,value|
-      value = MetaExtension.purge(value)
+      value = Annotation.purge(value)
       if key == :status
         message = new_info[:message]
         if message.nil? && (value == :done || value == :error || value == :aborted)

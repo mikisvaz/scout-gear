@@ -1,4 +1,4 @@
-require 'scout/meta_extension'
+require 'scout/annotation'
 require_relative 'tsv/util'
 require_relative 'tsv/parser'
 require_relative 'tsv/dumper'
@@ -12,12 +12,12 @@ require_relative 'tsv/attach'
 require_relative 'tsv/change_id'
 require_relative 'tsv/stream'
 require_relative 'tsv/entity'
-require_relative 'tsv/meta_extension'
+require_relative 'tsv/annotation'
 require_relative 'tsv/csv'
 
 module TSV
-  extend MetaExtension
-  extension_attr :key_field, :fields, :type, :cast, :filename, :namespace, :unnamed, :identifiers, :entity_options, :serializer
+  extend Annotation
+  annotation :key_field, :fields, :type, :cast, :filename, :namespace, :unnamed, :identifiers, :entity_options, :serializer
 
   def self.str2options(str)
     field_options,_sep, rest =  str.partition("#")

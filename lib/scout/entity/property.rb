@@ -52,7 +52,7 @@ module Entity
           responses = {}
           self.each do |item|
             begin
-              responses[item] = Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([item, item.extension_attrs])}", type, options) do
+              responses[item] = Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([item, item.annotations])}", type, options) do
                 raise 
               end
             rescue
@@ -65,7 +65,7 @@ module Entity
           new_responses = missing.instance_exec(*args, **kwargs, &block)
 
           missing.each do |item,i|
-            responses[item] = Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([item, item.extension_attrs])}", type, options) do
+            responses[item] = Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([item, item.annotations])}", type, options) do
               Array === new_responses ? new_responses[item.container_index] : new_responses[item]
             end
           end
@@ -80,7 +80,7 @@ module Entity
             type, options = nil, {persist: false}
           end
 
-          Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([self, self.extension_attrs])}", type, options) do
+          Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([self, self.annotations])}", type, options) do
             self.instance_exec(*args, **kwargs, &block)
           end
         end
@@ -108,7 +108,7 @@ module Entity
           when 'single_method'
             self.send(real_method, *args, **kwargs)
           when 'array_method', 'multi_method'
-            if ExtendedArray.is_contained?(self)
+            if AnnotatedArray.is_contained?(self)
               cache_code = Misc.digest({:name => name, :args => args})
               res = (self.container._ary_property_cache[cache_code] ||= self.container.send(real_method, *args, **kwargs))
               Array === res ? res[self.container_index] : res[self]

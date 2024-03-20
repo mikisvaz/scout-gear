@@ -1,5 +1,5 @@
 require 'scout/open/lock'
-require 'scout/meta_extension'
+require 'scout/annotation'
 require_relative 'serialize'
 
 module TSVAdapter
@@ -12,19 +12,19 @@ module TSVAdapter
     end
   end
 
-  EXTENSION_ATTR_HASH_KEY = "__extension_attr_hash__"
+  EXTENSION_ATTR_HASH_KEY = "__annotation_hash__"
   EXTENSION_ATTR_HASH_SERIALIZER = Marshal
 
   def serializer=(serializer)
     @serializer = Symbol === serializer ? SERIALIZER_ALIAS[serializer] : serializer
   end
 
-  def load_extension_attr_hash
+  def load_annotation_hash
     EXTENSION_ATTR_HASH_SERIALIZER.load(StringIO.new(self.orig_get(EXTENSION_ATTR_HASH_KEY)))
   end
 
-  def save_extension_attr_hash
-    self.orig_set(EXTENSION_ATTR_HASH_KEY, EXTENSION_ATTR_HASH_SERIALIZER.dump(self.extension_attr_hash))
+  def save_annotation_hash
+    self.orig_set(EXTENSION_ATTR_HASH_KEY, EXTENSION_ATTR_HASH_SERIALIZER.dump(self.annotation_hash))
   end
 
   def self.extended(base)
@@ -66,11 +66,11 @@ module TSVAdapter
     end
 
     if base.include?(EXTENSION_ATTR_HASH_KEY)
-      TSV.setup(base, base.load_extension_attr_hash)
+      TSV.setup(base, base.load_annotation_hash)
     elsif TSV === base
-      base.instance_variable_get(:@extension_attrs).push(:serializer)
+      base.instance_variable_get(:@annotations).push(:serializer)
       base.serializer = SERIALIZER_ALIAS[base.type] if base.serializer.nil?
-      base.save_extension_attr_hash
+      base.save_annotation_hash
     end
   end
 

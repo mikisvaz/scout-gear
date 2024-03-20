@@ -1,4 +1,4 @@
-require 'scout/meta_extension'
+require 'scout/annotation'
 module Association
 
   def self.index(file, source: nil, target: nil, source_format: nil, target_format: nil, format: nil, **kwargs)
@@ -74,9 +74,9 @@ module Association
   end
 
   module Index
-    extend MetaExtension
+    extend Annotation
 
-    extension_attr :source_field, :target_field, :undirected
+    annotation :source_field, :target_field, :undirected
 
     def parse_key_field
       @source_field, @target_field, @undirected = key_field.split("~")
@@ -150,7 +150,7 @@ module Association
                        end
                        annotate(new)
                        new.key_field = key_field.split("~").values_at(1,0,2).compact * "~"
-                       new.save_extension_attr_hash
+                       new.save_annotation_hash
                        new.read_and_close do
                          Association::Index.setup new
                        end

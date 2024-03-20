@@ -10,7 +10,7 @@ class TestEntity < Test::Unit::TestCase
   module Person
     extend Entity
 
-    extension_attr :language
+    annotation :language
 
     property :salutation do
       case language
