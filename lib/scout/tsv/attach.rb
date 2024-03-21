@@ -1,7 +1,11 @@
 module TSV
 
   def self.match_keys(source, other, match_key: nil, other_key: nil)
-    match_key = (source.all_fields & other.all_fields).first if match_key.nil?
+    #match_key = (source.all_fields & other.all_fields).first if match_key.nil?
+    if match_key.nil?
+      match_key_pos = NamedArray.identify_name(source.all_fields, other.all_fields).first
+      match_key = source.all_fields[match_key_pos] if match_key_pos
+    end
 
     if match_key.nil?
       source.all_fields.collect do |f|
@@ -32,8 +36,8 @@ module TSV
 
     other_key = other.key_field if other_key.nil?
 
-    match_key = :key if match_key == source.key_field
-    other_key = :key if other_key == other.key_field
+    match_key = :key if NamedArray.field_match(match_key, source.key_field)
+    other_key = :key if NamedArray.field_match(other_key, other.key_field)
 
     [match_key, other_key]
   end
