@@ -33,8 +33,9 @@ module Persist
     Persist.persist(file, engine, persist_options.merge(:other => other_options)) do |filename|
       if filename
         data = Persist.open_tokyocabinet(filename, true, nil, engine)
+
         yield(data)
-        data.save_annotation_hash
+        data.save_annotation_hash if Annotation.is_annotated?(data)
         data
       else
         yield({})
