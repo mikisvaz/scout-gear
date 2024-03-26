@@ -1,4 +1,12 @@
 module Entity
+  class << self
+    attr_accessor :entity_property_cache
+
+    def entity_property_cache
+      @entity_property_cache ||= Path.setup('var/entity_property')
+    end
+  end
+
   module Property
     attr_accessor :persisted_methods, :properties
 
@@ -80,7 +88,7 @@ module Entity
             type, options = nil, {persist: false}
           end
 
-          Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([self, self.annotations])}", type, options) do
+          Persist.persist([name, self.id] * ":", type, options) do
             self.instance_exec(*args, **kwargs, &block)
           end
         end
@@ -122,6 +130,7 @@ module Entity
     end
 
     def persist(name, type = :marshal, options = {})
+      options = IndiferentHash.add_defaults options, persist: true, dir: File.join(Entity.entity_property_cache, self.to_s, name.to_s)
       @persisted_methods ||= {}
       @persisted_methods[name] = [type, options]
     end

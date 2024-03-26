@@ -4,10 +4,6 @@ require_relative 'entity/property'
 require_relative 'entity/object'
 require_relative 'entity/identifiers'
 module Entity
-  class << self
-    attr_accessor :entity_property_cache, :all_formats
-  end
-
   def self.extended(base)
     base.extend Annotation
     base.extend Entity::Property

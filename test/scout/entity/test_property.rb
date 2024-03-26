@@ -71,12 +71,19 @@ class TestEntityProperty < Test::Unit::TestCase
       }
     end
 
+    property :annotation_list_empty => :single do
+      []
+    end
+
+
     persist :reverse_text_ary_p, :marshal
     #persist :reverse_text_single_p, :memory
 
     persist :reverse_text_ary_p_array, :array, :dir => TmpFile.tmp_file
 
     persist :annotation_list, :annotation, :dir => TmpFile.tmp_file
+
+    persist :annotation_list_empty, :annotation, :dir => TmpFile.tmp_file
 
     $processed_multiple = []
     property :multiple_annotation_list => :multiple do 
@@ -261,6 +268,13 @@ class TestEntityProperty < Test::Unit::TestCase
     ReversableString.setup(string)
     assert_equal string.length, string.annotation_list.length
     assert_equal string.length, string.annotation_list.length
+  end
+
+  def test_persist_annotations_empty
+    string = 'aaabbbccc'
+    ReversableString.setup(string)
+    assert_equal [], string.annotation_list_empty
+    assert_equal [], string.annotation_list_empty
   end
 
   def test_persist_multiple_annotations
