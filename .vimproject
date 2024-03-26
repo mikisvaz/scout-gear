@@ -101,6 +101,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      translate.rb
     }
     annotation.rb
+    annotation=annotation{
+     repo.rb
+    }
     path.rb
     stream.rb
     open.rb

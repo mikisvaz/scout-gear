@@ -1,3 +1,4 @@
+require_relative 'annotation/repo'
 module Annotation
 
   def self.obj_tsv_values(obj, fields)

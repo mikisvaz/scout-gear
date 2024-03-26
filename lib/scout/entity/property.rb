@@ -10,6 +10,16 @@ module Entity
   module Property
     attr_accessor :persisted_methods, :properties
 
+    def self.persist(name, obj, type, options, &block)
+      return yield unless options[:persist]
+      if type == :annotation && options[:annotation_repo]
+        repo = options[:annotation_repo]
+        Persist.annotation_repo_persist(repo, [name, obj.id] * ":", &block)
+      else
+        Persist.persist([name, obj.id] * ":", type, options.dup, &block)
+      end
+    end
+
     def self.single_method(name)
       ("_single_" + name.to_s).to_sym
     end
@@ -60,7 +70,7 @@ module Entity
           responses = {}
           self.each do |item|
             begin
-              responses[item] = Persist.persist([name, item.id] * ":", type, options) do
+              responses[item] = Entity::Property.persist(name, item, type, options) do
                 raise 
               end
             rescue
@@ -73,7 +83,7 @@ module Entity
           new_responses = missing.instance_exec(*args, **kwargs, &block)
 
           missing.each do |item,i|
-            responses[item] = Persist.persist([name, item.id] * ":", type, options) do
+            responses[item] = Entity::Property.persist(name, item, type, options) do
               Array === new_responses ? new_responses[item.container_index] : new_responses[item]
             end
           end
@@ -88,7 +98,7 @@ module Entity
             type, options = nil, {persist: false}
           end
 
-          Persist.persist([name, self.id] * ":", type, options) do
+          Entity::Property.persist(name, self, type, options) do
             self.instance_exec(*args, **kwargs, &block)
           end
         end
@@ -130,7 +140,9 @@ module Entity
     end
 
     def persist(name, type = :marshal, options = {})
-      options = IndiferentHash.add_defaults options, persist: true, dir: File.join(Entity.entity_property_cache, self.to_s, name.to_s)
+      options = IndiferentHash.add_defaults options,
+        persist: true,
+        dir: File.join(Entity.entity_property_cache, self.to_s, name.to_s)
       @persisted_methods ||= {}
       @persisted_methods[name] = [type, options]
     end

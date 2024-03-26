@@ -81,7 +81,7 @@ class TestEntityProperty < Test::Unit::TestCase
 
     persist :reverse_text_ary_p_array, :array, :dir => TmpFile.tmp_file
 
-    persist :annotation_list, :annotation, :dir => TmpFile.tmp_file
+    persist :annotation_list, :annotation, :annotation_repo => TmpFile.tmp_file
 
     persist :annotation_list_empty, :annotation, :dir => TmpFile.tmp_file
 
