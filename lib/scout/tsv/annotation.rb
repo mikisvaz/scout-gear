@@ -48,17 +48,17 @@ module Annotation
     fields = fields.flatten.compact.uniq
 
     annotations = if Annotation.is_annotated?(objs) 
-                        objs.annotations 
-                      elsif (Array === objs && objs.any?)
-                        first = objs.compact.first
-                        if Annotation.is_annotated?(first)
-                          objs.compact.first.annotations
-                        else
-                          raise "Objects didn't have annotations"
-                        end
-                      else
-                        nil
-                      end
+                    objs.annotations 
+                  elsif (Array === objs && objs.any?)
+                    first = objs.compact.first
+                    if Annotation.is_annotated?(first)
+                      objs.compact.first.annotations
+                    else
+                      raise "Objects didn't have annotations"
+                    end
+                  else
+                    []
+                  end
 
     if fields.empty?
       fields = annotations + [:annotation_types]
@@ -82,7 +82,7 @@ module Annotation
         objs.compact.each_with_index do |obj,i|
           tsv[obj.annotation_id + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
         end
-      elsif Annotation.is_annotated?(objs.compact.first.compact.first)
+      elsif (objs.any? && Annotation.is_annotated?(objs.compact.first.compact.first))
         objs.flatten.compact.each_with_index do |obj,i|
           tsv[obj.annotation_id + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
         end
