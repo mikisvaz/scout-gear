@@ -60,7 +60,7 @@ module Entity
           responses = {}
           self.each do |item|
             begin
-              responses[item] = Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([item, item.annotations])}", type, options) do
+              responses[item] = Persist.persist([name, item.id] * ":", type, options) do
                 raise 
               end
             rescue
@@ -73,7 +73,7 @@ module Entity
           new_responses = missing.instance_exec(*args, **kwargs, &block)
 
           missing.each do |item,i|
-            responses[item] = Persist.persist("#{entity_class} property #{real_method} - #{Misc.digest([item, item.annotations])}", type, options) do
+            responses[item] = Persist.persist([name, item.id] * ":", type, options) do
               Array === new_responses ? new_responses[item.container_index] : new_responses[item]
             end
           end

@@ -146,6 +146,8 @@ module Annotation
 
     self.setup(object, info[:annotation_types], info)
 
+    object.extend AnnotatedArray if Array === object
+
     object
   end
 

@@ -61,6 +61,7 @@ module TSVAdapter
       end
 
       def save_value(value)
+        return nil if value.nil?
         serializer.nil? ? value : serializer.dump(value)
       end
     end
