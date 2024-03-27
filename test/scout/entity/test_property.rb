@@ -58,7 +58,7 @@ class TestEntityProperty < Test::Unit::TestCase
 
     property :reverse_text_ary_p_array => :array do
       $count += 1
-      self.collect{|s| s.reverse}
+      self.collect{|s| s.reverse }
     end
 
     property :random => :single do
@@ -74,7 +74,6 @@ class TestEntityProperty < Test::Unit::TestCase
     property :annotation_list_empty => :single do
       []
     end
-
 
     persist :reverse_text_ary_p, :marshal
     #persist :reverse_text_single_p, :memory

@@ -4,6 +4,11 @@ module Persist
     if String === repo
       repo = repo.find if Path === repo
       repo = Persist.open_tokyocabinet(repo, false, :list, :BDB)
+      repo_fields = ["literal", "annotation_types", "JSON"]
+      TSV.setup(repo, :fields => repo_fields, :key_field => "Annotation ID")
+      repo.save_annotation_hash
+    else
+      repo_fields = repo.fields
     end
 
     subkey = name + ":"
@@ -22,12 +27,12 @@ module Persist
       values = repo.with_read do
         repo[key]
       end
-      Annotation.load_tsv_values(key, values, "literal", "annotation_types", "JSON")
+      Annotation.load_tsv_values(key, values, *repo_fields)
     when (keys.any? and not keys.first =~ /ANNOTATED_DOUBLE_ARRAY/)
       repo.with_read do
         keys.sort_by{|k| k.split(":").last.to_i}.collect{|key|
           v = repo[key]
-          Annotation.load_tsv_values(key, v, "literal", "annotation_types", "JSON")
+          Annotation.load_tsv_values(key, v, *repo_fields)
         }
       end
     when (keys.any? and keys.first =~ /ANNOTATED_DOUBLE_ARRAY/)
@@ -35,7 +40,7 @@ module Persist
 
         res = keys.sort_by{|k| k.split(":").last.to_i}.collect{|key|
           v = repo[key]
-          Annotation.load_tsv_values(key, v, "literal", "annotation_types", "JSON")
+          Annotation.load_tsv_values(key, v, *repo_fields)
         }
 
         res.first.annotate res
@@ -53,18 +58,18 @@ module Persist
         when annotations.empty?
           repo[subkey + "EMPTY"] = nil
         when (not Array === annotations or (AnnotatedArray === annotations and not Array === annotations.first))
-          tsv_values = Annotation.obj_tsv_values(annotations, ["literal", "annotation_types", "JSON"]) 
+          tsv_values = Annotation.obj_tsv_values(annotations, repo_fields) 
           repo[subkey + annotations.id << ":" << "SINGLE"] = tsv_values
         when (not Array === annotations or (AnnotatedArray === annotations and AnnotatedArray === annotations.first))
           annotations.each_with_index do |e,i|
             next if e.nil?
-            tsv_values = Annotation.obj_tsv_values(e, ["literal", "annotation_types", "JSON"]) 
+            tsv_values = Annotation.obj_tsv_values(e, repo_fields) 
             repo[subkey + "ANNOTATED_DOUBLE_ARRAY:" << i.to_s] = tsv_values
           end
         else
           annotations.each_with_index do |e,i|
             next if e.nil?
-            tsv_values = Annotation.obj_tsv_values(e, ["literal", "annotation_types", "JSON"]) 
+            tsv_values = Annotation.obj_tsv_values(e, repo_fields) 
             repo[subkey + i.to_s] = tsv_values
           end
         end

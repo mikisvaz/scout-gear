@@ -16,7 +16,7 @@ module TSV
       if String === preamble
         preamble_str = preamble
       elsif preamble && options.values.compact.any?
-        preamble_str = "#: " << IndiferentHash.hash2string(options)
+        preamble_str = "#: " << IndiferentHash.hash2string(options.merge(serializer: nil))
       else
         preamble_str = nil
       end

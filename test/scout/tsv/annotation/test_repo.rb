@@ -118,5 +118,33 @@ class TestAnnotationRepo < Test::Unit::TestCase
       assert_equal "test_code", annotation.code
     end
   end
+
+  def test_annotation_array_with_fields
+
+    TmpFile.with_file do |repo_file|
+      repo = Persist.open_tokyocabinet(repo_file, false, :list, :BDB)
+      TSV.setup(repo, :fields => ["literal", "annotation_types", "code"], :key_field => "Annotation ID", type: :list)
+      repo.extend TSVAdapter
+
+      annotation = Persist.annotation_repo_persist(repo, "My annotation array") do
+        a = AnnotationClass.setup(["TESTANNOTATION", "TESTANNOTATION2"], code: "test_code")
+        a.extend AnnotatedArray
+        a
+      end.first
+
+      assert_equal "TESTANNOTATION", annotation
+      assert_equal "test_code", annotation.code
+
+      repo = Persist.open_tokyocabinet(repo_file, false, :list, :BDB)
+      annotation2 = assert_nothing_raised do
+        Persist.annotation_repo_persist(repo, "My annotation array") do
+          raise
+        end.last
+      end
+
+      assert_equal "TESTANNOTATION2", annotation2
+      assert_equal "test_code", annotation2.code
+    end
+  end
 end
 

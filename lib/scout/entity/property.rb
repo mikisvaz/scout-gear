@@ -16,7 +16,11 @@ module Entity
         repo = options[:annotation_repo]
         Persist.annotation_repo_persist(repo, [name, obj.id] * ":", &block)
       else
-        Persist.persist([name, obj.id] * ":", type, options.dup, &block)
+
+        options = IndiferentHash.add_defaults options.dup, 
+          dir: File.join(Entity.entity_property_cache, self.to_s, name.to_s)
+
+        Persist.persist([name, obj.id] * ":", type, options, &block)
       end
     end
 
@@ -140,9 +144,7 @@ module Entity
     end
 
     def persist(name, type = :marshal, options = {})
-      options = IndiferentHash.add_defaults options,
-        persist: true,
-        dir: File.join(Entity.entity_property_cache, self.to_s, name.to_s)
+      options = IndiferentHash.add_defaults options, persist: true
       @persisted_methods ||= {}
       @persisted_methods[name] = [type, options]
     end
