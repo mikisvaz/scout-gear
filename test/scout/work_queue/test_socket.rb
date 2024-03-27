@@ -2,6 +2,9 @@ require File.expand_path(__FILE__).sub(%r(/test/.*), '/test/test_helper.rb')
 require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
 
 class TestSocket < Test::Unit::TestCase
+
+  class DoneProcessing end
+
   def test_simple
     socket = WorkQueue::Socket.new 
 
@@ -24,7 +27,7 @@ class TestSocket < Test::Unit::TestCase
   def __test_speed
     socket = WorkQueue::Socket.new 
 
-    num = 10_000
+    num = 50_000
 
     Thread.new do
       num.times do |i|

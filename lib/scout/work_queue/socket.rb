@@ -41,6 +41,10 @@ class WorkQueue
       when nil
         size_head = [0,"N"].pack 'La'
         str = size_head
+      when Annotation::AnnotatedObject
+        payload = @serializer.dump(obj)
+        size_head = [payload.bytesize,"S"].pack 'La'
+        str = size_head << payload
       when String
         payload = obj
         size_head = [payload.bytesize,"C"].pack 'La'
