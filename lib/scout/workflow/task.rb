@@ -6,7 +6,7 @@ require_relative 'task/dependencies'
 
 module Task
   extend Annotation
-  annotation :name, :type, :inputs, :deps, :directory, :description, :returns, :annotation, :workflow
+  annotation :name, :type, :inputs, :deps, :directory, :description, :returns, :extension, :workflow
 
   DEFAULT_NAME = "Default"
 
@@ -78,18 +78,18 @@ module Task
       name = id
     end
 
-    annotation = self.annotation
-    if annotation == :dep_task
-      annotation = nil
+    extension = self.extension
+    if extension == :dep_task
+      extension = nil
       if dependencies.any?
         dep_basename = File.basename(dependencies.last.path)
         if dep_basename.include? "."
           parts = dep_basename.split(".")
-          annotation = [parts.pop]
+          extension = [parts.pop]
           while parts.last.length <= 4
-            annotation << parts.pop
+            extension << parts.pop
           end
-          annotation = annotation.reverse * "."
+          extension = extension.reverse * "."
         end
       end
     end
@@ -97,7 +97,7 @@ module Task
 
     path = directory[name]
 
-    path = path.set_annotation(annotation) if annotation
+    path = path.set_extension(extension) if extension
 
     Persist.memory(path) do 
       if hash
@@ -112,6 +112,6 @@ module Task
   end
 
   def alias?
-    @annotation == :dep_task
+    @extension == :dep_task
   end
 end

@@ -44,7 +44,7 @@ class Test::Unit::TestCase
     Open.remote_cache_dir = tmpdir.var.cache
     Workflow.directory = tmpdir.var.jobs
     Workflow.workflows.each{|wf| wf.directory = Workflow.directory[wf.name] }
-    Entity.entity_property_cache = tmpdir.entity_properties
+    Entity.entity_property_cache = tmpdir.entity_properties if defined?(Entity)
   end
   
   teardown do
