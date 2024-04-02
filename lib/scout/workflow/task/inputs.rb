@@ -61,7 +61,7 @@ module Task
     [input_array, non_default_inputs, digest_str]
   end
 
-  def save_file_input(orig_file, directory)
+  def self.save_file_input(orig_file, directory)
     orig_file = orig_file.path if Step === orig_file
     basename = File.basename(orig_file)
     digest = Misc.digest(orig_file)
@@ -76,38 +76,42 @@ module Task
     relative_file
   end
 
+  def self.save_input(directory, name, type, value)
+    input_file = File.join(directory, name.to_s)
+
+    if Path.is_filename?(value) 
+      if type == :path
+        Open.write(input_file + ".as_path", value)
+      else
+        relative_file = save_file_input(value, directory)
+        Open.write(input_file + ".as_file", relative_file)
+      end
+    elsif Step === value
+      Open.write(input_file + ".as_step", value.short_path)
+    elsif type == :file
+      relative_file = save_file_input(value, directory)
+      Persist.save(relative_file, input_file, :file)
+    elsif type == :file_array
+      new_files = value.collect do |orig_file|
+        save_file_input(orig_file, directory)
+      end
+      Persist.save(new_files, input_file, type)
+    elsif Open.is_stream?(value)
+      Persist.save(value, input_file, type)
+    elsif Open.has_stream?(value)
+      Persist.save(value.stream, input_file, type)
+    else
+      Persist.save(value, input_file, type)
+    end
+  end
+
   def save_inputs(directory, provided_inputs = {})
-    #input_array, non_default_inputs = assign_inputs(provided_inputs)
     self.recursive_inputs.each_with_index do |p,i|
       name, type, desc, value, options = p
       next unless provided_inputs.include?(name)
       value = provided_inputs[name]
-      input_file = File.join(directory, name.to_s)
 
-      if Path.is_filename?(value) 
-        if type == :path
-          Open.write(input_file + ".as_path", value)
-        else
-          relative_file = save_file_input(value, directory)
-          Open.write(input_file + ".as_file", relative_file)
-        end
-      elsif Step === value
-        Open.write(input_file + ".as_step", value.short_path)
-      elsif type == :file
-        relative_file = save_file_input(value, directory)
-        Persist.save(relative_file, input_file, :file)
-      elsif type == :file_array
-        new_files = value.collect do |orig_file|
-          save_file_input(orig_file, directory)
-        end
-        Persist.save(new_files, input_file, type)
-      elsif Open.is_stream?(value)
-        Persist.save(value, input_file, type)
-      elsif Open.has_stream?(value)
-        Persist.save(value.stream, input_file, type)
-      else
-        Persist.save(value, input_file, type)
-      end
+      Task.save_input(directory, name, type, value)
     end
   end
 
