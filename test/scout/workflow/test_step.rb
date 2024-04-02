@@ -339,4 +339,30 @@ class TestWorkflowStep < Test::Unit::TestCase
     assert_equal "12 has 2 characters", step2.run
   end
 
+  def test_semaphore
+
+    tmpfile = tmpdir.test_step
+    step1 = Step.new tmpfile.step1 do |s|
+      sleep 2
+      "done1"
+    end
+
+    step2 = Step.new tmpfile.step2 do 
+      sleep 2
+      "done2"
+    end
+
+    step1.dependencies = []
+    step2.dependencies = []
+
+    ScoutSemaphore.with_semaphore(1) do |sem|
+      step1.fork(false, sem)
+      step2.fork(false, sem)
+      sleep 1
+      assert (step1.status == :queue) || (step2.status == :queue)
+      assert_equal "done2", step2.run
+    end
+
+  end
+
 end

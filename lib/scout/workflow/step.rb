@@ -1,5 +1,6 @@
 require 'scout/path'
 require 'scout/persist'
+require 'scout/semaphore'
 require_relative 'step/info'
 require_relative 'step/status'
 require_relative 'step/load'
@@ -12,7 +13,7 @@ require_relative 'step/inputs'
 
 class Step 
 
-  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :provided_inputs, :compute, :overriden_task, :overriden_workflow
+  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :provided_inputs, :compute, :overriden_task, :overriden_workflow, :workflow
   def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, &task)
     @path = path
     @inputs = inputs
@@ -83,7 +84,7 @@ class Step
 
   def workflow
     @workflow ||= @task.workflow if Task === @task
-    @workflow ||= info[:workflow] if Open.exist?(info_file)
+    @workflow ||= info[:workflow] if info_file && Open.exist?(info_file)
     @workflow ||= path.split("/")[-3]
   end
 
@@ -137,7 +138,7 @@ class Step
           :pid => Process.pid, :pid_hostname => Misc.hostname, 
           :task_name => task_name, :workflow => workflow.to_s,
           :inputs => Annotation.purge(inputs), :input_names => input_names, :type => type,
-          :dependencies => dependencies.collect{|d| d.path }
+          :dependencies => (dependencies || []) .collect{|d| d.path }
 
         @exec_result = exec
 
@@ -188,10 +189,17 @@ class Step
     end
   end
 
-  def fork
+  def fork(noload = false, semaphore = nil)
     Process.fork do
       clear_info unless present?
-      run(false)
+      if semaphore
+        log :queue, "Queued over semaphore: #{semaphore}"
+        ret = ScoutSemaphore.wait_semaphore(semaphore)
+        raise SemaphoreInterrupted if ret == -1
+        run(noload)
+      else
+        run(noload)
+      end
       join
     end
     grace

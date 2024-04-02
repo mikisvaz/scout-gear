@@ -33,30 +33,35 @@ class Step
 
   def prepare_dependencies
     inverse_dep = {}
-    dependencies.each{|dep|
+
+    dependencies.each do |dep|
       if dep.present? && ! dep.updated?
         Log.debug "Clean outdated #{dep.path}"
         dep.clean
       end
+
       next if dep.done?
+
       if dep.dependencies
         dep.dependencies.each do |d|
           inverse_dep[d] ||= []
           inverse_dep[d] << dep
         end
       end
+
       input_dependencies.each do |d|
         inverse_dep[d] ||= []
         inverse_dep[d] << dep
       end
-    }
+    end if dependencies
+
     inverse_dep.each do |dep,list|
       dep.tee_copies = list.length
     end
   end
 
   def run_dependencies
-    dependencies.each{|dep| 
+    dependencies.each do |dep| 
       next if dep.running? || dep.done?
       compute_options = compute[dep.path] if compute
       compute_options = [] if compute_options.nil?
@@ -74,11 +79,11 @@ class Step
           raise $!
         end
       end
-    }
+    end if dependencies
   end
 
   def abort_dependencies
-    dependencies.each{|dep| dep.abort if dep.running? }
+    dependencies.each{|dep| dep.abort if dep.running? } if dependencies
   end
 
   def self.wait_for_jobs(jobs)
