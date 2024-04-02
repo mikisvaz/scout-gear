@@ -285,7 +285,6 @@ module Workflow
         task = self.tasks[task_name]
       end
 
-      #dependencies = self.rec_dependencies(task_name).collect{|dep_name| Array === dep_name ? dep_name.first.tasks[dep_name[1].to_sym] : self.tasks[dep_name.to_sym]}
       str.puts task.usage(self, self.recursive_deps(task_name))
 
       dep_tree = {[self, task_name] => dep_tree(task_name)}
