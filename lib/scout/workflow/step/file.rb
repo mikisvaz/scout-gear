@@ -19,6 +19,12 @@ class Step
     dir[file]
   end
 
+  def files
+    Dir.glob(File.join(files_dir, '**', '*')).reject{|path| File.directory? path }.collect do |path| 
+      Misc.path_relative_to(files_dir, path) 
+    end
+  end
+
   def bundle_files
     [path, info_file, Dir.glob(File.join(files_dir,"**/*"))].flatten.select{|f| Open.exist?(f) }
   end

@@ -22,15 +22,6 @@ module Task
     @inputs ||= []
   end
 
-  def recursive_inputs
-    return inputs if deps.nil?
-    deps.inject(inputs) do |acc,dep|
-      workflow, task = dep
-      next acc if workflow.nil? || task.nil?
-      acc += workflow.tasks[task].recursive_inputs
-    end
-  end
-
   def directory
     @directory ||= Task.default_directory
   end

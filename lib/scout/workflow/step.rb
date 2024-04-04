@@ -10,6 +10,7 @@ require_relative 'step/provenance'
 require_relative 'step/config'
 require_relative 'step/progress'
 require_relative 'step/inputs'
+require_relative 'step/children'
 
 class Step 
 
@@ -73,7 +74,9 @@ class Step
   def clean_name
     return @id if @id
     return info[:clean_name] if info.include? :clean_name
-    return m[1] if m = name.match(/(.*?)(?:_[a-z0-9]{32})?(?:\..*)?/)
+    if m = name.match(/(.*?)(?:_[a-z0-9]{32})?(?:\..*)?/)
+      return m[1] 
+    end
     return name.split(".").first
   end
 

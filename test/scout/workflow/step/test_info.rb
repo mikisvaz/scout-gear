@@ -42,4 +42,20 @@ class TestStepInfo < Test::Unit::TestCase
 
     end
   end
+
+  def test_messages
+    TmpFile.with_file do |tmpdir|
+      Path.setup(tmpdir)
+      tmpfile = tmpdir.test_step
+      step1 = Step.new tmpfile.step1, ["12"] do |s|
+        log :msg, "Message1"
+        log :msg, "Message2"
+        s.length
+      end
+
+      step1.run
+
+      assert_equal %w(Message1 Message2), step1.messages
+    end
+  end
 end

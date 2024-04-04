@@ -145,4 +145,18 @@ module Task
     end
     inputs
   end
+
+  def recursive_inputs(overriden = [])
+    return inputs.dup if deps.nil?
+    deps.inject(inputs) do |acc,dep|
+      workflow, task, options = dep
+      next acc if workflow.nil? || task.nil?
+      next acc if overriden.include?([workflow.name, task.to_s] * "#")
+      overriden.concat options.keys.select{|k| k.to_s.include?("#") } if options
+      dep_inputs = workflow.tasks[task].recursive_inputs(overriden)
+      dep_inputs.delete_if{|name,_| options.include?(name.to_sym) || options.include?(name.to_s) }
+      acc += dep_inputs
+    end
+  end
+
 end

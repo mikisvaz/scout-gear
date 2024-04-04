@@ -125,6 +125,10 @@ class Step
     end
   end
 
+  def messages
+    info[:messages]
+  end
+
   def status
     info[:status].tap{|s| s.nil? ? s : s.to_sym }
   end

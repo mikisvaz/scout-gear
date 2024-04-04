@@ -1,7 +1,7 @@
 require File.expand_path(__FILE__).sub(%r(/test/.*), '/test/test_helper.rb')
 require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
 
-require 'scout/workflow/util'
+require 'scout/workflow'
 
 class TestTaskInput < Test::Unit::TestCase
   def example_workflow
@@ -226,5 +226,49 @@ class TestTaskInput < Test::Unit::TestCase
         assert_equal original_digest, new_digest
       end
     end
+  end
+
+  def test_recursive_inputs
+    w = Module.new do
+      extend Workflow
+
+      self.name = "SaluteWF"
+
+      input :name, :string
+      task :salute => :string do |name|
+        "Hi #{name}"
+      end
+
+      task_alias :salute_miguel, self, :salute, :name => "Miguel"
+    end
+
+    assert w.tasks[:salute_miguel].recursive_inputs.empty?
+  end
+
+  def test_recursive_inputs_with_overriden_deps
+    w = Module.new do
+      extend Workflow
+
+      self.name = "SaluteWF"
+
+      input :name, :string
+      task :salute => :string do |name|
+        "Hi #{name}"
+      end
+
+      task_alias :salute_miguel, self, :salute, :name => "Miguel"
+
+      dep :salute
+      task :repeat_salute => :array do
+        [step(:salute).load] * 3
+      end
+
+      dep :salute_miguel
+      task_alias :repeat_salute_miguel, self, :repeat_salute, "SaluteWF#salute" => :salute_miguel
+    end
+
+    assert_equal ["Hi Miguel"] * 3, w.job(:repeat_salute_miguel).run
+
+    assert w.tasks[:repeat_salute_miguel].recursive_inputs.empty?
   end
 end
