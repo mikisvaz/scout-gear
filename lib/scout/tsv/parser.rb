@@ -51,13 +51,15 @@ module TSV
     [key, items]
   end
 
-  def self.parse_stream(stream, data: nil, source_type: nil, type: :list, merge: true, one2one: false, fix: true, bar: false, first_line: nil, field_names: nil, head: nil, **kargs, &block)
+  def self.parse_stream(stream, data: nil, source_type: nil, type: :list, merge: true, one2one: false, fix: true, bar: false, first_line: nil, field_names: nil, head: nil, **kwargs, &block)
     begin
       bar = "Parsing #{Log.fingerprint stream}" if TrueClass === bar
       bar = Log::ProgressBar.get_obj_bar(stream, bar) if bar
       bar.init if bar
 
       source_type = type if source_type.nil?
+
+      type_swap_key = [source_type.to_s, type.to_s] * "_"
 
       data = {} if data.nil?
       merge = false if type != :double && type != :flat
@@ -77,7 +79,7 @@ module TSV
             next
           end
 
-          key, items = parse_line(line, type: source_type, field_names: field_names, **kargs)
+          key, items = parse_line(line, type: source_type, field_names: field_names, **kwargs)
 
           next if key.nil?
 
@@ -101,38 +103,38 @@ module TSV
             end
 
             these_items = 
-              case [source_type, type]
-              when [:single, :single]
+              case type_swap_key
+              when "single_single"
                 these_items
-              when [:list, :single]
+              when "list_single"
                 these_items.first
-              when [:flat, :single]
+              when "flat_single"
                 these_items.first
-              when [:double, :single]
+              when "double_single"
                 these_items.first.first
-              when [:single, :list]
+              when "single_list"
                 [these_items]
-              when [:list, :list]
+              when "list_list"
                 these_items
-              when [:flat, :list]
+              when "flat_list"
                 these_items
-              when [:double, :list]
+              when "double_list"
                 these_items.collect{|l| l.first }
-              when [:single, :flat]
+              when "single_flat"
                 [these_items]
-              when [:list, :flat]
+              when "list_flat"
                 these_items
-              when [:flat, :flat]
+              when "flat_flat"
                 these_items
-              when [:double, :flat]
+              when "double_flat"
                 these_items.flatten
-              when [:single, :double]
+              when "single_double"
                 [[these_items]]
-              when [:list, :double]
+              when "list_double"
                 these_items.collect{|l| [l] }
-              when [:flat, :double]
+              when "flat_double"
                 [these_items]
-              when [:double, :double]
+              when "double_double"
                 these_items
               end
 
@@ -144,7 +146,7 @@ module TSV
 
             if ! merge || ! data.include?(key)
               these_items = these_items.collect{|i| i.empty? ? [nil] : i } if type == :double
-              data[key] ||= these_items
+              data[key] = these_items
             elsif type == :double
               current = data[key]
               if merge == :concat
@@ -184,7 +186,7 @@ module TSV
       end
       data
     ensure
-      if stream.stream_exception
+      if stream.respond_to?(:stream_exception) && stream.stream_exception
         bar.remove(stream.stream_exception)
       else
         bar.remove
@@ -202,6 +204,7 @@ module TSV
   end
 
   def self.parse_header(stream, fix: true, header_hash: '#', sep: "\t")
+    sep = "\t" if sep.nil?
     if (Path === stream) || ((String === stream) && Path.is_filename?(stream))
       Open.open(stream) do |f|
         return parse_header(f, fix: fix, header_hash: header_hash, sep: sep)

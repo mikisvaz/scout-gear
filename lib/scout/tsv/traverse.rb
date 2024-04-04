@@ -41,6 +41,7 @@ module TSV
     Log.debug log_message
     bar = log_message if TrueClass === bar
 
+    type_swap_tag = [type.to_s, @type.to_s] * "_"
     Log::ProgressBar.with_obj_bar(self, bar) do |bar|
       with_unnamed unnamed do
         each do |key,values|
@@ -114,30 +115,30 @@ module TSV
                 yield key, values
               end
             else
-              case [type, @type]
-              when [:double, :list]
+              case type_swap_tag
+              when "double_list"
                 yield key, values.collect{|v| [v] }
-              when [:double, :flat]
+              when "double_flat"
                 yield key, [values]
-              when [:double, :single]
+              when "double_single"
                 yield key, [values]
-              when [:list, :double]
+              when "list_double"
                 yield key, values.collect{|v| v.first }
-              when [:list, :flat]
+              when "list_flat"
                 yield key, [values.first]
-              when [:list, :single]
+              when "list_single"
                 yield key, values
-              when [:flat, :double]
+              when "flat_double"
                 yield key, values.flatten
-              when [:flat, :list]
+              when "flat_list"
                 yield key, values.flatten
-              when [:flat, :single]
+              when "flat_single"
                 yield key, values
-              when [:single, :double]
+              when "single_double"
                 yield key, values.flatten.first
-              when [:single, :list]
+              when "single_list"
                 yield key, values.first
-              when [:single, :flat]
+              when "single_flat"
                 yield key, values.first
               end
             end

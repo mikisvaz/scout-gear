@@ -75,12 +75,13 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    tsv=tsv{
     util.rb
     util=util{
-     select.rb
-     process.rb
-     unzip.rb
-     reorder.rb
-     sort.rb
+     filter.rb
      melt.rb
+     process.rb
+     reorder.rb
+     select.rb
+     sort.rb
+     unzip.rb
     }
     entity.rb
     parser.rb

@@ -16,7 +16,7 @@ module TSV
     end
 
     if field
-      field = fields.index(field) if fields && String === field
+      field = NamedArray.identify_name(fields, field) if fields && String === field
       set = field == :key ? [key] : (type == :double ? values[field].split(sep) : values[field])
     else
       set = [key, (type == :double ? values.collect{|v| v.split(sep) } : values)]

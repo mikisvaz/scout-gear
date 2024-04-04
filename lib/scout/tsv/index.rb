@@ -2,15 +2,60 @@ require_relative 'parser'
 require_relative 'transformer'
 require_relative 'persist/fix_width_table'
 module TSV
+
+  def self.select_prefix_str(select)
+    str = begin
+            case select
+            when nil
+              nil
+            when Array
+              case select.first
+              when nil
+                nil
+              when Array
+                select.collect{|p| p * "="}*","
+              else
+                select.collect{|p| p.to_s }*"="
+              end
+            when Hash
+              if select.empty?
+                nil
+              else
+                select.collect do |key,value|
+                  [key.to_s, value.to_s] * "="
+                end * ","
+              end
+            end
+          rescue
+            Log.warn "Error in select_prefix_str: #{Log.fingerprint(select)}: #{$!.message}"
+            str = nil
+          end
+    if str.nil?
+      ""
+    else
+      "[select:#{str}]"
+    end
+  end
+
   def self.index(tsv_file, target: :key, fields: nil, order: true, bar: nil, **kwargs)
-    persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
-      :persist, :persist_type, :persist_update, :data_persist,
-      :persist => false, :persist_type => "HDB"
-    kwargs.delete :type
+    kwargs = IndiferentHash.add_defaults kwargs, unnamed: true
+    type, data_persist = IndiferentHash.process_options kwargs, :type, :data_persist
 
     fields = :all if fields.nil?
 
-    Persist.persist(tsv_file, type, kwargs.merge(target: target, fields: fields, persist: persist, update: persist_update, prefix: "Index", other_options: {fields: fields, target: target, order: order})) do |filename|
+    prefix = case fields
+             when :all
+               "Index[#{target}]"
+             else
+               "Index[#{Log.fingerprint(fields)}->#{target}]"
+             end
+
+    prefix += select_prefix_str(kwargs[:select])
+
+    persist_options = IndiferentHash.pull_keys kwargs, :persist
+    persist_options = IndiferentHash.add_defaults persist_options, :prefix => prefix, :type => :HDB, :persist => false
+
+    Persist.persist(tsv_file, persist_options[:type], persist_options.merge(other_options: kwargs.merge(target: target, fields: fields, order: order))) do |filename|
       if filename
         index = ScoutCabinet.open(filename, true, type)
         TSV.setup(index, :type => :single)
@@ -28,7 +73,7 @@ module TSV
       if order
         tmp_index = {}
         include_self = fields == :all || (Array === fields) && fields.include?(target)
-        target_key_field, source_field_names = Open.traverse tsv_file, type: :double, key_field: target, fields: fields, unnamed: true, bar: bar, **kwargs do |k,values|
+        target_key_field, source_field_names = Open.traverse tsv_file, type: :double, key_field: target, fields: fields, bar: bar, **kwargs do |k,values|
           tmp_index[k] ||= [[k]] if include_self
           values.each_with_index do |list,i|
             i += 1 if include_self
@@ -65,20 +110,23 @@ module TSV
 
   def index(*args, **kwargs, &block)
     TSV.index(self, *args, **kwargs, &block)
-  end
+ end
 
   def self.range_index(tsv_file, start_field = nil, end_field = nil, key_field: :key, bar: nil, **kwargs)
-    persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
-      :persist, :persist_type, :persist_update, :data_persist,
-      :persist => false, :persist_type => :fwt
-    kwargs.delete :type
-    kwargs[:unnamed] = true
+    kwargs = IndiferentHash.add_defaults kwargs, unnamed: true
+    type, data_persist = IndiferentHash.process_options kwargs, :type, :data_persist
 
-    Persist.persist(tsv_file, type, 
-                    :persist => persist, :prefix => "RangeIndex[#{[start_field, end_field]*"-"}]", update: persist_update,
-                    :other_options => kwargs) do |filename|
+    prefix = "RangeIndex[#{start_field}-#{end_field}]"
 
-      tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
+    prefix += select_prefix_str(kwargs[:select])
+
+    persist_options = IndiferentHash.pull_keys kwargs, :persist
+    persist_options = IndiferentHash.add_defaults persist_options, :prefix => prefix, :type => :fwt, :persist => true
+
+    data_options = IndiferentHash.pull_keys kwargs, :data
+
+    Persist.persist(tsv_file, persist_options[:type], persist_options.merge(other_options: kwargs.merge(start_field: start_field, end_field: end_field, key_field: key_field))) do |filename|
+      tsv_file = TSV.open(tsv_file, *data_options) if data_options[:persist] && ! TSV === tsv_file
 
       log_msg = "RangeIndex #{Log.fingerprint tsv_file} #{[start_field, end_field]*"-"}"
       Log.low log_msg
@@ -86,7 +134,7 @@ module TSV
 
       max_key_size = 0
       index_data = []
-      TSV.traverse tsv_file, key_field: key_field, fields: [start_field, end_field], bar: bar, **kwargs do |key, values|
+      TSV.traverse tsv_file, key_field: key_field, fields: [start_field, end_field], bar: bar, unnamed: true, **kwargs do |key, values|
         key_size = key.length
         max_key_size = key_size if key_size > max_key_size
 
@@ -109,19 +157,22 @@ module TSV
   end
 
   def self.pos_index(tsv_file, pos_field = nil, key_field: :key, bar: nil, **kwargs)
-    persist, type, persist_update, data_persist = IndiferentHash.process_options kwargs,
-      :persist, :persist_type, :persist_update, :data_persist,
-      :persist => false, :persist_type => :fwt
-    kwargs.delete :type
-    kwargs[:unnamed] = true
+    kwargs = IndiferentHash.add_defaults kwargs, unnamed: true
+    type, data_persist = IndiferentHash.process_options kwargs, :type
 
-    Persist.persist(tsv_file, type, 
-                    :persist => persist, :prefix => "RangeIndex[#{pos_field}]", update: persist_update,
-                    :other_options => kwargs) do |filename|
+    prefix = "PositionIndex[#{pos_field}]"
 
-      tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
+    prefix += select_prefix_str(kwargs[:select])
 
-      log_msg = "RangeIndex #{Log.fingerprint tsv_file} #{pos_field}"
+    persist_options = IndiferentHash.pull_keys kwargs, :persist
+    persist_options = IndiferentHash.add_defaults persist_options, :prefix => prefix, :type => :fwt, :persist => true
+
+    data_options = IndiferentHash.pull_keys kwargs, :data
+
+    Persist.persist(tsv_file, persist_options[:type], persist_options.merge(other_options: kwargs.merge(pos_field: pos_field, key_field: key_field))) do |filename|
+      tsv_file = TSV.open(tsv_file, *data_options) if data_options[:persist] && ! TSV === tsv_file
+
+      log_msg = "PositionIndex #{Log.fingerprint tsv_file} #{pos_field}"
       Log.low log_msg
       bar = log_msg if TrueClass === bar
 
