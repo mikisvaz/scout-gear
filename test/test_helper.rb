@@ -32,8 +32,12 @@ class Test::Unit::TestCase
     assert_equal File.expand_path(path1), File.expand_path(path2)
   end
 
+  def self.tmpdir
+    @@tmpdir ||= Path.setup('tmp/test_tmpdir').find
+  end
+
   def tmpdir
-    @tmpdir ||= Path.setup('tmp/test_tmpdir').find
+    @tmpdir ||= Test::Unit::TestCase.tmpdir
   end
 
   setup do

@@ -13,8 +13,8 @@ require_relative 'step/inputs'
 
 class Step 
 
-  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :provided_inputs, :compute, :overriden_task, :overriden_workflow, :workflow
-  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, &task)
+  attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :provided_inputs, :compute, :overriden_task, :overriden_workflow, :workflow, :exec_context
+  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, exec_context = nil, &task)
     @path = path
     @inputs = inputs
     @dependencies = dependencies
@@ -25,6 +25,7 @@ class Step
     @task = task
     @mutex = Mutex.new
     @tee_copies = 1
+    @exec_context = exec_context || self
   end
 
   def synchronize(&block)
@@ -109,7 +110,7 @@ class Step
 
     @result = begin
                 @in_exec = true
-                self.instance_exec(*inputs, &task)
+                @exec_context.instance_exec(*inputs, &task)
               ensure
                 @in_exec = false
               end

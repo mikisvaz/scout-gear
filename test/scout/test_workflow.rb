@@ -6,6 +6,9 @@ class TestWorkflow < Test::Unit::TestCase
   module Pantry
     extend Resource
     self.subdir = 'share/pantry'
+    self.path_maps[:tmp] = TestWorkflow.tmpdir
+    self.path_maps[:default] = :tmp
+    self.map_order = [:tmp]
 
     Pantry.claim Pantry.eggs, :proc do
       Log.info "Buying Eggs in the store"
@@ -24,42 +27,40 @@ class TestWorkflow < Test::Unit::TestCase
   end
 
   module Baking
-    def self.whisk(eggs)
+    extend Workflow
+
+    helper :whisk do |eggs|
       "Whisking eggs from #{eggs}"
     end
 
-    def self.mix(base, mixer)
+    helper :mix do |base, mixer|
       "Mixing base (#{base}) with mixer (#{mixer})"
     end
 
-    def self.bake(batter)
+    helper :bake do |batter|
       "Baking batter (#{batter})"
     end
-  end
-
-  module Baking
-    extend Workflow
 
     dep :prepare_batter
     task :bake_muffin_tray => :string do 
-      Baking.bake(step(:prepare_batter).load)
+      bake(step(:prepare_batter).load)
     end
 
     dep :whisk_eggs
     input :add_bluberries, :boolean
     task :prepare_batter => :string do |add_bluberries|
       whisked_eggs = step(:whisk_eggs).load
-      batter = Baking.mix(whisked_eggs, Pantry.flour.produce)
+      batter = mix(whisked_eggs, Pantry.flour.produce)
 
       if add_bluberries
-        batter = Baking.mix(batter, Pantry.blueberries.produce) 
+        batter = mix(batter, Pantry.blueberries.produce) 
       end
 
       batter
     end
 
     task :whisk_eggs => :string do
-      Baking.whisk(Pantry.eggs.produce)
+      whisk(Pantry.eggs.produce)
     end
   end
 
@@ -78,10 +79,10 @@ class TestWorkflow < Test::Unit::TestCase
   end
 
   def test_baking
-    assert_equal "Baking batter (Mixing base (Mixing base (Whisking eggs from share/pantry/eggs) with mixer (share/pantry/flour)) with mixer (share/pantry/blueberries))",
-      Baking.job(:bake_muffin_tray, :add_bluberries => true).run
-
     assert_equal "Baking batter (Mixing base (Whisking eggs from share/pantry/eggs) with mixer (share/pantry/flour))",
-      Baking.job(:bake_muffin_tray).run
+      Baking.job(:bake_muffin_tray, "Normal muffin").run
+
+    assert_equal "Baking batter (Mixing base (Mixing base (Whisking eggs from share/pantry/eggs) with mixer (share/pantry/flour)) with mixer (share/pantry/blueberries))",
+      Baking.job(:bake_muffin_tray, "Blueberry muffin", :add_bluberries => true).run
   end
 end
