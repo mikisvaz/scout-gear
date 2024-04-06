@@ -51,7 +51,7 @@ module Task
       raise ParameterException, "Inputs #{Misc.humanize_list(missing_inputs)} are required but were not provided or are nil"
     end
 
-    provided_inputs = load_inputs(provided_inputs[:load_inputs]) if Hash === provided_inputs && provided_inputs[:load_inputs]
+    provided_inputs = load_inputs(provided_inputs.delete(:load_inputs)).merge(provided_inputs) if Hash === provided_inputs && provided_inputs[:load_inputs]
 
     inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
 
