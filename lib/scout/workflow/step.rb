@@ -149,7 +149,7 @@ class Step
         if @exec_result.nil? && File.exist?(self.tmp_path) && ! File.exist?(self.path)
           Open.mv self.tmp_path, self.path
         else
-          @exec_result = @exec_result.stream if @exec_result.respond_to?(:stream)
+          @exec_result = @exec_result.stream if @exec_result.respond_to?(:stream) && ! (TSV === @exec_result)
         end
 
         @exec_result
