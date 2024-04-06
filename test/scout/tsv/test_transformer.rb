@@ -93,7 +93,6 @@ row2    A2|A22    B2|B22
       trans.type = :flat
       trans.sep = "\t"
 
-
       trans["row3"] = %w(A3 A33)
 
       trans.each do |k,values|
