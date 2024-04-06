@@ -14,5 +14,18 @@ class TestWorkflowDefinition < Test::Unit::TestCase
     end
     assert_equal 5, wf.job(:str_length, :string => "12345").run
   end
+
+  def test_as_jobname
+    wf = Workflow.annonymous_workflow do
+      self.name = "CallName"
+      input :name, :string, "Name to call", nil, :jobname => true
+      task :call_name => :string do |name|
+        "Hi #{name}"
+      end
+    end
+    assert_equal "Hi Miguel", wf.job(:call_name, "Miguel").run
+    assert_equal "Hi Cleia", wf.job(:call_name, "Miguel", name: "Cleia").run
+    assert_equal "Miguel", wf.job(:call_name, "Miguel", name: "Cleia").clean_name
+  end
 end
 
