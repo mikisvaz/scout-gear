@@ -17,6 +17,22 @@ a\t1|11\t2|22
     assert_equal txt, dumper.stream.read
   end
 
+  def test_set_stream
+    io = StringIO.new
+    dumper = TSV::Dumper.new :key_field => "Key", :fields => %w(Field1 Field2), :type => :double
+    dumper.set_stream io
+    dumper.init
+    dumper.add "a", [["1", "11"], ["2", "22"]]
+    txt=<<-EOF
+#: :type=:double
+#Key\tField1\tField2
+a\t1|11\t2|22
+    EOF
+    dumper.close
+    io.rewind
+    assert_equal txt, io.read
+  end
+
   def test_to_s
     tsv = TSV.setup({}, :key_field => "Key", :fields => %w(Field1 Field2), :type => :double)
     tsv["a"] = [["1", "11"], ["2", "22"]]

@@ -43,6 +43,12 @@ module TSV
       ConcurrentStream.setup(@sout, pair: @sin)
     end
 
+    def set_stream(stream)
+      @sin.close
+      @sout.close
+      @sout = @sin = stream
+    end
+
     def key_field
       @options[:key_field]
     end
@@ -73,7 +79,7 @@ module TSV
       header = Dumper.header(@options.merge(type: @type, sep: @sep, preamble: preamble))
       @mutex.synchronize do
         @initialized = true
-        @sin.puts header if header and ! header.empty?
+        @sin << header << "\n" if header and ! header.empty?
       end
     end
 
@@ -82,23 +88,25 @@ module TSV
 
         key = key.to_s unless String === key
         if value.nil? || value.empty?
-          @sin.puts key
+          @sin << key << "\n"
         else
           case @type
           when :single
-            @sin.puts key + @sep + value.to_s
+            @sin << key + @sep + value.to_s << "\n"
           when :list, :flat
-            @sin.puts key + @sep + value * @sep
+            @sin << key + @sep + value * @sep << "\n"
           when :double
-            @sin.puts key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep
+            @sin << key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep << "\n"
           end
         end
       end
     end
 
     def close
-      @sin.close
-      @sin.join
+      if @sin != @sout
+        @sin.close if @sin.respond_to?(:close) && ! @sin.closed?
+        @sin.join if @sin.respond_to?(:join) && ! @sin.joined?
+      end
     end
 
     def stream
@@ -127,38 +135,62 @@ module TSV
   end
 
   def dumper_stream(options = {})
-    preamble, unmerge, keys = IndiferentHash.process_options options, :preamble, :unmerge, :keys,
+    preamble, unmerge, keys, stream = IndiferentHash.process_options options, 
+      :preamble, :unmerge, :keys, :stream,
       :preamble => true, :unmerge => false
     unmerge = false unless @type === :double
     dumper = TSV::Dumper.new self.annotation_hash.merge(options)
-    t = Thread.new do 
-      begin
-        Thread.current.report_on_exception = true
-        Thread.current["name"] = "Dumper thread"
-        dumper.init(preamble: preamble)
 
-        dump_entry = Proc.new do |k,value_list|
-          if unmerge
-            max = value_list.collect{|v| v.length}.max
+    dump_entry = Proc.new do |k,value_list|
+      if unmerge
+        max = value_list.collect{|v| v.length}.max
 
-            if unmerge == :expand and max > 1
-              value_list = value_list.collect do |values|
-                if values.length == 1
-                  [values.first] * max
-                else
-                  values
-                end
-              end
+        if unmerge == :expand and max > 1
+          value_list = value_list.collect do |values|
+            if values.length == 1
+              [values.first] * max
+            else
+              values
             end
-
-            NamedArray.zip_fields(value_list).each do |values|
-              dumper.add k, values
-            end
-          else
-            dumper.add k, value_list
           end
         end
 
+        NamedArray.zip_fields(value_list).each do |values|
+          dumper.add k, values
+        end
+      else
+        dumper.add k, value_list
+      end
+    end
+
+    if stream.nil?
+      t = Thread.new do 
+        begin
+          dumper.init(preamble: preamble)
+          Thread.current.report_on_exception = true
+          Thread.current["name"] = "Dumper thread"
+
+          if keys
+            keys.each do |k|
+              dump_entry.call k, self[k]
+            end
+          else
+            self.each &dump_entry
+          end
+
+          dumper.close
+        rescue
+          dumper.abort($!)
+        end
+      end
+      Thread.pass until t["name"]
+      stream = dumper.stream
+      ConcurrentStream.setup(stream, :threads => [t])
+      stream
+    else
+      dumper.set_stream stream
+      begin
+        dumper.init(preamble: preamble)
         if keys
           keys.each do |k|
             dump_entry.call k, self[k]
@@ -171,15 +203,12 @@ module TSV
       rescue
         dumper.abort($!)
       end
+      stream
     end
-    Thread.pass until t["name"]
-    s = dumper.stream
-    ConcurrentStream.setup(s, :threads => [t])
-    s
   end
 
   def to_s(options = {})
-    dumper_stream(options).read
+    dumper_stream(options.merge(stream: ''))
   end
 
   alias stream dumper_stream
