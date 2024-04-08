@@ -146,7 +146,8 @@ class Step
   end
 
   def overriden?
-    overriden_task || overriden_workflow || dependencies.select{|d| d.overriden? }.any?
+    @overriden = overriden_task || overriden_workflow || overriden_deps.any? if @overriden.nil?
+    @overriden
   end
 
   def overriden_deps

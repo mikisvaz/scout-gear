@@ -31,6 +31,9 @@ module Task
       compute_options << :produce if definition_options[:produce]
       compute_options << :stream if definition_options[:stream]
       compute[job.path] = compute_options if compute_options.any?
+
+      job.overriden = false if definition_options[:not_overriden]
+
       [job, step_inputs]
     end
 
