@@ -30,12 +30,18 @@ module Task
     binding.instance_exec(*inputs, &self)
   end
 
-  def job(id = DEFAULT_NAME, provided_inputs = nil )
-    provided_inputs, id = id, DEFAULT_NAME if (provided_inputs.nil? || provided_inputs.empty?) && (Hash === id || Array === id)
+  def job(id = nil, provided_inputs = nil )
+    provided_inputs, id = id, nil if (provided_inputs.nil? || provided_inputs.empty?) && (Hash === id || Array === id)
     provided_inputs = {} if provided_inputs.nil?
     IndiferentHash.setup(provided_inputs)
-    id = DEFAULT_NAME if id.nil?
 
+    if id.nil?
+      inputs.each do |name,type,desc,default,input_options|
+        next unless input_options && input_options[:jobname]
+        id = provided_inputs[name] || default
+      end
+      id = DEFAULT_NAME if id.nil?
+    end
 
     missing_inputs = []
     self.inputs.each do |input,type,desc,val,options|

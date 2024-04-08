@@ -26,6 +26,7 @@ class TestWorkflowDefinition < Test::Unit::TestCase
     assert_equal "Hi Miguel", wf.job(:call_name, "Miguel").run
     assert_equal "Hi Cleia", wf.job(:call_name, "Miguel", name: "Cleia").run
     assert_equal "Miguel", wf.job(:call_name, "Miguel", name: "Cleia").clean_name
+    assert_equal "Cleia", wf.job(:call_name, name: "Cleia").clean_name
   end
 end
 
