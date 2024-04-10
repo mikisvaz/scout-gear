@@ -318,7 +318,7 @@ class Step
   end
 
   def short_path
-    Scout.identify @path
+    Resource.identify @path
   end
 
   def digest_str
