@@ -59,7 +59,7 @@ module Task
 
     provided_inputs = load_inputs(provided_inputs.delete(:load_inputs)).merge(provided_inputs) if Hash === provided_inputs && provided_inputs[:load_inputs]
 
-    inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
+    job_inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
 
     compute = {}
     dependencies = dependencies(id, provided_inputs, non_default_inputs, compute)
@@ -102,9 +102,9 @@ module Task
       else
         Log.debug "ID #{self.name} #{id} - Clean"
       end
-      NamedArray.setup(inputs, @inputs.collect{|i| i[0] }) if @inputs
+      NamedArray.setup(job_inputs, @inputs.collect{|i| i[0] }) if @inputs
       step_provided_inputs = Hash === provided_inputs ? provided_inputs.slice(*non_default_inputs) : provided_inputs
-      Step.new path.find, inputs, dependencies, id, non_default_inputs, step_provided_inputs, compute, &self
+      Step.new path.find, job_inputs, dependencies, id, non_default_inputs, step_provided_inputs, compute, &self
     end
   end
 
