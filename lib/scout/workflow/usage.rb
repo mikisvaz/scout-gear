@@ -114,6 +114,7 @@ module Task
   def get_SOPT
     sopt_option_string = self.SOPT_str
     job_options = SOPT.get sopt_option_string
+
     recursive_inputs.uniq.each do |name,type|
       next unless type.to_s.include?('array')
       if job_options.include?(name) && (! Open.exist?(job_options[name]) || type.to_s.include?('file') || type.to_s.include?('path'))
