@@ -445,7 +445,6 @@ module TSV
     kwargs[:data] = {} if kwargs[:data].nil?
 
     data = parser.traverse **kwargs, &block
-    parser.traverse **kwargs, &block
     data.type = type
     data.filename = filename || parser.options[:filename]
     data.namespace = namespace || parser.options[:namespace]
