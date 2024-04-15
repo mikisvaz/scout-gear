@@ -61,6 +61,30 @@ module TSV
 
       type_swap_key = [source_type.to_s, type.to_s] * "_"
 
+      same_type = source_type.to_s == type.to_s
+
+      if data && data.respond_to?(:load_stream) && 
+          data.serializer.to_s.include?("String") &&
+          same_type && 
+          ! (head || kwargs[:cast] || kwargs[:positions] || (kwargs[:key] && kwargs[:key] != 0) || Proc === fix ) &&
+          (kwargs[:sep].nil? || kwargs[:sep] == "\t")
+
+
+        Log.debug "Loading #{Log.fingerprint stream} directly into #{Log.fingerprint data}"
+        if first_line
+          full_stream = Open.open_pipe do |sin|
+            sin.puts first_line
+            Open.consume_stream(stream, false, sin)
+          end
+          data.load_stream(full_stream)
+        else
+          data.load_stream(stream)
+        end
+
+        return data
+      end
+
+
       data = {} if data.nil?
       merge = false if type != :double && type != :flat
       line = first_line || stream.gets
@@ -385,7 +409,7 @@ module TSV
       if data
         TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type)
       else
-        [key_field ||self.key_field, fields || self.fields]
+        [key_field || self.key_field, fields || self.fields]
       end
     end
 

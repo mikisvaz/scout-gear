@@ -135,6 +135,12 @@ module ScoutCabinet
   class << self
     alias load_stream importtsv
   end
+
+  def importtsv(stream)
+    ScoutCabinet.load_stream(self, stream)
+  end
+
+  alias load_stream importtsv
 end
 
 module Persist
