@@ -27,18 +27,22 @@ Persist.load_drivers[:tsv] = proc do |file| TSV.open file end
 
 module Persist
   def self.persist_tsv(file, filename = nil, options = {}, persist_options = {})
+    persist_options = IndiferentHash.add_defaults persist_options,
+      IndiferentHash.pull_keys(options, :persist)
+
+    persist_options[:data] ||= options.delete(:data)
     engine = IndiferentHash.process_options persist_options, :engine, engine: "HDB"
     other_options = IndiferentHash.pull_keys persist_options, :other
     other_options[:original_options] = options
     Persist.persist(file, engine, persist_options.merge(:other => other_options)) do |filename|
       if filename
-        data = Persist.open_tokyocabinet(filename, true, nil, engine)
+        data = persist_options[:data] ||= Persist.open_tokyocabinet(filename, true, nil, engine)
 
         yield(data)
         data.save_annotation_hash if Annotation.is_annotated?(data)
         data
       else
-        yield({})
+        yield(persist_options[:data] || {})
       end
     end
   end

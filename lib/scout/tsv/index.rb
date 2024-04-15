@@ -39,7 +39,7 @@ module TSV
 
   def self.index(tsv_file, target: :key, fields: nil, order: true, bar: nil, **kwargs)
     kwargs = IndiferentHash.add_defaults kwargs, unnamed: true
-    type, data_persist = IndiferentHash.process_options kwargs, :type, :data_persist
+    type = IndiferentHash.process_options kwargs, :type
 
     fields = :all if fields.nil?
 
@@ -55,7 +55,9 @@ module TSV
     persist_options = IndiferentHash.pull_keys kwargs, :persist
     persist_options = IndiferentHash.add_defaults persist_options, :prefix => prefix, :type => :HDB, :persist => false
 
-    Persist.persist(tsv_file, persist_options[:type], persist_options.merge(other_options: kwargs.merge(target: target, fields: fields, order: order))) do |filename|
+    data_options = IndiferentHash.pull_keys kwargs, :data
+
+    Persist.persist(tsv_file, persist_options[:type], persist_options.merge(other_options: kwargs.merge(target: target, fields: fields, order: order, data_options: data_options))) do |filename|
       if filename
         index = ScoutCabinet.open(filename, true, type)
         TSV.setup(index, :type => :single)
@@ -64,7 +66,7 @@ module TSV
         index = TSV.setup({}, :type => :single)
       end
 
-      tsv_file = TSV.open(tsv_file, persist: true) if data_persist && ! TSV === tsv_file
+      tsv_file = TSV.open(tsv_file, **data_options) if ! TSV === tsv_file
 
       log_msg = "Index #{Log.fingerprint tsv_file} target #{Log.fingerprint target}"
       Log.low log_msg
