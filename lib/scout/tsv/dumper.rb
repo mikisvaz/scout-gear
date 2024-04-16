@@ -87,7 +87,7 @@ module TSV
       @mutex.synchronize do
 
         key = key.to_s unless String === key
-        if value.nil? || value.empty?
+        if value.nil? || (Array === value && value.empty?)
           @sin << key << "\n"
         else
           case @type
@@ -114,7 +114,7 @@ module TSV
     end
 
     def abort(exception=nil)
-      @sin.abort(exception)
+      @sin.abort(exception) if @sin.respond_to?(:abort)
     end
 
     def tsv(*args)

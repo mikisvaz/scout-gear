@@ -115,6 +115,21 @@ k4 a|A b|B
     assert_equal 3, tsv.keys.length
   end
 
+  def test_parse_tsv_grep
+    content =<<-EOF
+#: :sep=" "#:type=:double
+#Key ValueA ValueB
+k a|A b|B
+k1 a|A b|B
+k2 a|A b|B
+k3 a|A b|B
+k4 a|A b|B
+    EOF
+    content = StringIO.new content
+
+    tsv = TSV.parse(content, :tsv_grep => ["k3","k4"])
+    assert_equal %w(k3 k4), tsv.keys.sort
+  end
 
   def test_parse_fields
     content =<<-EOF
@@ -276,4 +291,30 @@ k 1 2
     end
   end
 
+  def test_load_stream
+    content =<<-EOF
+#Key    ValueA    ValueB
+k    a|A    b|B
+k1    a|A    b|B
+k2    a|A    b|B
+k3    a|A    b|B
+k4    a|A    b|B
+    EOF
+    content = StringIO.new content.gsub('    ', "\t")
+
+    TmpFile.with_file do |tmp_logfile|
+      old_logfile = Log.logfile
+      Log.logfile(tmp_logfile)
+      TmpFile.with_file do |persistence|
+        data = ScoutCabinet.open persistence, true
+        tsv = Log.with_severity(0) do
+          TSV.parse(content, data: data)
+        end
+        assert_equal %w(b B), tsv["k"]["ValueB"]
+        assert_equal %w(a A), tsv["k4"]["ValueA"]
+      end
+      Log.logfile(old_logfile)
+      assert Open.read(tmp_logfile).include?("directly into")
+    end
+  end
 end

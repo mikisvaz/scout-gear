@@ -61,6 +61,30 @@ module TSV
 
       type_swap_key = [source_type.to_s, type.to_s] * "_"
 
+      same_type = source_type.to_s == type.to_s
+
+      if data && data.respond_to?(:load_stream) && 
+          data.serializer.to_s.include?("String") &&
+          same_type && 
+          ! (head || kwargs[:cast] || kwargs[:positions] || (kwargs[:key] && kwargs[:key] != 0) || Proc === fix ) &&
+          (kwargs[:sep].nil? || kwargs[:sep] == "\t")
+
+
+        Log.debug "Loading #{Log.fingerprint stream} directly into #{Log.fingerprint data}"
+        if first_line
+          full_stream = Open.open_pipe do |sin|
+            sin.puts first_line
+            Open.consume_stream(stream, false, sin)
+          end
+          data.load_stream(full_stream)
+        else
+          data.load_stream(stream)
+        end
+
+        return data
+      end
+
+
       data = {} if data.nil?
       merge = false if type != :double && type != :flat
       line = first_line || stream.gets
@@ -283,7 +307,7 @@ module TSV
                    end
 
   class Parser
-    attr_accessor :stream, :options, :key_field, :fields, :type, :first_line, :preamble
+    attr_accessor :stream, :source_options, :key_field, :fields, :type, :first_line, :preamble
     def initialize(file, fix: true, header_hash: "#", sep: "\t", type: :double)
       if IO === file
         @stream = file
@@ -291,11 +315,15 @@ module TSV
         @stream = Open.open(file)
       end
       @fix = fix
-      @options, @key_field, @fields, @first_line, @preamble = TSV.parse_header(@stream, fix:fix, header_hash:header_hash, sep:sep)
-      @options[:filename] = file if Path.is_filename?(file)
-      @options[:sep] = sep if @options[:sep].nil?
-      @options.merge!(:key_field => @key_field, :fields => @fields)
-      @type = @options[:type] || type
+      @source_options, @key_field, @fields, @first_line, @preamble = TSV.parse_header(@stream, fix:fix, header_hash:header_hash, sep:sep)
+      @source_options[:filename] = file if Path.is_filename?(file)
+      @source_options[:sep] = sep if @source_options[:sep].nil?
+      @source_options.merge!(:key_field => @key_field, :fields => @fields)
+      @type = @source_options[:type] || type
+    end
+
+    def options
+      IndiferentHash.add_defaults @source_options.dup, type: type, key_field: key_field, fields: fields
     end
 
     def all_fields
@@ -304,11 +332,11 @@ module TSV
     end
 
     def key_field=(key_field)
-      @options[:key_field] = @key_field = key_field
+      @source_options[:key_field] = @key_field = key_field
     end
     
     def fields=(fields)
-      @options[:fields] = @fields = fields
+      @source_options[:fields] = @fields = fields
     end
 
     def identify_field(name)
@@ -316,7 +344,7 @@ module TSV
     end
 
     def traverse(key_field: nil, fields: nil, filename: nil, namespace: nil,  **kwargs, &block)
-      kwargs[:type] ||=  self.options[:type] ||= @type
+      kwargs[:type] ||=  self.source_options[:type] ||= @type
       kwargs[:type] = kwargs[:type].to_sym if kwargs[:type]
 
       if fields
@@ -360,22 +388,20 @@ module TSV
         field_names = field_names.slice(0,1)
       end
 
-      @options.each do |option,value|
+      @source_options.each do |option,value|
         option = option.to_sym
         next unless KEY_PARAMETERS.include? option
         kwargs[option] = value unless kwargs.include?(option)
       end
 
-      kwargs[:source_type] = @options[:type]
+      kwargs[:source_type] = @source_options[:type]
       kwargs[:data] = false if kwargs[:data].nil?
 
       if kwargs[:tsv_grep]
-        tmp_stream = Open.open_pipe do |sin|
-          sin.puts @first_line
-          sin.write @stream.read
+        data = with_stream do |stream|
+          grep_stream = Open.grep(stream, kwargs.delete(:tsv_grep), kwargs.delete(:tsv_invert_grep))
+          TSV.parse_stream(grep_stream, first_line: nil, fix: @fix, field_names: @fields, **kwargs, &block)
         end
-        @stream = Open.grep(tmp_stream, kwargs.delete(:tsv_grep), kwargs.delete(:tsv_invert_grep))
-        data = TSV.parse_stream(@stream, first_line: nil, fix: @fix, field_names: @fields, **kwargs, &block)
       else
         data = TSV.parse_stream(@stream, first_line: @first_line, fix: @fix, field_names: @fields, **kwargs, &block)
       end
@@ -383,7 +409,7 @@ module TSV
       if data
         TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type)
       else
-        [key_field ||self.key_field, fields || self.fields]
+        [key_field || self.key_field, fields || self.fields]
       end
     end
 
@@ -397,6 +423,14 @@ module TSV
 
     def inspect
       fingerprint
+    end
+
+    def with_stream
+      sout = Open.open_pipe do |sin|
+        sin.puts @first_line
+        Open.consume_stream(@stream, false, sin)
+      end
+      yield sout
     end
   end
 

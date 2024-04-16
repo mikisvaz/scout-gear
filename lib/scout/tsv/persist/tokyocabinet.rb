@@ -111,23 +111,36 @@ module ScoutCabinet
       close
     end
   end
-  #def self.open_tokyocabinet(path, write, serializer = nil, tokyocabinet_class = TokyoCabinet::HDB)
-  #  raise
-  #  write = true unless File.exist? path
 
-  #  FileUtils.mkdir_p File.dirname(path) unless File.exist?(File.dirname(path))
+  def self.importtsv(database, stream)
+    begin
+      bin = case database
+            when TokyoCabinet::HDB
+              'tchmgr'
+            when TokyoCabinet::BDB
+              'tcbmgr'
+            else
+              raise "Database not HDB or BDB: #{Log.fingerprint database}"
+            end
+      
+      database.close
+      CMD.cmd("#{bin} version", :log => false)
+      FileUtils.mkdir_p File.dirname(database.persistence_path)
+      CMD.cmd("#{bin} importtsv '#{database.persistence_path}'", :in => stream, :log => false, :dont_close_in => true)
+    rescue
+      Log.debug("tchmgr importtsv failed for: #{database.persistence_path}")
+    end
+  end
 
-  #  database = Persist::TCAdapter.open(path, write, tokyocabinet_class)
+  class << self
+    alias load_stream importtsv
+  end
 
-  #  unless serializer == :clean
-  #    TSV.setup database
-  #    database.write_and_read do
-  #      database.serializer = serializer
-  #    end if serializer && database.serializer != serializer
-  #  end
+  def importtsv(stream)
+    ScoutCabinet.load_stream(self, stream)
+  end
 
-  #  database
-  #end
+  alias load_stream importtsv
 end
 
 module Persist

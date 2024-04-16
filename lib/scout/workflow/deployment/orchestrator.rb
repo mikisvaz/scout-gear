@@ -168,7 +168,7 @@ module Workflow
 
         dep_path = dep.path
         parents = all_jobs.select do |parent| 
-          paths = parent.info[:dependencies].nil? ? parent.dependencies.collect{|d| d.path } : parent.info[:dependencies].collect{|d| d.last }
+          paths = parent.info[:dependencies].nil? ? parent.dependencies.collect{|d| d.path } : parent.info[:dependencies].collect{|d| Array === d ? d.last : d }
           paths.include? dep_path
         end
 

@@ -58,9 +58,9 @@ row2    a    a    id3
     TmpFile.with_file do |tk|
       data = Persist.open_tokyocabinet(tk, true, "HDB")
       assert Open.exists?(tk)
-      tsv = Persist.persist("TEST Persist TSV", :HDB, :data => data) do |data|
+      tsv = Persist.persist("TEST Persist TSV", :HDB, :persist_data => data) do |data|
         t = TmpFile.with_file(content) do |filename|
-          TSV.open(filename, data: data)
+          TSV.open(filename, persist_data: data)
         end
         t
         nil
@@ -95,7 +95,7 @@ row2    a    a    id3
     tsv = nil
     TmpFile.with_file(content) do |filename|
       tsv = Persist.persist_tsv(filename, nil , persist_engine: :HDB) do |data|
-        TSV.open(filename, data: data)
+        TSV.open(filename, persist_data: data)
       end
       assert_equal ['b'], tsv["row1"][1]
       assert NamedArray === tsv["row1"]

@@ -74,32 +74,23 @@ module TSV
     grep, invert_grep, monitor, entity_options = IndiferentHash.process_options options, :grep, :invert_grep, :monitor, :entity_options
 
     persist_options = IndiferentHash.pull_keys options, :persist
-    persist_options = IndiferentHash.add_defaults persist_options, :prefix => "TSV", :type => :HDB, :persist => false
+    persist_options = IndiferentHash.add_defaults persist_options, prefix: "TSV", type: :HDB, persist: false
 
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
 
-    source_name, other_options = case file
-                  when StringIO
-                    [file.inspect, options]
-                  when TSV::Parser
-                    [file.options[:filename], file.options]
-                  else
-                    [file, options]
-                  end
-
-    Persist.persist(source_name, persist_options[:type], persist_options.merge(:other_options => other_options)) do |filename|
-      if filename
-        data = case persist_options[:type]
-               when :HDB, :BDB, "HDB", "BDB"
-                 ScoutCabinet.open(filename, true, persist_options[:type])
-               when :tkh, :tkt, :tks
-                 ScoutTKRZW.open(filename, true, persist_options[:type])
-               end
+    source_name, options = 
+      case file
+      when StringIO
+        [file.inspect, options]
+      when TSV::Parser
+        [file.options[:filename], file.options]
       else
-        data = nil
+        [file, options]
       end
+
+    Persist.persist_tsv(file, source_name, options, persist_options) do |data|
       options[:data] = data if data
-      options[:filename] = if TSV::Parser === file
+      options[:filename] ||= if TSV::Parser === file
                              file.options[:filename]
                            elsif Path === file
                              file

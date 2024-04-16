@@ -134,7 +134,129 @@ row2    0.1  4.5 0
       assert_equal Marshal, tsv.serializer
       assert_equal [[0.2], [0.3], [0.0]], tsv["row1"]
     end
- 
+  end
+
+  def test_importsv_list
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1   0.2   0.3 0
+row2    0.1  4.5 0
+    EOF
+
+    TmpFile.with_path(content.gsub(/ +/,"\t")) do |filename|
+      TmpFile.with_file do |persistence_path|
+        parser = TSV::Parser.new filename, type: :list
+        database = ScoutCabinet.open persistence_path, true, :HDB
+        parser.with_stream do |stream|
+          ScoutCabinet.importtsv(database, stream)
+        end
+        database.write_and_read do
+          TSV.setup(database, **parser.options)
+          database.extend TSVAdapter
+        end
+
+        assert_equal '0.2', database["row1"]["ValueA"]
+      end
+    end
+  end
+
+  def test_importsv_double
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1   a|aa   b|bb    c|cc
+row2   A|AA   B|BB   C|CC
+    EOF
+
+    TmpFile.with_path(content.gsub(/ +/,"\t")) do |filename|
+      TmpFile.with_file do |persistence_path|
+        parser = TSV::Parser.new filename, type: :double
+        database = ScoutCabinet.open persistence_path, true, :HDB
+        parser.with_stream do |stream|
+          ScoutCabinet.importtsv(database, stream)
+        end
+        database.write_and_read do
+          TSV.setup(database, **parser.options)
+          database.extend TSVAdapter
+        end
+
+        assert_equal %w(A AA), database["row2"]["ValueA"]
+      end
+    end
+  end
+
+  def test_importsv_large
+    content =<<-EOF.gsub(/ +/, "\t")
+#Id    ValueA    ValueB
+    EOF
+
+    10_000.times do |i|
+      content += "row#{i}\ta#{i}\tb#{i}\n"
+    end
+
+    TmpFile.with_path(content) do |filename|
+      TmpFile.with_file do |persistence_path|
+        parser = TSV::Parser.new filename, type: :list
+        database = ScoutCabinet.open persistence_path, true, :HDB
+        parser.with_stream do |stream|
+          ScoutCabinet.importtsv(database, stream)
+        end
+        database.write_and_read do
+          TSV.setup(database, **parser.options)
+          database.extend TSVAdapter
+        end
+
+        assert_equal "a1000", database["row1000"]["ValueA"]
+      end
+    end
+  end
+
+  def test_importsv_double_BDB
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1   a|aa   b|bb    c|cc
+row2   A|AA   B|BB   C|CC
+    EOF
+
+    TmpFile.with_path(content.gsub(/ +/,"\t")) do |filename|
+      TmpFile.with_file do |persistence_path|
+        parser = TSV::Parser.new filename, type: :double
+        database = ScoutCabinet.open persistence_path, true, :BDB
+        parser.with_stream do |stream|
+          ScoutCabinet.importtsv(database, stream)
+        end
+        database.write_and_read do
+          TSV.setup(database, **parser.options)
+          database.extend TSVAdapter
+        end
+
+        assert_equal %w(A AA), database["row2"]["ValueA"]
+        assert_equal %w(row1 row2), database.prefix("row")
+      end
+    end
+  end
+
+  def test_importsv_from_file
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1   a|aa   b|bb    c|cc
+row2   A|AA   B|BB   C|CC
+    EOF
+
+    TmpFile.with_path(content.gsub(/ +/,"\t")) do |filename|
+      TmpFile.with_file do |persistence_path|
+        parser = TSV::Parser.new filename, type: :double
+        database = ScoutCabinet.open persistence_path, true, :HDB
+        parser.with_stream do |stream|
+          database.load_stream stream
+        end
+        database.write_and_read do
+          TSV.setup(database, **parser.options)
+          database.extend TSVAdapter
+        end
+
+        assert_equal %w(A AA), database["row2"]["ValueA"]
+      end
+    end
   end
 
 end
