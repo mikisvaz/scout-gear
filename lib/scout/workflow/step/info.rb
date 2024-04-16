@@ -19,8 +19,6 @@ class Step
     @info_load_time = Time.now
   end
 
-
-
   def save_info(info = nil)
     Persist.save(info, info_file, SERIALIZER)
     @info_load_time = Time.now
@@ -28,6 +26,10 @@ class Step
 
   def clear_info
     save_info(@info = {})
+  end
+
+  def init_info
+    log :init unless info_file.nil? || Open.exists?(info_file)
   end
 
   def info
