@@ -68,7 +68,7 @@ class Step
 
       stream = compute_options.include?(:stream)
       stream = true unless ENV["SCOUT_EXPLICIT_STREAMING"] == 'true'
-      stream = false if compute_options.include?(:produce)
+      stream = :no_load if compute_options.include?(:produce)
 
       begin
         dep.run(stream)

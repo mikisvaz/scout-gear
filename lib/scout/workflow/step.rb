@@ -135,7 +135,17 @@ class Step
     prepare_dependencies
     run_dependencies
     begin
-      @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies) do
+
+      case stream
+      when TrueClass, :stream
+        no_load = :stream
+      when :no_load
+        no_load = true
+      else
+        no_load = false
+      end
+
+      @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies, no_load: no_load) do
         clear_info
         input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
         merge_info :status => :start, :start => Time.now,
@@ -161,6 +171,9 @@ class Step
           @exec_result
         end
       end
+
+      @result = (TrueClass === no_load) ? nil : @result
+
     rescue Exception => e
       merge_info :status => :error, :exception => e, :end => Time.now
       abort_dependencies
@@ -295,7 +308,7 @@ class Step
       self.fork
       self.join
     else
-      run
+      run(:no_load)
     end
     self
   end
