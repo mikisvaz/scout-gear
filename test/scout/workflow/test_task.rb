@@ -21,5 +21,30 @@ class TestTask < Test::Unit::TestCase
     assert_equal 2, s.run
   end
 
-end
+  def __test_benchmark
+    tasks = []
+    wf = Module.new do
+      extend Workflow
+      self.name = "TestWF"
 
+      500.times do |i|
+        task_name = "task_#{i}"
+        last_task_name = "task_#{i-1}"
+        if i == 0
+          task task_name => :array do
+            [task_name]
+          end
+        else
+          dep last_task_name
+          task task_name => :array do
+            step(last_task_name).load.push(task_name)
+          end
+        end
+      end
+    end
+
+    Misc.benchmark(1000) do
+      wf.job(:task_499)
+    end
+  end
+end
