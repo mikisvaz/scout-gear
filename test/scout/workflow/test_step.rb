@@ -31,6 +31,29 @@ class TestWorkflowStep < Test::Unit::TestCase
     assert_equal "12 has 2 characters", step2.run
   end
 
+  def test_dependency_load
+    tmpfile = tmpdir
+    step1 = Step.new tmpdir.test_task1.step1, ["12"] do |s|
+      s.length
+    end
+
+    step2 = Step.new tmpdir.test_task2.step2 do 
+      step1 = dependencies.first
+      step1.inputs.first + " has " + step1.load.to_s + " characters"
+    end
+
+    step2.dependencies = [step1]
+
+    step2.run
+
+    assert_equal "12 has 2 characters", step2.run
+
+    new_step = Step.new step2.path
+
+    assert_equal "12 has 2 characters", new_step.run
+    assert_equal 2, new_step.step(:test_task1).run
+  end
+
   def test_streaming
     tmpfile = tmpdir.test_step
 

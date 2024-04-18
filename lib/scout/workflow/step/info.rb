@@ -29,7 +29,7 @@ class Step
   end
 
   def init_info
-    log :init unless info_file.nil? || Open.exists?(info_file)
+    log :waiting unless info_file.nil? || Open.exists?(info_file)
   end
 
   def info
