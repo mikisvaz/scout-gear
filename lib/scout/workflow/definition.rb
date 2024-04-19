@@ -161,12 +161,12 @@ module Workflow
         remove = config :remove_dep_tasks, "remove_dep_tasks", :default => REMOVE_DEP_TASKS
 
         self.archive_deps
-        self.copy_files_dir
+        self.copy_linked_files_dir
         self.dependencies = self.dependencies - [dep]
         Open.rm_rf self.files_dir if Open.exist? self.files_dir
         FileUtils.cp_r dep.files_dir, self.files_dir if Open.exist?(dep.files_dir)
 
-        if dep.overriden || ! Workflow.job_path?(dep.path)
+        if dep.overriden? 
           Open.link dep.path, self.tmp_path
         else
           Open.ln_h dep.path, self.tmp_path

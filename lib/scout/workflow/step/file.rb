@@ -28,4 +28,17 @@ class Step
   def bundle_files
     [path, info_file, Dir.glob(File.join(files_dir,"**/*"))].flatten.select{|f| Open.exist?(f) }
   end
+
+  def copy_linked_files_dir
+    if File.symlink?(self.files_dir)
+      begin
+        realpath = Open.realpath(self.files_dir)
+        Open.rm self.files_dir
+        Open.cp realpath, self.files_dir
+      rescue
+        Log.warn "Copy files_dir for #{self.workflow_short_path} failed: " + $!.message
+      end
+    end
+  end
+
 end

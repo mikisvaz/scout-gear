@@ -54,6 +54,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      children.rb
      status.rb
      inputs.rb
+     archive.rb
     }
     task.rb
     task=task{
@@ -62,6 +63,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     }
     deployment.rb
     deployment=deployment{
+     trace.rb
      orchestrator.rb
     }
    }

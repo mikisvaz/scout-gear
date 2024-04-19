@@ -5,8 +5,9 @@ class TestOrchestrator < Test::Unit::TestCase
   setup do
     module TestWF
       extend Workflow 
+      self.name = "TestWF"
 
-      MULT = 0.01
+      MULT = 0.1
       task :a => :text do
         sleep(TestWF::MULT * (rand(10) + 2))
       end
@@ -34,11 +35,11 @@ class TestOrchestrator < Test::Unit::TestCase
     end
   end
 
-  def TODO_test_orchestrate_resources
+  def test_orchestrate_resources
 
     jobs =[]
 
-    num = 10
+    num = 5
     num.times do |i|
       jobs.concat %w(TEST1 TEST2).collect{|name| TestWF.job(:d, name + " #{i}") }
     end
@@ -64,16 +65,14 @@ TestWF:
       cpus: 15
     EOF
 
-    orchestrator = Workflow::Orchestrator.new(TestWF::MULT, "cpus" => 30, "IO" => 4, "size" => 10 )
-    Log.with_severity 0 do
-      orchestrator.process(rules, jobs)
-    end
+    orchestrator = Workflow::Orchestrator.new(0.1, "cpus" => 30, "IO" => 10, "size" => 10 )
+    orchestrator.process(rules, jobs)
 
     data = Workflow.trace jobs, :plot_data => true
-    eend = data.column("End.second").values.collect{|v| v.to_f}.max
+    eend = data.column("End.second").values.collect{|v| v.to_f }.max
     second_cpus = TSV.setup({}, "Second~CPUS#:type=:single#:cast=:to_f")
     (0..eend.to_i).each do |second|
-      tasks = data.select("Start.second"){|s| s <= second}.select("End.second"){|s| s > second}
+      tasks = data.select("Start.second"){|s| s <= second }.select("End.second"){|s| s > second}
       cpus = 0
       tasks.through :key, ["Workflow", "Task"] do |k, values|
         workflow, task = values
@@ -82,11 +81,11 @@ TestWF:
       second_cpus[second] = cpus
     end
 
-    assert Misc.mean(second_cpus.values) > 15
+    assert Misc.mean(second_cpus.values) > 15 
     assert Misc.mean(second_cpus.values) < 30
   end
 
-  def TODO_test_orchestrate_erase
+  def test_orchestrate_erase
 
     jobs =[]
 
@@ -119,9 +118,7 @@ TestWF:
     EOF
 
     orchestrator = Workflow::Orchestrator.new(TestWF::MULT, "cpus" => 30, "IO" => 4, "size" => 10 )
-    Log.with_severity 3 do
-      orchestrator.process(rules, jobs)
-    end
+    orchestrator.process(rules, jobs)
 
     jobs.each do |job|
       assert job.step(:c).dependencies.empty?
@@ -131,7 +128,7 @@ TestWF:
 
   end
 
-  def TODO_test_orchestrate_default
+  def test_orchestrate_default
 
     jobs =[]
 
@@ -166,9 +163,7 @@ TestWF:
     EOF
 
     orchestrator = Workflow::Orchestrator.new(TestWF::MULT, "cpus" => 30, "IO" => 4, "size" => 10 )
-    Log.with_severity 3 do
-      orchestrator.process(rules, jobs)
-    end
+    orchestrator.process(rules, jobs)
 
     jobs.each do |job|
       assert job.step(:c).dependencies.empty?
@@ -178,7 +173,7 @@ TestWF:
 
   end
 
-  def TODO_test_orchestrate_top_level
+  def test_orchestrate_top_level
 
     jobs =[]
 
@@ -211,9 +206,7 @@ TestWF:
     EOF
 
     orchestrator = Workflow::Orchestrator.new(TestWF::MULT, "cpus" => 30, "IO" => 4, "size" => 10 )
-    Log.with_severity 3 do
-      orchestrator.process(rules, jobs)
-    end
+    orchestrator.process(rules, jobs)
 
     jobs.each do |job|
       next unless job.task_name.to_s == 'd'
@@ -224,7 +217,7 @@ TestWF:
 
   end
 
-  def TODO_test_orchestrate_top_level_double_dep
+  def test_orchestrate_top_level_double_dep
 
     jobs =[]
 
@@ -257,9 +250,7 @@ TestWF:
     EOF
 
     orchestrator = Workflow::Orchestrator.new(TestWF::MULT, "cpus" => 30, "IO" => 4, "size" => 10 )
-    Log.with_severity 3 do
-      orchestrator.process(rules, jobs)
-    end
+    orchestrator.process(rules, jobs)
 
     jobs.each do |job|
       next unless job.task_name.to_s == 'd' || job.task_name.to_s == 'e'

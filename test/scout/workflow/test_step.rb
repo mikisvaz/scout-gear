@@ -81,6 +81,11 @@ class TestWorkflowStep < Test::Unit::TestCase
     step1.join
     step1.clean
 
+    step1.clean
+    res =  step1.run(:no_load)
+    assert res.nil?
+    step1.clean
+
     step2 = Step.new tmpfile.step2 do 
       step1 = dependencies.first
       stream = step1.stream

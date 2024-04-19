@@ -11,6 +11,7 @@ require_relative 'step/config'
 require_relative 'step/progress'
 require_relative 'step/inputs'
 require_relative 'step/children'
+require_relative 'step/archive'
 
 class Step 
 
@@ -133,7 +134,6 @@ class Step
   def run(stream = false)
     return @result || self.load if done?
     prepare_dependencies
-    run_dependencies
     begin
 
       case stream
@@ -148,12 +148,18 @@ class Step
       @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies, no_load: no_load) do
         clear_info
         input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
-        merge_info :status => :start, :start => Time.now,
+
+
+        merge_info :status => :setup, :issued => Time.now,
           :pid => Process.pid, :pid_hostname => Misc.hostname, 
           :task_name => task_name, :workflow => workflow.to_s,
           :inputs => Annotation.purge(inputs), :input_names => input_names, :type => type,
           :dependencies => (dependencies || []) .collect{|d| d.path }
 
+        run_dependencies
+
+        set_info :start, Time.now
+        log :start
         @exec_result = exec
 
         if @exec_result.nil? && File.exist?(self.tmp_path) && ! File.exist?(self.path)
@@ -172,15 +178,19 @@ class Step
         end
       end
 
-      @result = (TrueClass === no_load) ? nil : @result
+      if TrueClass === no_load
+        consume_all_streams if streaming?
+        @result = nil
+      end
 
+      @result
     rescue Exception => e
       merge_info :status => :error, :exception => e, :end => Time.now
       abort_dependencies
       raise e
     ensure
       if ! (error? || aborted?)
-        if streaming?
+        if @result && streaming?
           ConcurrentStream.setup(@result) do
             merge_info :status => :done, :end => Time.now
           end

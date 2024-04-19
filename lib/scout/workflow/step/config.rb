@@ -7,7 +7,7 @@ class Step
 
     new_tokens = []
     if workflow
-      workflow_name = workflow.to_s
+      workflow_name = workflow.name
       new_tokens << ("workflow:" << workflow_name)
       new_tokens << ("task:" << workflow_name << "#" << task_name.to_s)
     end

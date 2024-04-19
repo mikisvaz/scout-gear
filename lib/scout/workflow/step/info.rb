@@ -53,11 +53,19 @@ class Step
       if key == :status
         message = new_info[:message]
         if message.nil? && (value == :done || value == :error || value == :aborted)
+          issued = info[:issued]
           start = info[:start]
           eend = new_info[:end]
           if start && eend
             time = eend - start
-            time_str = Misc.format_seconds_short(time)
+            total_time = eend - issued
+            if total_time - time > 1
+              time_str = "#{Misc.format_seconds_short(time)} (#{Misc.format_seconds_short(total_time)})"
+            else
+              time_str = Misc.format_seconds_short(time)
+            end
+            info[:time_elapsed] = time
+            info[:total_time_elapsed] = total_time
             message = Log.color(:time, time_str)
           end
         end

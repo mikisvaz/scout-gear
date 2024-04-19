@@ -34,7 +34,7 @@ module Workflow
     end
 
     def self.job_rules(rules, job)
-      workflow = job.workflow.to_s
+      workflow = job.workflow.name
       task_name = job.task_name.to_s
       defaults = rules["defaults"] || {}
 
@@ -177,7 +177,7 @@ module Workflow
         parents.each do |parent|
           Log.high "Erasing #{dep.path} from #{parent.path}"
           parent.archive_deps
-          parent.copy_files_dir
+          parent.copy_linked_files_dir
           parent.dependencies = parent.dependencies - [dep]
         end
         dep.clean
