@@ -15,11 +15,14 @@ class TestStepArchive < Test::Unit::TestCase
       task :step2 do end
     end
 
-    job = m.job(:step2)
+    job = m.job(:step2, option1: "Option1", option2: "Option2")
     job.run
     job.archive_deps
     assert_include job.archived_info, job.step(:step1).path
     assert_equal :done, job.archived_info[job.step(:step1).path][:status]
+
+    assert_equal "Option1", job.archived_inputs[:option1]
+    assert_equal "Option1", job.inputs.concat(job.archived_inputs)[:option1]
   end
 end
 

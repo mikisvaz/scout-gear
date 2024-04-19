@@ -5,18 +5,18 @@ class Step
   end
 
   def archived_inputs
-    return {} unless info[:archived_dependencies]
+    return [] unless info[:archived_dependencies]
     archived_info = self.archived_info
 
-    all_inputs = IndiferentHash.setup({})
-    deps = info[:archived_dependencies].collect{|p| p.last}
+    all_inputs = NamedArray.setup([],[])
+    deps = info[:archived_dependencies].dup
     seen = []
     while path = deps.pop
       dep_info = archived_info[path]
       if Hash === dep_info
-        dep_info[:inputs].each do |k,v|
-          all_inputs[k] = v unless all_inputs.include?(k)
-        end if dep_info[:inputs]
+        dep_inputs = dep_info[:inputs]
+        NamedArray.setup(dep_inputs, dep_info[:input_names])
+        all_inputs.concat(dep_inputs)
         deps.concat(dep_info[:dependencies].collect{|p| p.last } - seen) if dep_info[:dependencies]
         deps.concat(dep_info[:archived_dependencies].collect{|p| p.last } - seen) if dep_info[:archived_dependencies]
       end
