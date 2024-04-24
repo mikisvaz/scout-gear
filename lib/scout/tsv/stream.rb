@@ -1,5 +1,5 @@
 module TSV
-  def self.paste_streams(streams, type: nil, sort: nil, merge: true, sort_memory: nil, sep: nil, preamble: nil, header: nil, same_fields: nil, fix_flat: nil, all_match: nil, field_prefix: nil)
+  def self.paste_streams(streams, type: nil, sort: nil, sort_memory: nil, sep: nil, preamble: nil, header: nil, same_fields: nil, fix_flat: nil, all_match: nil, field_prefix: nil)
 
     streams = streams.collect do |stream|
       case stream
@@ -113,7 +113,7 @@ module TSV
 
       fields = nil if fields && fields.empty?
       dumper = TSV::Dumper.new key_field: key_field, fields: fields, type: type
-      dumper.init(preamble: !!key_field)
+      dumper.init(preamble: preamble_txt || !!key_field)
 
       t = Thread.new do
         Thread.report_on_exception = false
@@ -209,4 +209,38 @@ module TSV
     ConcurrentStream.setup(dumper.stream, threads: [t])
   end
 
+  def self.concat_streams(streams)
+
+    streams = streams.collect do |stream|
+      case stream
+      when(defined? Step and Step)
+        stream.stream
+      when Path
+        stream.open
+      when TSV::Dumper
+        stream.stream
+      when TSV
+        stream.dumper_stream
+      else
+        stream
+      end
+    end.compact
+
+    done_streams = []
+    Open.open_pipe do |sin|
+      first_stream = streams.first
+      while line = first_stream.gets
+        sin.write line
+        break unless line[0] == "#"
+      end
+
+      while streams.any?
+        streams.each do |stream|
+          line = stream.gets
+          sin.write line unless line[0] == "#"
+        end
+        streams.delete_if{|stream| stream.eof? }
+      end
+    end
+  end
 end

@@ -196,5 +196,27 @@ row2\tAAA
     assert_equal ["AA", "AAA"], tsv["row2"][0]
   end
 
+  def test_concat_streams
+
+    text1=<<-EOF
+#Key\tValueA
+row1\tA
+row2\tAA
+    EOF
+
+    text2=<<-EOF
+#Key\tValueA
+row3\tAAA
+row2\tBB
+    EOF
+
+    s1 = StringIO.new text1
+    s2 = StringIO.new text2
+    tsv = TSV.open TSV.concat_streams([s1,s2]), :merge => true
+    assert_equal ["A"], tsv["row1"][0]
+    assert_equal ["AA","BB"], tsv["row2"][0]
+    assert_equal ["AAA"], tsv["row3"][0]
+  end
+
 end
 
