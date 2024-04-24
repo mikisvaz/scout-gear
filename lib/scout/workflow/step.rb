@@ -146,11 +146,10 @@ class Step
       end
 
       @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies, no_load: no_load) do
-        clear_info
         input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
 
 
-        merge_info :status => :setup, :issued => Time.now,
+        reset_info :status => :setup, :issued => Time.now,
           :pid => Process.pid, :pid_hostname => Misc.hostname, 
           :task_name => task_name, :workflow => workflow.to_s,
           :inputs => Annotation.purge(inputs), :input_names => input_names, :type => type,
@@ -218,7 +217,7 @@ class Step
 
   def fork(noload = false, semaphore = nil)
     Process.fork do
-      clear_info unless present?
+      reset_info unless present?
       if semaphore
         log :queue, "Queued over semaphore: #{semaphore}"
         ret = ScoutSemaphore.wait_semaphore(semaphore)

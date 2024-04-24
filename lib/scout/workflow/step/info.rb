@@ -24,8 +24,8 @@ class Step
     @info_load_time = Time.now
   end
 
-  def clear_info
-    save_info(@info = {})
+  def reset_info(info = {})
+    save_info(@info = info)
   end
 
   def init_info
