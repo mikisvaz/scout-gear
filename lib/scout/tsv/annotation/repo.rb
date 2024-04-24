@@ -7,6 +7,7 @@ module Persist
       repo_fields = ["literal", "annotation_types", "JSON"]
       TSV.setup(repo, :fields => repo_fields, :key_field => "Annotation ID")
       repo.save_annotation_hash
+      repo.close
     else
       repo_fields = repo.fields
     end
@@ -24,19 +25,19 @@ module Persist
       []
     when (keys.length == 1 && keys.first =~ /:SINGLE$/)
       key = keys.first
-      values = repo.with_read do
+      values = repo.read_and_close do
         repo[key]
       end
       Annotation.load_tsv_values(key, values, *repo_fields)
     when (keys.any? and not keys.first =~ /ANNOTATED_DOUBLE_ARRAY/)
-      repo.with_read do
+      repo.read_and_close do
         keys.sort_by{|k| k.split(":").last.to_i}.collect{|key|
           v = repo[key]
           Annotation.load_tsv_values(key, v, *repo_fields)
         }
       end
     when (keys.any? and keys.first =~ /ANNOTATED_DOUBLE_ARRAY/)
-      repo.with_read do
+      repo.read_and_close do
 
         res = keys.sort_by{|k| k.split(":").last.to_i}.collect{|key|
           v = repo[key]
@@ -51,7 +52,7 @@ module Persist
     else
       annotations = yield
 
-      repo.write_and_read do 
+      repo.write_and_close do 
         case
         when annotations.nil?
           repo[subkey + "NIL"] = nil

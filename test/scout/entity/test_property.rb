@@ -20,6 +20,10 @@ class TestEntityProperty < Test::Unit::TestCase
 
     self.annotation :foo, :bar
 
+    property :times do |times|
+      [self] * times
+    end
+
     property :reverse_both => :both do
       if Array === self
         self.collect{|s| s.reverse }
@@ -75,15 +79,6 @@ class TestEntityProperty < Test::Unit::TestCase
       []
     end
 
-    persist :reverse_text_ary_p, :marshal
-    #persist :reverse_text_single_p, :memory
-
-    persist :reverse_text_ary_p_array, :array, :dir => TmpFile.tmp_file
-
-    persist :annotation_list, :annotation, :annotation_repo => TmpFile.tmp_file
-
-    persist :annotation_list_empty, :annotation, :dir => TmpFile.tmp_file
-
     $processed_multiple = []
     property :multiple_annotation_list => :multiple do 
       $processed_multiple.concat self
@@ -95,8 +90,19 @@ class TestEntityProperty < Test::Unit::TestCase
       end
     end
 
-    persist :multiple_annotation_list, :annotation, :dir => TmpFile.tmp_file
     #persist :multiple_annotation_list, :annotation, :dir => Rbbt.tmp.test.annots
+  end
+
+  setup do
+    ReversableString.persist :reverse_text_ary_p, :marshal
+
+    ReversableString.persist :reverse_text_ary_p_array, :array, :dir => TmpFile.tmp_file
+
+    ReversableString.persist :annotation_list, :annotation, :annotation_repo => TmpFile.tmp_file
+
+    ReversableString.persist :annotation_list_empty, :annotation, :dir => TmpFile.tmp_file
+
+    ReversableString.persist :multiple_annotation_list, :annotation, :dir => TmpFile.tmp_file
   end
 
 
@@ -330,6 +336,10 @@ class TestEntityProperty < Test::Unit::TestCase
   def test_all_properties
     assert ReversableString.setup("TEST").all_properties.include?(:reverse_text_ary)
     assert_equal ReversableString.setup("TEST").all_properties, ReversableString.properties
+  end
+
+  def test_times
+    assert_equal ["TEST", "TEST"], ReversableString.setup("TEST").times(2)
   end
 end
 

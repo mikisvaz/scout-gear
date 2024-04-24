@@ -8,19 +8,19 @@ module Entity
   end
 
   module Property
+
+    class MultipleEntityProperty < DontPersist; end
+
     attr_accessor :persisted_methods, :properties
 
     def self.persist(name, obj, type, options, &block)
       return yield unless options[:persist]
-      if type == :annotation && options[:annotation_repo]
+      if (type == :annotation || type == :annotations) && options[:annotation_repo]
         repo = options[:annotation_repo]
         Persist.annotation_repo_persist(repo, [name, obj.id] * ":", &block)
       else
 
-        options = IndiferentHash.add_defaults options.dup, 
-          dir: File.join(Entity.entity_property_cache, self.to_s, name.to_s)
-
-        Persist.persist([name, obj.id] * ":", type, options, &block)
+        Persist.persist([name, obj.id] * ":", type, options.dup, &block)
       end
     end
 
@@ -75,20 +75,22 @@ module Entity
           self.each do |item|
             begin
               responses[item] = Entity::Property.persist(name, item, type, options) do
-                raise 
+                raise MultipleEntityProperty 
               end
-            rescue
+            rescue MultipleEntityProperty
               missing << item
             end
           end
 
-          self.annotate(missing)
+          if missing.any?
+            self.annotate(missing)
 
-          new_responses = missing.instance_exec(*args, **kwargs, &block)
+            new_responses = missing.instance_exec(*args, **kwargs, &block)
 
-          missing.each do |item,i|
-            responses[item] = Entity::Property.persist(name, item, type, options) do
-              Array === new_responses ? new_responses[item.container_index] : new_responses[item]
+            missing.each do |item,i|
+              responses[item] = Entity::Property.persist(name, item, type, options) do
+                Array === new_responses ? new_responses[item.container_index] : new_responses[item]
+              end
             end
           end
 
@@ -144,7 +146,8 @@ module Entity
     end
 
     def persist(name, type = :marshal, options = {})
-      options = IndiferentHash.add_defaults options, persist: true
+      options = IndiferentHash.add_defaults options, persist: true,
+        dir: File.join(Entity.entity_property_cache, self.to_s, name.to_s)
       @persisted_methods ||= {}
       @persisted_methods[name] = [type, options]
     end
