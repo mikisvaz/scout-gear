@@ -137,7 +137,11 @@ class WorkQueue
   def abort
     Log.low "Aborting #{@workers.length} workers in queue #{queue_id}"
     @worker_mutex.synchronize do
-      @workers.each{|w| w.abort }
+      @workers.each do |w| 
+        ScoutSemaphore.post_semaphore(@output.write_sem) if @output
+        ScoutSemaphore.post_semaphore(@input.read_sem) if @input
+        w.abort 
+      end
     end
   end
 
