@@ -91,7 +91,7 @@ class TestWorkQueue < Test::Unit::TestCase
 
   def test_queue_error
     5.times do |i|
-      num = 100
+      num = 20
       reps = 10_000
 
       q = WorkQueue.new num do |obj|
@@ -106,8 +106,8 @@ class TestWorkQueue < Test::Unit::TestCase
 
       Log.with_severity 7 do
         t = Thread.new do
-          Thread.current["name"] = "queue writer"
           Thread.current.report_on_exception = false
+          Thread.current["name"] = "queue writer"
           reps.times do |i|
             q.write i
           end
@@ -123,6 +123,7 @@ class TestWorkQueue < Test::Unit::TestCase
             raise $!
           ensure
             t.join
+            q.close
           end
         end
       end
