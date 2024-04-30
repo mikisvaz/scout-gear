@@ -5,10 +5,9 @@ module Association
     persist_options = IndiferentHash.pull_keys kwargs, :persist
     index_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, 
       prefix: "Association::Index", 
-      other: kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format, format: format), 
-      engine: "BDB"
+      other_options: kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format, format: format)
 
-    index = Persist.persist_tsv(file, nil, {}, index_persist_options) do |data|
+    index = Persist.tsv(file, kwargs, engine: "BDB", persist_options: index_persist_options) do |data|
       recycle, undirected = IndiferentHash.process_options kwargs, :recycle, :undirected
 
       database = Association.open(file, source: source, target: target, source_format: source_format, target_format: target_format, **kwargs.merge(persist_prefix: "Association::Database"))

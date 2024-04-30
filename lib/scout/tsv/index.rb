@@ -1,6 +1,6 @@
 require_relative 'parser'
 require_relative 'transformer'
-require_relative 'persist/fix_width_table'
+require_relative '../persist/tsv'
 module TSV
 
   def self.select_prefix_str(select)

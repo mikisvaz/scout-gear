@@ -108,10 +108,15 @@ module TSVAdapter
     :strict_integer_array => StrictIntegerArraySerializer,
     :strict_float_array => StrictFloatArraySerializer,
     :marshal => Marshal,
+    :json => JSON,
     :string => StringSerializer,
     :binary => BinarySerializer,
     :tsv => TSVSerializer,
     :marshal_tsv => TSVMarshalSerializer
   }
+
+  def self.serializer_module(serializer)
+    Symbol === serializer ? SERIALIZER_ALIAS[serializer] : serializer
+  end
 
 end

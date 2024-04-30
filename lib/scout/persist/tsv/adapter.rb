@@ -1,0 +1,6 @@
+require_relative 'serialize'
+require_relative 'adapter/base'
+require_relative 'adapter/fix_width_table'
+require_relative 'adapter/packed_index'
+require_relative 'adapter/tokyocabinet'
+require_relative 'adapter/sharder'

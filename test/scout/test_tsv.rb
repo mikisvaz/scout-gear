@@ -25,7 +25,7 @@ row4    a    a    id3
     EOF
 
     tsv = TmpFile.with_file(content) do |filename|
-      TSV.open(filename, :persist => false)
+      TSV.open(filename)
     end
     
     TmpFile.with_file(content2) do |filename|

@@ -1,6 +1,5 @@
 require 'scout/open/lock'
 require 'scout/annotation'
-require_relative 'serialize'
 
 module TSVAdapter
   attr_accessor :persistence_path, :persistence_class, :closed, :writable, :serializer
@@ -12,91 +11,113 @@ module TSVAdapter
     end
   end
 
-  EXTENSION_ATTR_HASH_KEY = "__annotation_hash__"
-  EXTENSION_ATTR_HASH_SERIALIZER = Marshal
+  ANNOTATION_ATTR_HASH_KEY = "__annotation_hash__"
+  ANNOTATION_ATTR_HASH_SERIALIZER = Marshal
 
   def serializer=(serializer)
     @serializer = Symbol === serializer ? SERIALIZER_ALIAS[serializer] : serializer
   end
 
   def load_annotation_hash
-    EXTENSION_ATTR_HASH_SERIALIZER.load(StringIO.new(self.orig_get(EXTENSION_ATTR_HASH_KEY)))
+    ANNOTATION_ATTR_HASH_SERIALIZER.load(StringIO.new(self.orig_get(ANNOTATION_ATTR_HASH_KEY)))
   end
 
   def save_annotation_hash
-    self.orig_set(EXTENSION_ATTR_HASH_KEY, EXTENSION_ATTR_HASH_SERIALIZER.dump(self.annotation_hash))
+    self.orig_set(ANNOTATION_ATTR_HASH_KEY, ANNOTATION_ATTR_HASH_SERIALIZER.dump(self.annotation_hash))
   end
 
   def self.extended(base)
-    return if base.respond_to?(:orig_set)
-
-    class << base
-      alias orig_set []=
-        alias orig_get []
-
-      def [](key, clean = false)
-        self.read_lock do
-          v = super(key)
-          return v if clean
-          v = load_value(v)
-          NamedArray.setup(v, @fields, key) unless @unnamed || ! (Array === v)
-          v
-        end
-      end
-
-      def []=(key, value, clean = false)
-        self.write_lock do
-          if clean
-            super(key, value)
-          else
-            super(key, save_value(value))
-          end
-        end
-      end
-
-      def load_value(str)
-        return nil if str.nil?
-        return str if serializer.nil?
-        serializer.load(str)
-      end
-
-      def save_value(value)
-        return nil if value.nil?
-        serializer.nil? ? value : serializer.dump(value)
-      end
-    end
-
-    if base.include?(EXTENSION_ATTR_HASH_KEY)
-      TSV.setup(base, base.load_annotation_hash)
-    elsif TSV === base
+    if TSV === base
       base.instance_variable_get(:@annotations).push(:serializer)
       base.serializer = SERIALIZER_ALIAS[base.type] if base.serializer.nil?
       base.save_annotation_hash
+    else
+      begin
+        TSV.setup(base, base.load_annotation_hash)
+      rescue
+        TSV.setup(base)
+        base.save_annotation_hash
+      end
     end
   end
 
-  def keys(*args)
+  def []=(...) super(...); end
+  def [](...) super(...); end
+  def keys(...) super(...); end
+  def each(...) super(...); end
+  def size(...) super(...); end
+
+  alias orig_set []=
+  alias orig_get []
+  alias orig_keys keys
+  alias orig_each each
+  alias orig_size size
+
+  def [](key, clean = false)
+    self.read_lock do
+      v = super(key)
+      return v if clean
+      v = load_value(v)
+      NamedArray.setup(v, @fields, key) unless @unnamed || ! (Array === v)
+      v
+    end
+  end
+
+  def []=(key, value, clean = false)
+    self.write_lock do
+      if clean
+        super(key, value)
+      else
+        super(key, save_value(value))
+      end
+    end
+  end
+
+
+  def load_value(str)
+    return nil if str.nil?
+    return str if serializer.nil?
+    serializer.load(str)
+  end
+
+  def save_value(value)
+    return nil if value.nil?
+    serializer.nil? ? value : serializer.dump(value)
+  end
+
+  def keys_annotation_hash_key(*args)
     k = self.read_lock do
-      super(*args)
+      orig_keys(*args)
     end
 
-    if k[0] == EXTENSION_ATTR_HASH_KEY
+    if k[0] == ANNOTATION_ATTR_HASH_KEY
       k.slice(1,k.length)
-    elsif k[-1] == EXTENSION_ATTR_HASH_KEY
+    elsif k[-1] == ANNOTATION_ATTR_HASH_KEY
       k.slice(0,k.length-1)
     else
-      k - [EXTENSION_ATTR_HASH_KEY]
+      k - [ANNOTATION_ATTR_HASH_KEY]
     end
   end
+  alias keys keys_annotation_hash_key
 
-  def each(&block)
+  def each_annotation_hash_key(&block)
     self.read_lock do
-      super do |k,v|
-        next if k == EXTENSION_ATTR_HASH_KEY
+      orig_each do |k,v|
+        next if k == ANNOTATION_ATTR_HASH_KEY
         yield(k, load_value(v))
       end
     end
   end
+  alias each each_annotation_hash_key
+
+  def size_annotation_hash_key(*args)
+    self.read_lock do
+      orig_size(*args) - 1 # Discount the ANNOTATION_ATTR_HASH_KEY
+    end
+  end
+  alias size size_annotation_hash_key
+
+  alias length size
 
   def collect(&block)
     res = []
@@ -132,7 +153,10 @@ module TSVAdapter
 
   def write(*args)
     begin
-      super(*args)
+      begin
+        super(*args) 
+      rescue
+      end
       @writable = true
     rescue NoMethodError
     end
@@ -330,14 +354,6 @@ module TSVAdapter
     keys = prefix(key)
     select(:key => keys)
   end
-
-  def size(*args)
-    self.read_lock do
-      super(*args) - 1 # Discount the EXTENSION_ATTR_HASH_KEY
-    end
-  end
-
-  alias length size
 
   def values_at(*keys)
     self.read_lock do

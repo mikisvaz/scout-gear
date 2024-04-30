@@ -3,7 +3,7 @@ require_relative 'tsv/util'
 require_relative 'tsv/parser'
 require_relative 'tsv/dumper'
 require_relative 'tsv/transformer'
-require_relative 'tsv/persist'
+require_relative 'persist/tsv'
 require_relative 'tsv/index'
 require_relative 'tsv/path'
 require_relative 'tsv/traverse'
@@ -62,6 +62,10 @@ module TSV
         end
         original_setup(obj, *rest, &block)
       end
+
+      obj.save_annotation_hash if obj.respond_to?(:save_annotation_hash)
+
+      obj
     end
   end
 
@@ -75,6 +79,7 @@ module TSV
 
     persist_options = IndiferentHash.pull_keys options, :persist
     persist_options = IndiferentHash.add_defaults persist_options, prefix: "TSV", type: :HDB, persist: false
+    persist_options[:data] ||= options[:data]
 
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
 
@@ -88,7 +93,7 @@ module TSV
         [file, options]
       end
 
-    Persist.persist_tsv(file, source_name, options, persist_options) do |data|
+    Persist.tsv(source_name, options, persist_options: persist_options) do |data|
       options[:data] = data if data
       options[:filename] ||= if TSV::Parser === file
                              file.options[:filename]

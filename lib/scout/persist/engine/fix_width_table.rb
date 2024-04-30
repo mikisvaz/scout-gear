@@ -1,24 +1,24 @@
 class FixWidthTable
 
-  attr_accessor :filename, :file, :value_size, :record_size, :range, :size, :mask, :write
-  def initialize(filename, value_size = nil, range = nil, update = false, in_memory = true)
-    filename = filename.find if Path === filename
-    @filename = filename
+  attr_accessor :persistence_path, :file, :value_size, :record_size, :range, :size, :mask, :write
+  def initialize(persistence_path, value_size = nil, range = nil, update = false, in_memory = true)
+    persistence_path = persistence_path.find if Path === persistence_path
+    @persistence_path = persistence_path
 
-    if update || %w(memory stringio).include?(filename.to_s.downcase) || ! File.exist?(filename)
-      Log.debug "FixWidthTable create: #{ filename }"
+    if update || %w(memory stringio).include?(persistence_path.to_s.downcase) || ! File.exist?(persistence_path)
+      Log.debug "FixWidthTable create: #{ persistence_path }"
       @value_size  = value_size
       @range       = range
       @record_size = @value_size + (@range ? 16 : 8)
       @write = true
 
-      if %w(memory stringio).include?(filename.to_s.downcase)
-        @filename = :memory
+      if %w(memory stringio).include?(persistence_path.to_s.downcase)
+        @persistence_path = :memory
         @file     = StringIO.new
       else
-        FileUtils.rm @filename if File.exist? @filename
-        FileUtils.mkdir_p File.dirname(@filename) unless File.exist? @filename
-        @file = File.open(@filename, 'w:ASCII-8BIT')
+        FileUtils.rm @persistence_path if File.exist? @persistence_path
+        FileUtils.mkdir_p File.dirname(@persistence_path) unless File.exist? @persistence_path
+        @file = File.open(@persistence_path, 'w:ASCII-8BIT')
       end
 
       @file.write [value_size].pack("L")
@@ -26,18 +26,18 @@ class FixWidthTable
 
       @size = 0
     else
-      Log.debug "FixWidthTable up-to-date: #{ filename } - (in_memory:#{in_memory})"
+      Log.debug "FixWidthTable up-to-date: #{ persistence_path } - (in_memory:#{in_memory})"
       if in_memory
-        @file        = Open.open(@filename, :mode => 'r:ASCII-8BIT'){|f| StringIO.new f.read}
+        @file        = Open.open(@persistence_path, :mode => 'r:ASCII-8BIT'){|f| StringIO.new f.read}
       else
-        @file        = File.open(@filename, 'r:ASCII-8BIT')
+        @file        = File.open(@persistence_path, 'r:ASCII-8BIT')
       end
       @value_size  = @file.read(4).unpack("L").first
       @range       = @file.read(1).unpack("C").first == 1
       @record_size = @value_size + (@range ? 16 : 8)
       @write = false
 
-      @size        = (File.size(@filename) - 5) / (@record_size)
+      @size        = (File.size(@persistence_path) - 5) / (@record_size)
     end
 
     @mask = "a#{@value_size}"
@@ -47,22 +47,22 @@ class FixWidthTable
     @write
   end
 
-  def persistence_path
-    @filename
+  def filename
+    @persistence_path
   end
 
   def persistence_path=(value)
-    @filename=value
+    @persistence_path=value
   end
 
-  def self.get(filename, value_size = nil, range = nil, update = false)
-    return self.new(filename, value_size, range, update) if filename == :memory
+  def self.get(persistence_path, value_size = nil, range = nil, update = false)
+    return self.new(persistence_path, value_size, range, update) if persistence_path == :memory
     case
-    when (!File.exist?(filename) or update or not Persist::CONNECTIONS.include?(filename))
-      Persist::CONNECTIONS[filename] = self.new(filename, value_size, range, update)
+    when (!File.exist?(persistence_path) or update or not Persist::CONNECTIONS.include?(persistence_path))
+      Persist::CONNECTIONS[persistence_path] = self.new(persistence_path, value_size, range, update)
     end
 
-    Persist::CONNECTIONS[filename] 
+    Persist::CONNECTIONS[persistence_path] 
   end
 
   def format(pos, value)
@@ -113,10 +113,10 @@ class FixWidthTable
   end
 
   def read(force = false)
-    return if @filename == :memory
+    return if @persistence_path == :memory
     @write = false
     @file.close unless @file.closed?
-    @file = File.open(filename, 'r:ASCII-8BIT')
+    @file = File.open(persistence_path, 'r:ASCII-8BIT')
   end
 
   def close
@@ -317,11 +317,3 @@ class FixWidthTable
   alias length size
 end
 
-Persist.save_drivers[:fwt] = proc do |file, content|
-  content.file.seek 0
-  Misc.sensiblewrite(file, content.file.read)
-end
-
-Persist.load_drivers[:fwt] = proc do |file| 
-  FixWidthTable.new file
-end

@@ -1,7 +1,6 @@
 require File.expand_path(__FILE__).sub(%r(/test/.*), '/test/test_helper.rb')
 require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
 
-require 'scout/tsv'
 class TestFixWidthTable < Test::Unit::TestCase
   def load_data(data)
     tsv = TSV.open(data, type: :list, :sep=>":", :cast => proc{|e| e =~ /(\s*)(_*)/; ($1.length..($1.length + $2.length - 1))})

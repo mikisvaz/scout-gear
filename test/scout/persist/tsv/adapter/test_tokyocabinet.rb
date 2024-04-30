@@ -259,5 +259,24 @@ row2   A|AA   B|BB   C|CC
     end
   end
 
+  def test_open_tokyocabinet
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1   a|aa   b|bb    c|cc
+row2   A|AA   B|BB   C|CC
+    EOF
+
+    TmpFile.with_path(content.gsub(/ +/,"\t")) do |tsv|
+      TmpFile.with_path do |filename|
+        tk = Persist.open_tokyocabinet(filename, true)
+        TSV.setup(tk, key_field: "Id", fields: %w(ValueA ValueB OtherID), type: :double)
+        tk.save_annotation_hash
+
+        tk = Persist.open_tokyocabinet(filename, true)
+        assert_equal "Id", tk.key_field
+      end
+    end
+  end
+
 end
 

@@ -1,7 +1,6 @@
 require File.expand_path(__FILE__).sub(%r(/test/.*), '/test/test_helper.rb')
 require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1')
 
-require 'scout/tsv'
 class TestTSVAdapter < Test::Unit::TestCase
   def test_get_set
     tsv = TSV.setup({}, :type => :list, :key_field => "Key", :fields => %w(one two three))
@@ -9,7 +8,6 @@ class TestTSVAdapter < Test::Unit::TestCase
     tsv.extend TSVAdapter
     tsv["a"] = %w(1 2 3)
 
-    assert_equal %w(1 2 3) * "\t", tsv.dup["a"]
     assert_equal %w(a), tsv.keys
     assert_equal [%w(1 2 3)], tsv.collect{|k,v| v }
     assert_equal [%w(1 2 3)], tsv.values
@@ -20,7 +18,6 @@ class TestTSVAdapter < Test::Unit::TestCase
     new.extend TSVAdapter
 
     tsv = new
-    assert_equal %w(1 2 3) * "\t", tsv.dup["a"]
     assert_equal %w(a), tsv.keys
     assert_equal [%w(1 2 3)], tsv.collect{|k,v| v }
     assert_equal [%w(1 2 3)], tsv.values
@@ -35,10 +32,12 @@ class TestTSVAdapter < Test::Unit::TestCase
     tsv = TSV.setup({}, :type => :list, :key_field => "Key", :fields => %w(one two three))
     tsv.type = :list
     tsv.extend TSVAdapter
-    tsv.serializer = :integer_array
+    tsv.serializer = :marshal
     tsv["a"] = [1, 2, 3]
 
+
     assert_equal [1, 2, 3], tsv["a"]
+    assert_equal [1, 2, 3], Marshal.load(tsv.orig_get("a"))
   end
 end
 
