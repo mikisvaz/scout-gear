@@ -30,7 +30,7 @@ class Step
     jobs = dependencies if jobs.nil?
 
     archived_info = jobs.inject({}) do |acc,dep|
-      next unless Open.exists?(dep.info_file)
+      next acc unless Open.exists?(dep.info_file)
       acc[dep.path] = dep.info
       acc.merge!(dep.archived_info)
       acc
