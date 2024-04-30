@@ -66,11 +66,10 @@ row2    A2|A22    B2|B22
       dumper.init
 
       trans = TSV::Transformer.new parser, dumper
+      trans["row3"] = %w(A3 A33)
       dumper = trans.each do |k,values|
         values.replace values.flatten
       end
-
-      trans["row3"] = %w(A3 A33)
 
       tsv = trans.tsv
       assert_equal %w(A1 A11 B1 B11), tsv['row1']
