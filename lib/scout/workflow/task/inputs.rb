@@ -97,9 +97,9 @@ module Task
       end
       Persist.save(new_files, input_file, type)
     elsif Open.is_stream?(value)
-      Persist.save(value, input_file, type)
+      Open.sensible_write(input_file, value)
     elsif Open.has_stream?(value)
-      Persist.save(value.stream, input_file, type)
+      Open.sensible_write(input_file, value.stream)
     else
       Persist.save(value, input_file, type)
     end
