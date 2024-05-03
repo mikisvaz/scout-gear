@@ -115,16 +115,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     parser.rb
     dumper.rb
     transformer.rb
-    persist.rb
-    persist=persist{
-     adapter.rb
-     serialize.rb
-     tokyocabinet.rb
-     tkrzw.rb
-     fix_width_table.rb
-     packed_index.rb
-     sharder.rb
-    }
     index.rb
     traverse.rb
     attach.rb

@@ -251,4 +251,21 @@ module Workflow
       end
     end
   end
+
+  def self.produce_dependencies(jobs, tasks, produce_cpus = Etc.nprocessors)
+    jobs = [jobs] unless Array === jobs
+    produce_list = []
+    jobs.each do |job|
+      next if job.done? || job.running?
+      job.rec_dependencies.each do |job|
+        produce_list << job if tasks.include?(job.task_name) ||
+          tasks.include?(job.task_name.to_s) ||
+          tasks.include?(job.full_task_name)
+      end
+    end
+
+    orchestrator = Orchestrator.new 0.1, cpus: produce_cpus.to_i
+    orchestrator.process({}, produce_list)
+    produce_list
+  end
 end

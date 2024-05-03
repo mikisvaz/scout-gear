@@ -93,6 +93,12 @@ class Step
     @workflow ||= path.split("/")[-3]
   end
 
+  def full_task_name
+    return nil if task_name.nil?
+    return task_name.to_s if workflow.nil?
+    [workflow, task_name] * "#"
+  end
+
   def exec
 
     if inputs 
@@ -313,6 +319,7 @@ class Step
   end
 
   def produce(with_fork: false)
+    clean if error? && recoverable_error?
     if with_fork
       self.fork
       self.join

@@ -60,8 +60,17 @@ class Step
     end
   end
 
+  def all_dependencies
+    @all_dependencies ||= begin
+                            all_dependencies = []
+                            all_dependencies += dependencies if dependencies
+                            all_dependencies += input_dependencies if input_dependencies
+                            all_dependencies
+                          end
+  end
+
   def run_dependencies
-    dependencies.each do |dep| 
+    all_dependencies.each do |dep| 
       next if dep.running? || dep.done?
       compute_options = compute[dep.path] if compute
       compute_options = [] if compute_options.nil?
@@ -79,11 +88,11 @@ class Step
           raise $!
         end
       end
-    end if dependencies
+    end
   end
 
   def abort_dependencies
-    dependencies.each{|dep| dep.abort if dep.running? } if dependencies
+    all_dependencies.each{|dep| dep.abort if dep.running? } 
   end
 
   def self.wait_for_jobs(jobs)
