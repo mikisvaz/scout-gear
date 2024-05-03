@@ -116,7 +116,7 @@ module Task
   end
 
 
-  def self.load_input_from_file(filename, name, type, options = nil)
+  def self.load_input_from_file(filename, type, options = nil)
     if Open.exists?(filename) || filename = Dir.glob(File.join(filename + ".*")).first
       if filename.end_with?('.as_file')
         value = Open.read(filename).strip
@@ -140,9 +140,16 @@ module Task
     self.recursive_inputs.each do |p|
       name, type, desc, value, options = p
       filename = File.join(directory, name.to_s) 
-      value = Task.load_input_from_file(filename, name, type, options)
+      value = Task.load_input_from_file(filename, type, options)
       inputs[name] = value unless value.nil?
     end
+
+    Dir.glob(File.join(directory, "*#*")).each do |file|
+      override_dep, _, extension = File.basename(file).partition(".")
+
+      inputs[override_dep] = Task.load_input_from_file(file, :file)
+    end
+
     inputs
   end
 
