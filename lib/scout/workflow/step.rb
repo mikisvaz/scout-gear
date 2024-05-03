@@ -373,12 +373,12 @@ class Step
     nil
   end
 
-  def short_path
+  def identify_path
     Resource.identify @path
   end
 
   def digest_str
-    "Step: " + short_path
+    "Step: " + identify_path
   end
 
   def fingerprint
