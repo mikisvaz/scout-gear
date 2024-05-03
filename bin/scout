@@ -6,8 +6,6 @@ ENV["SCOUT_NOCOLOR"] = "true" if ARGV.include? "--nocolor"
 
 ENV["SCOUT_NO_PROGRESS"] = "true" if ARGV.include? "--nobar"
 
-require 'scout-gear'
-
 class CmdStop < Exception
   attr_accessor :exit_status
   def initialize(exit_status = 0)
@@ -54,7 +52,7 @@ if dev_dir
   end
 end
 
-require 'scout'
+require 'scout-gear'
 
 require 'scout/simple_opt'
 

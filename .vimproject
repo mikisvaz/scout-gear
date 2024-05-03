@@ -3,38 +3,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  bin=bin filter="*"{
   scout
  }
- scout_commands=scout_commands filter="*"{
-  rbbt
-  alias
-  find
-  glob
-  log
-  doc
-  update
-  template
-  offsite
-  workflow=workflow{
-   task
-   list
-   info
-   write_info
-   install
-   trace
-   prov
-  }
-  batch=batch{
-   list
-   clean
-  }
-  resource=resource{
-   produce
-  }
- }
  lib=lib {
-  scout-gear.rb
-  workflow-scout.rb
-  rbbt-scout.rb
-  scout.rb
   scout=scout{
    workflow.rb
    workflow=workflow{
@@ -151,6 +120,37 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     sync.rb
     step.rb
    }
+  }
+  scout-gear.rb
+  workflow-scout.rb
+  rbbt-scout.rb
+  scout.rb
+ }
+ scout_commands=scout_commands filter="*"{
+  rbbt
+  alias
+  find
+  glob
+  log
+  doc
+  update
+  template
+  offsite
+  workflow=workflow{
+   task
+   list
+   info
+   write_info
+   install
+   trace
+   prov
+  }
+  batch=batch{
+   list
+   clean
+  }
+  resource=resource{
+   produce
   }
  }
  test=test {
