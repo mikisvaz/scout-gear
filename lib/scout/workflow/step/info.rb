@@ -168,8 +168,13 @@ class Step
     info[:exception]
   end
 
-  def marshal_dump
+  # Marshal Step
+  def _dump(level)
     @path
+  end
+
+  def self._load(path)
+    Step.new path
   end
 
   def marshal_load(path)
