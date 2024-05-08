@@ -62,7 +62,7 @@ class TestClass < Test::Unit::TestCase
     end
   end
 
-  def _test_benchmark
+  def __test_benchmark
 
     TmpFile.with_file do |tmpfile|
       pi = PackedIndex.new tmpfile, true, %w(i i 23s f f f f f)

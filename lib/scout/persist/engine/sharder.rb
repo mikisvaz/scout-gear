@@ -1,9 +1,9 @@
 class Sharder
-  attr_accessor :persistence_path, :shard_function, :databases, :closed, :writable, :mutex, :db_type, :options
+  attr_accessor :persistence_path, :shard_function, :databases, :closed, :writable, :mutex, :db_type, :persist_options
 
-  def initialize(persistence_path, write = false, db_type=nil, options = {}, &block)
-    @shard_function = options[:shard_function] || block
-    @options = options
+  def initialize(persistence_path, write=false, db_type=nil, persist_options={}, &block)
+    @shard_function = persist_options[:shard_function] || block
+    @persist_options = persist_options
     @persistence_path = Path.setup(persistence_path)
     @mutex = Mutex.new
     @writable = write
@@ -23,8 +23,9 @@ class Sharder
     @databases ||= begin
                      hash = {}
                      @persistence_path.glob('shard-*').each do |f|
+                       next if f.end_with?('.metadata')
                        shard = File.basename(f).match(/shard-(.*)/)[1]
-                       hash[shard] = Persist.open_database(f, false, :clean, db_type, @options)
+                       hash[shard] = Persist.open_database(f, false, :clean, db_type, @persist_options)
                      end
                      hash
                    end
@@ -37,7 +38,7 @@ class Sharder
     else
       database = databases[shard] ||= begin
                                         path = File.join(persistence_path, 'shard-' << shard.to_s)
-                                        (writable or File.exist?(path)) ? Persist.open_database(path, writable, :clean, db_type, @options) : nil
+                                        (writable or File.exist?(path)) ? Persist.open_database(path, (File.exist?(path) ? false : writable), :clean, db_type, @persist_options) : nil
                                       end
       Log.warn "Database #{ path } missing" if database.nil?
       database

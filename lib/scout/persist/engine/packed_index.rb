@@ -56,6 +56,15 @@ class PackedIndex
   def file
     @persistence_path
   end
+  
+  def close
+    @stream.close
+  end
+
+  def write(force = false)
+    close
+    @stream = Open.open(persistence_path, :mode => 'wb')
+  end
 
   def read(force = false)
     close

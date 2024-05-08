@@ -73,16 +73,17 @@ module TSVAdapter
     end
   end
 
-
   def load_value(str)
     return nil if str.nil?
     return str if serializer.nil?
+    return load_value(str.first) if Array === str
     serializer.load(str)
   end
 
   def save_value(value)
     return nil if value.nil?
-    serializer.nil? ? value : serializer.dump(value)
+    return value if serializer.nil?
+    serializer.dump(value)
   end
 
   def keys_annotation_hash_key(*args)

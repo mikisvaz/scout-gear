@@ -44,9 +44,11 @@ module ShardAdapter
 end
 
 module Persist
-  def self.open_sharder(...)
-    database = Sharder.new(...)
+  def self.open_sharder(persistence_path, write=false, db_type=nil, persist_options={}, &block)
+    database = Sharder.new(persistence_path, write, db_type, persist_options, &block)
     database.extend ShardAdapter
+    database.serializer = TSVAdapter.serializer_module(persist_options[:serializer]) if persist_options[:serializer]
+    database.save_annotation_hash
     database
   end
 end

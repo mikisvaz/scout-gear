@@ -41,7 +41,8 @@ module Persist
     db
   end
 
-  def self.tsv(id, options = {}, engine: :HDB, persist_options: {})
+  def self.tsv(id, options = {}, engine: nil, persist_options: {})
+    engine ||= persist_options[:engine] || :HDB
     Persist.persist(id, engine, persist_options.merge(:other_options => options)) do |filename|
       if filename.nil?
         yield(persist_options[:data] || {})
@@ -52,12 +53,25 @@ module Persist
           data = persist_options[:data] ||= Persist.open_database(filename, true, persist_options[:serializer], engine, options)
         end
 
+        data.serializer = TSVAdapter.serializer_module(persist_options[:serializer]) if persist_options[:serializer]
 
         yield(data)
         data.save_annotation_hash if Annotation.is_annotated?(data)
         data
       end
     end
+  end
+
+  def self.persist_tsv(file, filename = nil, options = {}, persist_options = {}, &block)
+    persist_options = IndiferentHash.add_defaults persist_options,
+      IndiferentHash.pull_keys(options, :persist)
+
+    persist_options[:data] ||= options.delete(:data)
+    engine = IndiferentHash.process_options persist_options, :engine, engine: "HDB"
+    other_options = IndiferentHash.pull_keys persist_options, :other
+    other_options[:original_options] = options
+
+    Persist.tsv(file, engine: engine, persist_options: persist_options.merge(other: other_options), &block)
   end
 
   #def self.persist_tsv(file, filename = nil, options = {}, persist_options = {})

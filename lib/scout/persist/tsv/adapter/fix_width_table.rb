@@ -49,8 +49,7 @@ module FWTAdapter
     res
   end
 
-  def <<(values)
-    key, value = values
+  def []=(key, value)
     self.add(key, value)
   end
 

@@ -3,7 +3,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 
 require 'scout/persist/tsv'
 class TestSharder < Test::Unit::TestCase
-  def _test_open_sharder
+  def test_open_sharder
     TmpFile.with_file do |dir|
       shard_function = Proc.new do |key|
         key[-1]
@@ -34,6 +34,8 @@ class TestSharder < Test::Unit::TestCase
         key[-1]
       end
 
+      sharder.extend ShardAdapter
+      sharder.load_annotation_hash
       assert_equal size, sharder.keys.length
       assert_equal [2,4], sharder["2"]
 
@@ -47,7 +49,7 @@ class TestSharder < Test::Unit::TestCase
     end
   end
 
-  def _test_shard_tsv
+  def test_shard_tsv
     content =<<-EOF
 #Id,ValueA,ValueB
 id1,a1,b1
@@ -82,7 +84,7 @@ id11,a11,b11
     end
   end
 
-  def _test_shard_fwt
+  def test_shard_fwt
     TmpFile.with_file do |dir|
       shard_function = Proc.new do |key|
         key[0..(key.index(":")-1)]
@@ -93,32 +95,31 @@ id11,a11,b11
       end
 
       size = 10
-      sharder = Persist.persist_tsv(
-        nil, true, {}, 
-        :engine => 'fwt', 
-        :serializer => :float,
-        :file => dir, 
-        :range => false, :value_size => 64, 
-        :shard_function => shard_function, 
-        :pos_function => pos_function
-      ) do |db|
-        size.times do |v| 
-          v = v + 1
-          chr = "chr" << (v % 5).to_s
-          key = chr + ":" << v.to_s
-          value = v*2
-          db << [key, value]
-        end
-      end
+      sharder = Persist.tsv(dir,
+                            persist_options: {
+                              :engine => 'fwt', 
+                              :path => dir, 
+                              :serializer => :float,
+                              :range => false, :value_size => 64, 
+                              :shard_function => shard_function, 
+                              :pos_function => pos_function
+                            }
+                           ) do |db|
+                             size.times do |v| 
+                               v = v + 1
+                               chr = "chr" << (v % 5).to_s
+                               key = chr + ":" << v.to_s
+                               value = v*2
+                               db[key] = value
+                             end
+                           end
 
       sharder.read
 
       assert_equal dir, sharder.persistence_path
       assert_equal size, sharder.size
 
-      iii sharder["chr2:2"]
-
-      assert_equal [4.0], sharder["chr2:2"]
+      assert_equal 4.0, sharder["chr2:2"]
 
       count = 0
       sharder.through do |k,v|
@@ -128,13 +129,13 @@ id11,a11,b11
 
       sharder = Persist.open_sharder(dir, false, 'fwt', {:range => false, :value_size => 64, :pos_function => pos_function}, &shard_function)
 
-      assert_equal [4.0], sharder["chr2:2"].collect{|v| v.to_f }
+      assert_equal 4.0, sharder["chr2:2"]
 
       assert_equal size, sharder.size 
     end
   end
 
-  def _test_shard_pki
+  def test_shard_pki
     TmpFile.with_file do |dir|
       shard_function = Proc.new do |key|
         key[0..(key.index(":")-1)]
@@ -146,13 +147,22 @@ id11,a11,b11
 
       size = 10
       chrs = (1..10).to_a
-      sharder = Persist.persist_tsv(nil, "ShardTest", {}, :pattern => %w(f f), :update => true, :range => false, :value_size => 64, :engine => 'pki', :file => dir, :shard_function => shard_function, :pos_function => pos_function, :persist => true, :serializer => :clean) do |db|
+      sharder = Persist.tsv(dir, 
+                            engine: 'pki', 
+                            :persist_options => { 
+                              :pattern =>  %w(f f),
+                              :range => false, 
+                              :value_size => 64, 
+                              :file => dir, 
+                              :shard_function => shard_function,
+                              :pos_function => pos_function
+                            }) do |db|
         chrs.each do |c|
           size.times do |v| 
             v = v 
             chr = "chr" << c.to_s
             key = chr + ":" << v.to_s
-            db << [key, [v, v*2]]
+            db[key] = [v, v*2]
           end
         end
       end
@@ -160,6 +170,8 @@ id11,a11,b11
 
       assert_equal dir, sharder.persistence_path
 
+      db = sharder.database("chr2:2")
+      db.read
       assert_equal [2.0, 4.0], sharder["chr2:2"]
 
       assert_equal size*chrs.length, sharder.size
@@ -171,15 +183,19 @@ id11,a11,b11
       end
       assert_equal count, size*chrs.length
 
-      sharder = Persist.open_sharder(dir, false, :float, 'fwt', {:range => false, :value_size => 64, :pos_function => pos_function}, &shard_function)
+      sharder = Persist.open_sharder(
+        dir, false, 'pki', 
+        {:pattern => %w(f f), :file => dir, :range => false, :value_size => 64, :pos_function => pos_function}, &shard_function
+      )
 
-      assert_equal [4.0], sharder["chr2:2"]
+      db = sharder.database("chr2:2")
+      assert_equal [2.0, 4.0], sharder["chr2:2"]
 
-      assert_equal chrs.length*size, sharder.size 
+      assert_equal size*chrs.length, sharder.size
     end
   end
 
-  def _test_shard_pki_skip
+  def test_shard_pki_skip
     TmpFile.with_file do |dir|
       shard_function = Proc.new do |key|
         key[0..(key.index(":")-1)]
@@ -191,13 +207,13 @@ id11,a11,b11
 
       size = 10
       chrs = (1..10).to_a
-      sharder = Persist.persist_tsv(nil, "ShardTest", {}, :pattern => %w(f), :update => true, :range => false, :value_size => 64, :engine => 'pki', :file => dir, :shard_function => shard_function, :pos_function => pos_function, :persist => true, :serializer => :clean) do |db|
+      sharder = Persist.tsv(dir, persist_options: {:pattern => %w(f), :range => false, :value_size => 64, :engine => 'pki', :file => dir, :shard_function => shard_function, :pos_function => pos_function}) do |db|
         chrs.each do |c|
           size.times do |v| 
             v = v + 1
             chr = "chr" << c.to_s
             key = chr + ":" << (v*2).to_s
-            db << [key, [v*2]]
+            db[key] = [v*2]
           end
         end
       end
@@ -214,11 +230,61 @@ id11,a11,b11
       end
       assert_equal count, size*chrs.length
 
-      sharder = Persist.open_sharder(dir, false, :float, 'fwt', {:range => false, :value_size => 64, :pos_function => pos_function}, &shard_function)
+      sharder = Persist.open_sharder(dir, false, 'pki', {:range => false, :value_size => 64, :pos_function => pos_function}, &shard_function)
 
       assert_equal [2.0], sharder["chr2:2"]
 
     end
   end
+
+  def test_shard_fwt_persist_tsv
+    TmpFile.with_file do |dir|
+      shard_function = Proc.new do |key|
+        key[0..(key.index(":")-1)]
+      end
+
+      pos_function = Proc.new do |key|
+        key.split(":").last.to_i
+      end
+
+      size = 10
+      sharder = Persist.persist_tsv("ShardTSV_FWT", nil, {}, {
+                              :engine => 'fwt', 
+                              :path => dir, 
+                              :serializer => :float,
+                              :range => false, :value_size => 64, 
+                              :shard_function => shard_function, 
+                              :pos_function => pos_function
+                            }
+                           ) do |db|
+                             size.times do |v| 
+                               v = v + 1
+                               chr = "chr" << (v % 5).to_s
+                               key = chr + ":" << v.to_s
+                               value = v*2
+                               db[key] = value
+                             end
+                           end
+
+      sharder.read
+
+      assert_equal size, sharder.size
+
+      assert_equal 4.0, sharder["chr2:2"]
+
+      count = 0
+      sharder.through do |k,v|
+        count += 1
+      end
+      assert_equal count, size
+
+      sharder = Persist.open_sharder(sharder.persistence_path, false, 'fwt', {:range => false, :value_size => 64, :pos_function => pos_function}, &shard_function)
+
+      assert_equal 4.0, sharder["chr2:2"]
+
+      assert_equal size, sharder.size 
+    end
+  end
+
 end
 

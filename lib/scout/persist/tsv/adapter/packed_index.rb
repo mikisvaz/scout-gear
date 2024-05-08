@@ -75,6 +75,10 @@ module PKIAdapter
   def keys
     []
   end
+
+  def size
+    orig_size
+  end
 end
 
 module Persist
