@@ -470,6 +470,7 @@ module TSV
 
     data = parser.traverse **kwargs, &block
     data.type = type
+    data.cast = cast
     data.filename = filename || parser.options[:filename]
     data.namespace = namespace || parser.options[:namespace]
     data.identifiers = identifiers
