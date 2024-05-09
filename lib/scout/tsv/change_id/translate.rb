@@ -56,6 +56,7 @@ module TSV
 
     files.each do |file|
       next if Path === file && ! Open.exist?(file)
+      file = file.find if Path === file
       file_fields[file] = all_fields(file)
     end
 

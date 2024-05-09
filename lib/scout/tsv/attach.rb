@@ -42,7 +42,7 @@ module TSV
     [match_key, other_key]
   end
 
-  def self.attach(source, other, target: nil, fields: nil, index: nil, match_key: nil, other_key: nil, one2one: true, complete: false, insitu: nil, persist_input: false, bar: nil)
+  def self.attach(source, other, target: nil, fields: nil, index: nil, identifiers: nil, match_key: nil, other_key: nil, one2one: true, complete: false, insitu: nil, persist_input: false, bar: nil)
     source = TSV::Transformer.new source unless TSV === source || TSV::Parser === source
     other = TSV::Parser.new other unless TSV === other || TSV::Parser === other
 
@@ -78,6 +78,7 @@ module TSV
 
         if index.nil? && ! source.identify_field(other_key_name)
           identifier_files = []
+          identifier_files << identifiers if identifiers
           identifier_files << source
           identifier_files << TSV.identifier_files(source)
           identifier_files << TSV.identifier_files(other)
