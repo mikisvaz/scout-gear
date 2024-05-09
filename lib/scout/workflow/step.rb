@@ -190,9 +190,12 @@ class Step
 
       @result
     rescue Exception => e
-      merge_info :status => :error, :exception => e, :end => Time.now
-      abort_dependencies
-      raise e
+      merge_info :status => :error, :exception => e, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
+      begin
+        abort_dependencies
+      ensure
+        raise e
+      end
     ensure
       if ! (error? || aborted?)
         if @result && streaming?
