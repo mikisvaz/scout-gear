@@ -19,7 +19,7 @@ module Task
       step_inputs.each do |k,v|
         if Symbol === v
           input_dep = dependencies.select{|d| d.task_name == v }.first
-          resolved_inputs[k] = input_dep || provided_inputs[k] || step_inputs[k] || k
+          resolved_inputs[k] = input_dep || provided_inputs[v] || step_inputs[v] || v
         else
           resolved_inputs[k] = v
         end
