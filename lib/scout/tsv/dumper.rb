@@ -166,9 +166,9 @@ module TSV
     if stream.nil?
       t = Thread.new do 
         begin
-          dumper.init(preamble: preamble)
           Thread.current.report_on_exception = true
           Thread.current["name"] = "Dumper thread"
+          dumper.init(preamble: preamble)
 
           if keys
             keys.each do |k|
