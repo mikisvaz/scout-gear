@@ -148,7 +148,10 @@ class WorkQueue
   def close
     @closed = true
     @worker_mutex.synchronize{ @workers.length }.times do
-      @input.write DoneProcessing.new() unless @input.closed_write?
+      begin
+        @input.write DoneProcessing.new() unless @input.closed_write?
+      rescue IOError
+      end
     end
   end
 
