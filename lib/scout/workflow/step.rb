@@ -227,7 +227,7 @@ class Step
   end
 
   def fork(noload = false, semaphore = nil)
-    Process.fork do
+    pid = Process.fork do
       reset_info unless present?
       if semaphore
         log :queue, "Queued over semaphore: #{semaphore}"
@@ -239,6 +239,7 @@ class Step
       end
       join
     end
+    Process.detach pid
     grace
     self
   end
@@ -318,8 +319,11 @@ class Step
     while @result.nil? && (present? && ! (terminated? || done?))
       sleep 0.1
     end
+
     raise self.exception if self.exception
+
     raise "Error in job #{self.path}" if self.error? or self.aborted? 
+
     self
   end
 
