@@ -186,6 +186,8 @@ class Step
       if TrueClass === no_load
         consume_all_streams if streaming?
         @result = nil
+      elsif no_load && ! (IO === @result)
+        @result = nil
       end
 
       @result
