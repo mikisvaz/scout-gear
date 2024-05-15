@@ -88,7 +88,7 @@ module TSV
         end
 
         if other_key != :key 
-          other = other.reorder other_key, fields, one2one: one2one
+          other = other.reorder other_key, fields, one2one: one2one, merge: true, type: :double
         end
 
         other_field_positions = other.identify_field(fields.dup) 
@@ -125,13 +125,14 @@ module TSV
           current_values = [current_values] if source.type == :single
 
           keys = (match_key == :key || match_key_pos == :key) ? [orig_key] : current_values[match_key_pos]
-          keys = [keys] unless Array === keys
+          keys = [keys].compact unless Array === keys
 
           keys = index.chunked_values_at(keys).flatten if index
 
           current_values = current_values.dup unless insitu
+          keys = [nil] if keys.empty?
           keys.each do |current_key|
-            other_values = other[current_key]
+            other_values = current_key.nil? ? empty_other_values : other[current_key]
 
             if other_values.nil?
               other_values = empty_other_values
