@@ -27,9 +27,9 @@ module Entity
                           target_format
                         end
 
-        return self if target_format == format
-
-        if Array === self
+        if target_format == format
+          self
+        elsif Array === self
           self.annotate(identifier_index(target_format, self.format).values_at(*self))
         else
           self.annotate(identifier_index(target_format, self.format)[self])
