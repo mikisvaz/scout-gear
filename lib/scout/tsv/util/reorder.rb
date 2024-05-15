@@ -7,7 +7,7 @@ module TSV
     kwargs[:one2one] = one2one
     key_field_name, field_names = with_unnamed do
       traverse key_field, fields, **kwargs do |k,v|
-        if @type == :double && merge && res.include?(k)
+        if res.type == :double && merge && res.include?(k)
           current = res[k]
           if merge == :concat
             v.each_with_index do |new,i|
@@ -22,7 +22,7 @@ module TSV
             end
             res[k] = merged
           end
-        elsif @type == :flat
+        elsif res.type == :flat
           res[k] ||= []
           if merge == :concat
             res[k].concat v
