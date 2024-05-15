@@ -155,7 +155,7 @@ module TSV
               when "single_double"
                 [[these_items]]
               when "list_double"
-                these_items.collect{|l| [l] }
+                these_items.collect{|l| l.nil? ? [] : [l] }
               when "flat_double"
                 [these_items]
               when "double_double"
@@ -169,7 +169,7 @@ module TSV
             end
 
             if ! merge || ! data.include?(key)
-              these_items = these_items.collect{|i| i.empty? ? [nil] : i } if type == :double
+              these_items = these_items.collect{|i| i.empty? ? [nil] : i } if type == :double && one2one
               data[key] = these_items
             elsif type == :double
               current = data[key]
