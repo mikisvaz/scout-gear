@@ -218,8 +218,14 @@ module TSV
   end
 
   def to_s(options = {})
-    dumper_stream(options.merge(stream: ''))
+    dumper_stream({stream: ''}.merge(options))
   end
 
   alias stream dumper_stream
+
+  def write_file(file)
+    Open.open(file, mode: 'w') do |f|
+      dumper_stream(stream: f)
+    end
+  end
 end
