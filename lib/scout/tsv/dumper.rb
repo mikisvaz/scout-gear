@@ -97,6 +97,16 @@ module TSV
             @sin << key + @sep + value * @sep << "\n"
           when :double
             @sin << key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep << "\n"
+          else
+            if Array === value 
+              if Array === value.first
+                @sin << key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep << "\n"
+              else
+                @sin << key + @sep + value * @sep << "\n"
+              end
+            else
+              @sin << key + @sep + value.to_s << "\n"
+            end
           end
         end
       end
