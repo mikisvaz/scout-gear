@@ -3,16 +3,21 @@ require_relative 'engine'
 require_relative 'tsv/adapter'
 
 Persist.save_drivers[:tsv] = proc do |file,content| 
-  stream = if IO === content
-             content
-           elsif content.respond_to?(:stream)
-             content.stream
-           elsif content.respond_to?(:dumper_stream)
-             content.dumper_stream
-           else
-             content
-           end
-  Open.sensible_write(file, stream)
+  case content
+  when IO
+    Open.sensible_write(file, content)
+  when TSV
+    Open.sensible_write(file, content)
+  else
+    stream = if content.respond_to?(:stream)
+               content.stream
+             elsif content.respond_to?(:dumper_stream)
+               content.dumper_stream
+             else
+               content
+             end
+    Open.sensible_write(file, stream)
+  end
 end
 
 Persist.load_drivers[:tsv] = proc do |file| TSV.open file end
