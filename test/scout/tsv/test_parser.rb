@@ -286,7 +286,7 @@ k 1 2
     EOF
 
     TmpFile.with_file(content) do |filename|
-      tsv = TSV.open(filename, :key_field => "Transcription Factor (Associated Gene Name)", :fields => ["Target Gene (Associated Gene Name)", "Sign", "PMID"], :merge => true, :type => :double)
+      tsv = TSV.open(filename, key_field: "Transcription Factor (Associated Gene Name)", fields: ["Target Gene (Associated Gene Name)", "Sign", "PMID"], merge: true, one2one: true, type: :double)
       assert_equal 16, tsv["NR1H3"]["Sign"].length
     end
   end

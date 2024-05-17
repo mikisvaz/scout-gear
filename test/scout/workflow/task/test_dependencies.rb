@@ -244,8 +244,8 @@ class TestTaskDependencies < Test::Unit::TestCase
       task :step2 => :string do |i| step(:step1).load end
     end
 
-    job = wf.job(:step2, :input1 => 2)
-    assert_equal 1, job.run
+    job = wf.job(:step2, :input1 => "2")
+    assert_equal "1", job.run
     assert_equal Task::DEFAULT_NAME, job.name
     assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
   end
@@ -261,9 +261,9 @@ class TestTaskDependencies < Test::Unit::TestCase
       task :step2 => :string do |i| step(:step1).load end
     end
 
-    job = wf.job(:step2, "SOME_NAME", :input1 => 2)
+    job = wf.job(:step2, "SOME_NAME", :input1 => "2")
     assert_equal "SOME_NAME", job.step(:step1).clean_name
-    assert_equal 2, job.run
+    assert_equal "2", job.run
   end
 
   def test_override_inputs_block_array
@@ -278,8 +278,8 @@ class TestTaskDependencies < Test::Unit::TestCase
       task :step2 => :string do |i| step(:step1).load end
     end
 
-    job = wf.job(:step2, :input1 => 2)
-    assert_equal 1, job.run
+    job = wf.job(:step2, :input1 => "2")
+    assert_equal "1", job.run
     assert_equal Task::DEFAULT_NAME, job.name
     assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
   end
@@ -294,8 +294,8 @@ class TestTaskDependencies < Test::Unit::TestCase
       task :step2 => :string do |i| step(:step1).load end
     end
 
-    job = wf.job(:step2, :input1 => 2)
-    assert_equal 1, job.run
+    job = wf.job(:step2, :input1 => "2")
+    assert_equal "1", job.run
     assert_equal Task::DEFAULT_NAME, job.name
     assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
   end
@@ -313,13 +313,13 @@ class TestTaskDependencies < Test::Unit::TestCase
       task :step3 => :string do |i| step(:step1).load end
     end
 
-    job = wf.job(:step3, :input1 => 1)
+    job = wf.job(:step3, :input1 => "1")
     assert_equal Task::DEFAULT_NAME, job.name
     assert_not_equal Task::DEFAULT_NAME, job.step(:step1).name
-    assert_equal 2, job.run
+    assert_equal "2", job.run
 
-    job = wf.job(:step3, :input1 => 2)
-    assert_equal 3, job.run
+    job = wf.job(:step3, :input1 => "2")
+    assert_equal "3", job.run
 
 
     job = wf.job(:step3)
@@ -341,16 +341,16 @@ class TestTaskDependencies < Test::Unit::TestCase
       dep :step1, :canfail => true
       task :step2 => :string do |i|
         if step(:step1).error?
-          0
+          "0"
         else
           step(:step1).load 
         end
       end
     end
 
-    assert_equal 1, wf.job(:step2, :input1 => 1).run
-    assert_equal 2, wf.job(:step2, :input1 => 2).run
-    assert_equal 0, wf.job(:step2, :input1 => -2).run
+    assert_equal "1", wf.job(:step2, :input1 => "1").run
+    assert_equal "2", wf.job(:step2, :input1 => "2").run
+    assert_equal "0", wf.job(:step2, :input1 => "-2").run
   end
 
 end
