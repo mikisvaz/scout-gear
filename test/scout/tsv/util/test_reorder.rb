@@ -58,6 +58,23 @@ row2    A1
     assert_equal "row2", r["A1"]
   end
 
+  def test_reorder_single_to_double
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:single
+#Id    ValueA
+row1    a1
+row2    a1
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename)
+    end
+
+    r = tsv.reorder "ValueA", type: :flat
+
+    assert_equal ["row1", "row2"], r["a1"]
+  end
+
   def test_transpose
      content =<<-EOF
 #: :type=:list
