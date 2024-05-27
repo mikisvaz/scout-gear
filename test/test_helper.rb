@@ -41,6 +41,7 @@ class Test::Unit::TestCase
   end
 
   setup do
+    Open.rm_rf tmpdir
     TmpFile.tmpdir = tmpdir.tmpfiles
     Log::ProgressBar.default_severity = 0
     Persist.cache_dir = tmpdir.var.cache

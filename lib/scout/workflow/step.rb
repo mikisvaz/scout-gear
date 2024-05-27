@@ -228,12 +228,14 @@ class Step
 
   def fork(noload = false, semaphore = nil)
     pid = Process.fork do
-      reset_info unless present?
+      Signal.trap(:TERM) do
+        raise Aborted, "Recieved TERM Signal on forked process #{Process.pid}"
+      end
+      reset_info status: :queue, pid: Process.pid unless present?
       if semaphore
-        log :queue, "Queued over semaphore: #{semaphore}"
-        ret = ScoutSemaphore.wait_semaphore(semaphore)
-        raise SemaphoreInterrupted if ret == -1
-        run(noload)
+        ScoutSemaphore.synchronize(semaphore) do
+          run(noload)
+        end
       else
         run(noload)
       end
@@ -319,6 +321,8 @@ class Step
     while @result.nil? && (present? && ! (terminated? || done?))
       sleep 0.1
     end
+
+    Misc.wait_child info[:pid] if info[:pid]
 
     raise self.exception if self.exception
 

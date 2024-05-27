@@ -1,7 +1,13 @@
 class Step
   def abort(exception = nil)
     if (pid = info[:pid]) && pid != Process.pid && Misc.pid_alive?(pid)
-      Process.kill pid
+      Log.debug "Kill process #{pid} to abort step #{Log.fingerprint self}"
+      begin
+        s = Misc.abort_child pid, true
+        Log.medium "Aborted pid #{path} #{s}"
+      rescue 
+        Log.debug("Aborted job #{pid} was not killed: #{$!.message}")
+      end
     else
       while @result && streaming? && stream = self.stream
         stream.abort(exception)

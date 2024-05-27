@@ -15,6 +15,9 @@ class WorkQueue
 
     def run
       @pid = Process.fork do
+        Signal.trap("INT") do
+          Kernel.exit! -1
+        end
         Log.low "Worker start #{worker_id}"
         yield
       end
@@ -51,7 +54,7 @@ class WorkQueue
     def abort
       begin
         Log.medium "Aborting worker #{worker_id}"
-        Process.kill "INT", @pid 
+        Process.kill "INT", @pid
       rescue Errno::ECHILD 
       rescue Errno::ESRCH
       end

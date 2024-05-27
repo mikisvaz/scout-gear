@@ -92,7 +92,7 @@ module Open
       end
 
       queue.process do |res|
-        callback.call res
+        callback.call res if callback
       end
       
       begin

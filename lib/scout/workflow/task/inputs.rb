@@ -40,7 +40,16 @@ module Task
       input_names << name
       provided = Hash === provided_inputs ? provided_inputs[name] : provided_inputs[i]
       provided = Task.format_input(provided, type, options || {})
-      if ! provided.nil? && provided != value
+      if provided == value
+        same_as_default = true
+      elsif String === provided && Symbol === value && provided == value.to_s
+        same_as_default = true
+      elsif String === value && Symbol === provided && provided.to_s == value
+        same_as_default = true
+      else
+      same_as_default = false
+      end
+      if ! provided.nil? && ! same_as_default
         non_default_inputs << name.to_sym
         input_array << provided
       elsif options && options[:jobname]

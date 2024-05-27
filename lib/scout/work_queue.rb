@@ -52,9 +52,9 @@ class WorkQueue
     @worker_mutex.synchronize do
       worker = @workers.index{|w| w.pid == pid}
       if worker
-        Log.low "Removed worker #{pid} from #{queue_id}"
         @workers.delete_at(worker)
         @removed_workers << pid
+        Log.low "Removed worker #{pid} from #{queue_id}"
       else
         Log.medium "Worker #{pid} not from #{queue_id}"
       end
@@ -112,10 +112,13 @@ class WorkQueue
       while true
         break if @worker_mutex.synchronize{ @workers.empty? }
         threads = @workers.collect do |w|
-          Thread.new do
+          t = Thread.new do
+            Thread.current["name"] = "Worker waiter #{queue_id} worker #{w.pid}"
             pid, status = Process.wait2 w.pid
             remove_worker(pid) if pid
           end
+          Thread.pass until t["name"]
+          t
         end
         threads.each do |t| t.join end
       end
