@@ -134,6 +134,9 @@ module Task
       elsif filename.end_with?('.as_step')
         value = Open.read(filename).strip
         Step.load value
+      elsif filename.end_with?('.as_path')
+        value = Open.read(filename).strip
+        Path.setup value
       elsif (options &&  (options[:noload] || options[:stream] || options[:nofile]))
         filename
       else
