@@ -47,7 +47,7 @@ module Task
       elsif String === value && Symbol === provided && provided.to_s == value
         same_as_default = true
       else
-      same_as_default = false
+        same_as_default = false
       end
       if ! provided.nil? && ! same_as_default
         non_default_inputs << name.to_sym
