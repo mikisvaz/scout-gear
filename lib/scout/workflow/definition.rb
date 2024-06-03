@@ -21,12 +21,14 @@ module Workflow
     @helpers ||= {}
   end
 
-  def helper(name, *args, &block)
+  def helper(name, *args, **kwargs, &block)
     if block_given?
       helpers[name] = block
     else
       raise RbbtException, "helper #{name} unkown in #{self} workflow" unless helpers[name]
-      helpers[name].call(*args)
+      o = Object.new
+      o.extend step_module
+      o.send(name, *args, **kwargs)
     end
   end
 

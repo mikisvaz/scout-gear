@@ -85,4 +85,20 @@ class TestWorkflow < Test::Unit::TestCase
     assert_equal "Baking batter (Mixing base (Mixing base (Whisking eggs from share/pantry/eggs) with mixer (share/pantry/flour)) with mixer (share/pantry/blueberries))",
       Baking.job(:bake_muffin_tray, "Blueberry muffin", :add_bluberries => true).run
   end
+
+  def test_call_helper
+    wf = Module.new do
+      extend Workflow
+
+      helper :m1 do
+        "TEST"
+      end
+
+      helper :m2 do
+        m1
+      end
+    end
+
+    assert_equal "TEST", wf.helper(:m2)
+  end
 end
