@@ -246,6 +246,7 @@ module Workflow
           workload = new_workload
           sleep timer
         end
+        all_jobs.each{|s| s.join }
       rescue TryAgain
         retry
       end
