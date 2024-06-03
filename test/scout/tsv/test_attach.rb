@@ -449,4 +449,33 @@ A    Id3
     assert res["row2"].include? "Id3"
     assert ! res["row2"].include?("b")
   end
+
+  def test_attach_list_to_list_with_complete
+    content1 =<<-EOF
+#Id    ValueA    ValueB
+row1    a    b
+row2    A    B
+    EOF
+
+    content2 =<<-EOF
+#Id    ValueC
+row1    c
+row2    C
+row3    CC
+    EOF
+
+    tsv1 = tsv2 = index = nil
+    TmpFile.with_file(content1) do |filename|
+      tsv1 = TSV.open(File.open(filename), type: :list, fields: ["ValueA"], sep: /\s+/)
+    end
+
+    TmpFile.with_file(content2) do |filename|
+      tsv2 = TSV.open(File.open(filename), type: :list, sep: /\s+/)
+    end
+
+    res = tsv1.attach tsv2, :fields => ["ValueC"], complete: true
+    assert res["row2"].include?("C")
+    refute res["row2"].include?("b")
+    assert res["row3"].include?("CC")
+  end
 end

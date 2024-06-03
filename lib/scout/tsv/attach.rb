@@ -154,7 +154,7 @@ module TSV
 
             other_values.zip(overlaps).each do |v,overlap|
               if type == :list
-                current_values[overlap] = v if current_values[overlap].nil? || String === current_values[overlap] && current_values[overlap].empty?
+                current_values[overlap] = v if current_values[overlap].nil? || (String === current_values[overlap] && current_values[overlap].empty?)
               elsif type == :flat
                 next if v.nil?
                 v = [v] unless Array === v
@@ -206,7 +206,7 @@ module TSV
               if overlap == :key
                 other_key = Array === v ? v : v.first
               elsif type == :list
-                new_values[overlap] = v if v[overlap].nil? || String === v[overlap] && v[overlap].empty?
+                new_values[overlap] = v if new_values[overlap].nil? || (String === new_values[overlap] && new_values[overlap].empty?)
               else
                 v = [v] unless Array === v
                 new_values[overlap].concat v
