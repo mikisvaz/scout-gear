@@ -117,6 +117,7 @@ class TestWorkQueue < Test::Unit::TestCase
 
         assert_raise ScoutException do
           begin
+            t.join
             q.join(false)
           rescue
             t.raise($!)
@@ -158,6 +159,7 @@ class TestWorkQueue < Test::Unit::TestCase
 
         assert_raise ScoutException do
           begin
+            t.join
             q.join(false)
           rescue Exception
             t.raise($!)
