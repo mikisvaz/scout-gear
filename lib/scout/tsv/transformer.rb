@@ -80,6 +80,7 @@ module TSV
     def each(*args, **kwargs, &block)
       kwargs[:into] = @dumper
       kwargs[:bar] = "Transform #{Log.fingerprint @parser} into #{Log.fingerprint @target}" if TrueClass === kwargs[:bar]
+      @dumper.namespace ||= @namespace
       @dumper.init if @dumper.respond_to?(:init) && ! @dumper.initialized
       Open.traverse(@parser, *args, **kwargs) do |k,v|
         NamedArray.setup(v, @parser.fields, k) unless @unnamed
