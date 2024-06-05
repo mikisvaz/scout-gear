@@ -1,16 +1,20 @@
 module Persist
+  REPO_CACHE = {}
   def self.annotation_repo_persist(repo, name, &block)
 
     if String === repo
-      repo = repo.find if Path === repo
-      repo = Persist.open_tokyocabinet(repo, false, :list, :BDB)
-      repo_fields = ["literal", "annotation_types", "JSON"]
-      TSV.setup(repo, :fields => repo_fields, :key_field => "Annotation ID")
-      repo.save_annotation_hash
+      repo = REPO_CACHE[repo] ||= begin
+                                    repo = repo.find if Path === repo
+                                    repo = Persist.open_tokyocabinet(repo, false, :list, :BDB)
+                                    repo_fields = ["literal", "annotation_types", "JSON"]
+                                    TSV.setup(repo, :fields => repo_fields, :key_field => "Annotation ID")
+                                    repo.save_annotation_hash
+                                    repo
+                                  end
       repo.close
-    else
-      repo_fields = repo.fields
     end
+
+    repo_fields = repo.fields
 
     subkey = name + ":"
 
