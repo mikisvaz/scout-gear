@@ -26,6 +26,7 @@ class Step
     newer = rec_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += input_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
 
+    Log.low "Newer deps found for #{Log.fingerprint self}: #{Log.fingerprint newer}" if newer.any?
     newer.empty?
   end
 

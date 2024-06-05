@@ -1,6 +1,6 @@
 require_relative 'parser'
 module TSV
-  def traverse(key_field_pos = :key, fields_pos = nil, type: nil, one2one: false, unnamed: false, key_field: nil, fields: nil, bar: false, cast: nil, select: nil, &block)
+  def traverse(key_field_pos = :key, fields_pos = nil, type: nil, one2one: false, unnamed: false, key_field: nil, fields: nil, bar: false, cast: nil, select: nil, uniq: false, &block)
     key_field = key_field_pos if key_field.nil?
     fields = fields_pos.dup if fields.nil?
     type = @type if type.nil?
@@ -74,6 +74,7 @@ module TSV
           values = TSV.cast_value(values, cast) if cast
 
           if Array === key 
+            key = key.uniq if uniq
             if @type == :double && one2one
               if one2one == :strict
                 key.each_with_index do |key_i,i|

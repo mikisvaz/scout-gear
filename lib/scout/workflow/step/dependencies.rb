@@ -36,7 +36,7 @@ class Step
 
     dependencies.each do |dep|
       if dep.present? && ! dep.updated?
-        Log.debug "Clean outdated #{dep.path}"
+        Log.medium "Clean outdated #{dep.path}"
         dep.clean
       end
 
