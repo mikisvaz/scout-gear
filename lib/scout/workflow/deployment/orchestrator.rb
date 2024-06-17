@@ -253,7 +253,7 @@ module Workflow
     end
   end
 
-  def self.produce_dependencies(jobs, tasks, produce_cpus = Etc.nprocessors)
+  def self.produce_dependencies(jobs, tasks, produce_cpus = Etc.nprocessors, produce_timer = 5)
     jobs = [jobs] unless Array === jobs
     produce_list = []
     jobs.each do |job|
@@ -265,7 +265,7 @@ module Workflow
       end
     end
 
-    orchestrator = Orchestrator.new 0.1, cpus: produce_cpus.to_i
+    orchestrator = Orchestrator.new produce_timer, cpus: produce_cpus.to_i
     orchestrator.process({}, produce_list)
     produce_list
   end
