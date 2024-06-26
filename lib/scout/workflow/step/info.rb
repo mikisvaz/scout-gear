@@ -10,7 +10,11 @@ class Step
   end
 
   def self.load_info(info_file)
-    info = Persist.load(info_file, SERIALIZER) || {}
+    info = begin
+             Persist.load(info_file, SERIALIZER) || {}
+           rescue
+             {status: :noinfo}
+           end
     IndiferentHash.setup(info)
   end
 
