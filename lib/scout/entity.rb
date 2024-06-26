@@ -34,6 +34,8 @@ module Entity
       entity = (entity.frozen? and not entity.nil?) ? entity.dup : ((Array === entity and dup_array) ? entity.collect{|e| e.nil? ? e : e.dup} : entity) 
 
       entity = mod.setup(entity, params)
+
+      entity.extend AnnotatedArray if Array === entity && ! options[:annotated_array] == FalseClass
     end
 
     entity
