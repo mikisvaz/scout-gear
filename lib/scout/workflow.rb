@@ -5,6 +5,7 @@ require_relative 'workflow/step'
 require_relative 'workflow/documentation'
 require_relative 'workflow/usage'
 require_relative 'workflow/deployment'
+require_relative 'workflow/exceptions'
 
 require 'scout/resource'
 require 'scout/resource/scout'
@@ -153,6 +154,7 @@ module Workflow
 
   def job(name, *args)
     task = tasks[name]
+    raise TaskNotFound, "Task #{task_name} in #{self.to_s}" if task.nil?
     step = task.job(*args)
     step.extend step_module
     step
