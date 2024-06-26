@@ -352,6 +352,7 @@ module TSV
           all_field_names ||= [@key_field] + @fields
           fields = all_field_names if fields == :all
           positions = NamedArray.identify_name(all_field_names, fields)
+
           raise "Not all fields (#{Log.fingerprint fields}) identified in #{Log.fingerprint all_field_names}" if positions.include?(nil)
           kwargs[:positions] = positions
           field_names = all_field_names.values_at *positions

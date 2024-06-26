@@ -80,7 +80,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      sort.rb
      unzip.rb
     }
-    entity.rb
     parser.rb
     dumper.rb
     transformer.rb
