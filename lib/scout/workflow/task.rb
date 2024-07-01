@@ -92,7 +92,6 @@ module Task
         end
       end
 
-
       path = directory[name]
 
       path = path.set_extension(extension) if extension

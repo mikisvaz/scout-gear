@@ -31,6 +31,7 @@ class Step
   end
 
   def clean
+    Log.debug "Cleaning job files: #{path}"
     @take_stream = nil 
     @result = nil
     @info = nil
