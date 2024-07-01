@@ -156,7 +156,7 @@ class Step
   end
 
   def running?
-    ! done? && (info[:pid] && Misc.pid_alive?(info[:pid]))
+    ! (done? && status == :done) && (info[:pid] && Misc.pid_alive?(info[:pid]))
   end
 
   def overriden?
