@@ -372,7 +372,8 @@ class Step
   end
 
   def task_signature
-    [workflow.to_s, task_name] * "#"
+    workflow_name = String === workflow ? workflow : workflow.name
+    [workflow, task_name] * "#"
   end
 
   def alias?
