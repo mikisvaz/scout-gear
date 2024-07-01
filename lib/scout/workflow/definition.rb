@@ -140,8 +140,17 @@ module Workflow
     end
   end
 
-  FORGET_DEP_TASKS = ENV["SCOUT_FORGET_DEP_TASKS"] == "true"
-  REMOVE_DEP_TASKS = ENV["SCOUT_REMOVE_DEP_TASKS"] == "true"
+  FORGET_TASK_ALIAS = begin 
+                        %w(SCOUT_FORGET_TASK_ALIAS SCOUT_FORGET_DEP_TASKS RBBT_FORGET_DEP_TASKS).select do |var|
+                          ENV[var] == 'true'
+                        end.any?
+                      end
+  REMOVE_TASK_ALIAS = begin 
+                        remove = %w(SCOUT_REMOVE_TASK_ALIAS SCOUT_REMOVE_DEP_TASKS RBBT_REMOVE_DEP_TASKS).select do |var|
+                          ENV.include?(var) && ENV[var] != 'false'
+                        end.first
+                        remove.nil? ? false : remove
+                      end
   def task_alias(name, workflow, oname, *rest, &block)
     dep(workflow, oname, *rest, &block) 
     extension :dep_task unless @extension
@@ -158,9 +167,15 @@ module Workflow
       raise dep.get_exception if dep.error?
       raise Aborted, "Aborted dependency #{dep.path}" if dep.aborted?
       set_info :type, dep.info[:type]
-      forget = config :forget_dep_tasks, "forget_dep_tasks", :default => FORGET_DEP_TASKS
+
+      forget = config :forget_task_alias, "forget_task_alias"
+      forget = config :forget_dep_tasks, "forget_dep_tasks", :default => FORGET_TASK_ALIAS if forget.nil?
+
       if forget
-        remove = config :remove_dep_tasks, "remove_dep_tasks", :default => REMOVE_DEP_TASKS
+        remove = config :remove_task_alias, "remove_task_alias"
+        remove = config :remove_dep_tasks, "remove_dep_tasks", :default => REMOVE_TASK_ALIAS if remove.nil?
+
+        Log.medium "Forget task_alias (remove: #{remove}): #{short_path}"
 
         self.archive_deps
         self.copy_linked_files_dir
@@ -179,9 +194,9 @@ module Workflow
           when 'recursive'
             (dep.dependencies + dep.rec_dependencies).uniq.each do |d|
               next if d.overriden
-              d.clean unless config(:remove_dep, d.task_signature, d.task_name, d.workflow.to_s, :default => true).to_s == 'false'
+              d.clean unless Scout::Config.get(:remove_dep, "task:#{d.task_signature}", "task:#{d.task_name}", "workflow:#{d.workflow.name}", :default => true).to_s == 'false'
             end
-            dep.clean unless config(:remove_dep, dep.task_signature, dep.task_name, dep.workflow.to_s, :default => true).to_s == 'false'
+            dep.clean unless Scout::Config.get(:remove_dep, "task:#{dep.task_signature}", "task:#{dep.task_name}", "workflow:#{dep.workflow.name}", :default => true).to_s == 'false'
           end 
         end
       else

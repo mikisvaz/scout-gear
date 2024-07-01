@@ -66,5 +66,36 @@ class TestWorkflowDefinition < Test::Unit::TestCase
     assert_include job.archived_info, dep_path
     assert_equal :done, job.archived_info[dep_path][:status]
   end
+
+  def test_task_alias_remove_dep_partial
+    wf = Workflow.annonymous_workflow do
+      self.name = "CallName"
+
+      task :salute => :string do |name|
+        "Hi"
+      end
+
+      dep :salute
+      input :name, :string, "Name to call", nil, :jobname => true
+      task :call_name => :string do |name|
+        "#{step(:salute).load} #{name}"
+      end
+
+      task_alias :call_miguel, self, :call_name, name: "Miguel"
+    end
+
+    old_cache = Scout::Config::CACHE.dup
+    Scout::Config.set({:forget_dep_tasks => true, :remove_dep_tasks => :recursive}, 'task:CallName#call_miguel')
+    Scout::Config.set({:remove_dep => false}, 'task:CallName#call_name')
+    job = wf.job(:call_miguel)
+    call_name = job.step(:call_name)
+    salute = job.step(:salute)
+    assert_equal "Hi Miguel", job.run
+    refute salute.done?
+    assert call_name.done?
+    Scout::Config::CACHE.replace old_cache
+    assert_include job.archived_info, call_name.path
+    assert_equal :done, job.archived_info[call_name.path][:status]
+  end
 end
 
