@@ -7,10 +7,12 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   scout=scout{
    workflow.rb
    workflow=workflow{
+    exceptions.rb
     definition.rb
     documentation.rb
     usage.rb
     util.rb
+    path.rb
     step.rb
     step=step{
      config.rb

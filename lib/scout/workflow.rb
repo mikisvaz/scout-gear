@@ -6,6 +6,7 @@ require_relative 'workflow/documentation'
 require_relative 'workflow/usage'
 require_relative 'workflow/deployment'
 require_relative 'workflow/exceptions'
+require_relative 'workflow/path'
 
 require 'scout/resource'
 require 'scout/resource/scout'
