@@ -3,7 +3,7 @@ module Task
   def self.format_input(value, type, options = {})
     return value if IO === value || StringIO === value || Step === value
 
-    if String === value && ! [:path, :file, :folder, :binary, :tsv].include?(type) && ! (options &&  (options[:noload] || options[:stream] || options[:nofile]))
+    if String === value && ! [:path, :file, :folder, :binary, :tsv].include?(type) && ! (options &&  (options[:noload] || options[:stream] || options[:nofile] || options[:asfile]))
       if Open.exists?(value) && ! Open.directory?(value)
         Persist.load(value, type) 
       else
@@ -49,14 +49,19 @@ module Task
       else
         same_as_default = false
       end
-      if ! provided.nil? && ! same_as_default
-        non_default_inputs << name.to_sym
-        input_array << provided
-      elsif options && options[:jobname]
-        input_array << id
-      else
-        input_array << value
-      end
+
+      final = if ! provided.nil? && ! same_as_default
+                non_default_inputs << name.to_sym
+                provided
+              elsif options && options[:jobname]
+                id
+              else
+                value
+              end
+
+      final = Path.setup(final.dup) if String === final && ! (Path === final) && (type == :file || type == :path || (options && options[:asfile]))
+
+      input_array << final
     end
 
     NamedArray.setup(input_array, input_names)
@@ -139,7 +144,7 @@ module Task
       elsif filename.end_with?('.as_path')
         value = Open.read(filename).strip
         Path.setup value
-      elsif (options &&  (options[:noload] || options[:stream] || options[:nofile]))
+      elsif (options &&  (options[:noload] || options[:stream] || options[:nofile] || options[:asfile]))
         filename
       else
         Persist.load(filename, type)
