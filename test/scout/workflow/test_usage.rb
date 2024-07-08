@@ -39,7 +39,6 @@ class TestWorkflowUsage < Test::Unit::TestCase
     end
   end
 
-
   def test_workflow_usage
     assert_match "evaluate if the documentation", UsageWorkflow.usage
   end
