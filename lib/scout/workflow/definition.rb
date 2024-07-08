@@ -164,7 +164,7 @@ module Workflow
       Step.wait_for_jobs dependencies.select{|d| d.streaming? }
       dep = dependencies.last
       dep.join
-      raise dep.get_exception if dep.error?
+      raise dep.exception if dep.error?
       raise Aborted, "Aborted dependency #{dep.path}" if dep.aborted?
       set_info :type, dep.info[:type]
 
