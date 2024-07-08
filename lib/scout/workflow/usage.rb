@@ -162,7 +162,7 @@ module Workflow
 
   def _prov_tasks(tree)
     tasks = [] 
-    heap = [tree]
+    heap = tree.values
     while heap.any?
       t = heap.pop
       t.each do |k,v|
