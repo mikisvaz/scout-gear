@@ -138,18 +138,32 @@ class Step
 
   attr_reader :result
   def run(stream = false)
+    case stream
+    when TrueClass, :stream
+      no_load = :stream
+    when :no_load
+      no_load = true
+    else
+      no_load = false
+    end
+
+    if done?
+      if no_load
+        if no_load == :stream
+          return self.stream
+        else
+          return self.path
+        end
+      else
+        return @result || self.load
+      end
+    end
+
+
     return @result || self.load if done?
     prepare_dependencies
     begin
 
-      case stream
-      when TrueClass, :stream
-        no_load = :stream
-      when :no_load
-        no_load = true
-      else
-        no_load = false
-      end
 
       @result = Persist.persist(name, type, :path => path, :tee_copies => tee_copies, no_load: no_load) do
         input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
