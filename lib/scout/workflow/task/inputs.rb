@@ -61,6 +61,8 @@ module Task
 
       final = Path.setup(final.dup) if String === final && ! (Path === final) && (type == :file || type == :path || (options && options[:asfile]))
 
+      final = final.find if (Path === final) && (type == :file)
+
       input_array << final
     end
 
