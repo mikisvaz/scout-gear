@@ -181,7 +181,7 @@ module Workflow
         self.copy_linked_files_dir
         self.dependencies = self.dependencies - [dep]
         Open.rm_rf self.files_dir if Open.exist? self.files_dir
-        FileUtils.cp_r dep.files_dir, self.files_dir if Open.exist?(dep.files_dir)
+        Open.link_dir dep.files_dir, self.files_dir if Open.exist?(dep.files_dir)
 
         if dep.overriden? 
           Open.link dep.path, self.tmp_path

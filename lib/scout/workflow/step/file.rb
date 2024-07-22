@@ -34,7 +34,7 @@ class Step
       begin
         realpath = Open.realpath(self.files_dir)
         Open.rm self.files_dir
-        Open.cp realpath, self.files_dir
+        Open.link_dir realpath, self.files_dir
       rescue
         Log.warn "Copy files_dir for #{self.workflow_short_path} failed: " + $!.message
       end
