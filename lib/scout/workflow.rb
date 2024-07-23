@@ -155,7 +155,7 @@ module Workflow
 
   def job(name, *args)
     task = tasks[name]
-    raise TaskNotFound, "Task #{task_name} in #{self.to_s}" if task.nil?
+    raise TaskNotFound, "Task #{name} in #{self.to_s}" if task.nil?
     step = task.job(*args)
     step.extend step_module
     step
