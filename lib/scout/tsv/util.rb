@@ -32,6 +32,7 @@ module TSV
       text
     end
 
+    path = path.find if Path === path
     TmpFile.with_file(values.uniq * "\n", false) do |value_file|
       cmd = "cat '#{ path }' | sed 's/\\t/\\tHEADERNOMATCH/' | grep -w -F -f '#{ value_file }' | sed 's/HEADERNOMATCH//' |sort -u|cut -f 2  |sort|uniq -c|sed 's/^ *//;s/ /\t/'"
       begin
