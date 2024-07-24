@@ -1,5 +1,6 @@
 module TSV
-  def self.paste_streams(streams, type: nil, sort: nil, sort_memory: nil, sep: nil, preamble: nil, header: nil, same_fields: nil, fix_flat: nil, all_match: nil, field_prefix: nil)
+  def self.paste_streams(streams, type: nil, sort: nil, sort_memory: nil, sep: nil, preamble: nil, header: nil, same_fields: nil, fix_flat: nil, all_match: nil, one2one: true, field_prefix: nil)
+    sep = "\t" if sep.nil?
 
     streams = streams.collect do |stream|
       case stream
@@ -102,7 +103,7 @@ module TSV
           keys[i]= nil
           parts[i]= nil
         else
-          vs = line.chomp.split(sep, -1)
+          vs = line.split(sep, -1)
           key, *p = vs
           keys[i]= key
           parts[i]= p
@@ -112,7 +113,7 @@ module TSV
       done_streams =[]
 
       fields = nil if fields && fields.empty?
-      dumper = TSV::Dumper.new key_field: key_field, fields: fields, type: type
+      dumper = TSV::Dumper.new key_field: key_field, fields: fields, type: type, compact: !one2one
       dumper.init(preamble: preamble_txt || !!key_field)
 
       t = Thread.new do
@@ -130,7 +131,7 @@ module TSV
           keys.each_with_index do |key,i|
             case key
             when min
-              new_values << parts[i]
+              new_parts = parts[i]
 
               begin
                 line = lines[i]= begin
@@ -147,16 +148,18 @@ module TSV
                 p = p.collect{|e| e.nil? ? "" : e }
 
                 if k == keys[i]
-                  new_values = NamedArray.zip_fields(new_values).zip(p).collect{|p| [p.flatten * "|"] }
+                  new_parts = NamedArray.zip_fields([new_parts]).zip(p).collect{|p| [p.flatten * "|"] }
                   raise TryAgain 
                 end
                 keys[i]= k
                 parts[i]= p
               end
+
+              new_values << new_parts
             rescue TryAgain
               keys[i]= nil
               parts[i]= nil
-              Log.debug "Skipping repeated key in stream #{i}: #{key} - #{min}"
+              #Log.debug "Skipping repeated key in stream #{i}: #{key} - #{min}"
               retry
             end
           else
@@ -179,6 +182,8 @@ module TSV
         else
           new_values = new_values.inject([]){|acc,l| acc.concat l }
         end
+
+        new_values = new_values.collect{|l| Array === l ? l.compact : l } unless one2one
 
         dumper.add min, new_values
       end

@@ -78,5 +78,29 @@ b\t2|22\t3|33
     assert tsv2.filename
   end
 
+  def test_compact
+    dumper = TSV::Dumper.new :key_field => "Key", :fields => %w(Field1 Field2), :type => :double, compact: true
+    dumper.init
+    t = Thread.new do
+      dumper.add "a", [["1", "11"], ["2", "22"]]
+      dumper.add "b", [[nil, nil], ["3", "33"]]
+      dumper.close
+    end
+
+    tsv = TSV.open(dumper.stream)
+    assert_equal [], tsv["b"]["Field1"]
+
+    dumper = TSV::Dumper.new :key_field => "Key", :fields => %w(Field1 Field2), :type => :double, compact: false
+    dumper.init
+    t = Thread.new do
+      dumper.add "a", [["1", "11"], ["2", "22"]]
+      dumper.add "b", [[nil, nil], ["3", "33"]]
+      dumper.close
+    end
+
+    tsv = TSV.open(dumper.stream)
+    assert_equal ["", ""], tsv["b"]["Field1"]
+  end
+
 end
 

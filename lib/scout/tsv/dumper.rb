@@ -26,12 +26,13 @@ module TSV
     end
 
 
-    attr_accessor :options, :initialized, :type, :sep, :filename, :namespace
+    attr_accessor :options, :initialized, :type, :sep, :compact, :filename, :namespace
     def initialize(options = {})
       options = options.options.merge(sep: nil) if TSV::Parser === options || TSV === options
       @sep, @type = IndiferentHash.process_options options, 
         :sep, :type, 
         :sep => "\t", :type => :double
+      @compact = options[:compact]
       @options = options
       @options[:type] = @type
       @sout, @sin = Open.pipe
@@ -96,11 +97,11 @@ module TSV
           when :list, :flat
             @sin << key + @sep + value * @sep << "\n"
           when :double
-            @sin << key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep << "\n"
+            @sin << key + @sep + value.collect{|v| Array === v ? (@compact ? v.compact : v) * "|" : v } * @sep << "\n"
           else
             if Array === value 
               if Array === value.first
-                @sin << key + @sep + value.collect{|v| Array === v ? v * "|" : v } * @sep << "\n"
+                @sin << key + @sep + value.collect{|v| Array === v ? (@compact ? v.compact : v) * "|" : v } * @sep << "\n"
               else
                 @sin << key + @sep + value * @sep << "\n"
               end

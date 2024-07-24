@@ -175,13 +175,13 @@ module TSV
               current = data[key]
               if merge == :concat
                 these_items.each_with_index do |new,i|
-                  new = [nil] if new.empty?
+                  new = one2one ? [nil] : [] if new.empty?
                   current[i].concat(new)
                 end
               else
                 merged = []
                 these_items.each_with_index do |new,i|
-                  new = [nil] if new.empty?
+                  new = one2one ? [nil] : [] if new.empty?
                   merged[i] = current[i] + new
                 end
                 data[key] = merged
