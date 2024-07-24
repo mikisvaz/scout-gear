@@ -292,7 +292,8 @@ module TSV
       opts[:cast] = opts[:cast].to_sym if opts[:cast]
 
       all_fields = [key_field] + fields if key_field && fields
-      NamedArray.setup([opts, key_field, fields, first_line, preamble, all_fields], %w(options key_field fields first_line preamble all_fields))
+      namespace = opts[:namespace]
+      NamedArray.setup([opts, key_field, fields, first_line, preamble, all_fields, namespace], %w(options key_field fields first_line preamble all_fields namespace))
     rescue Exception
       raise stream.stream_exception if stream.respond_to?(:stream_exception) && stream.stream_exception
       stream.abort($!) if stream.respond_to?(:abort)
