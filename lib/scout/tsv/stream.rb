@@ -159,7 +159,6 @@ module TSV
             rescue TryAgain
               keys[i]= nil
               parts[i]= nil
-              #Log.debug "Skipping repeated key in stream #{i}: #{key} - #{min}"
               retry
             end
           else
@@ -192,7 +191,7 @@ module TSV
 
       streams.each do |stream|
         stream.close if stream.respond_to?(:close) && ! stream.closed?
-        stream.join if stream.respond_to? :join
+        stream.join if stream.respond_to?(:join)
       end
       end
     rescue Aborted
@@ -248,4 +247,6 @@ module TSV
       end
     end
   end
+
+  
 end
