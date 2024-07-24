@@ -74,7 +74,7 @@ module TSV
   end
 
   def self.open(file, options = {})
-    grep, invert_grep, nocache, monitor, entity_options = IndiferentHash.process_options options, :grep, :invert_grep, :nocache, :monitor, :entity_options
+    grep, invert_grep, fixed_grep, nocache, monitor, entity_options = IndiferentHash.process_options options, :grep, :invert_grep, :fixed_grep, :nocache, :monitor, :entity_options
 
     persist_options = IndiferentHash.pull_keys options, :persist
     persist_options = IndiferentHash.add_defaults persist_options, prefix: "TSV", type: :HDB, persist: false
@@ -116,7 +116,7 @@ module TSV
         TSV.parse(file, **options)
       else
         options[:tsv_invert_grep] ||= invert_grep if invert_grep
-        Open.open(file, grep: grep, invert_grep: invert_grep, nocache: nocache) do |f|
+        Open.open(file, grep: grep, invert_grep: invert_grep, fixed_grep: fixed_grep, nocache: nocache) do |f|
           TSV.parse(f, **options)
         end
       end
