@@ -6,6 +6,9 @@ module TSV
     identifiers = source.identifiers if identifiers.nil? and source.respond_to?(:identifiers)
     if identifiers && source.identify_field(new_key_field, strict: true).nil?
       identifiers = identifiers.nil? ? source.identifiers : identifiers
+      if Array === identifiers
+        identifiers = identifiers.select{|f| f.identify_field(new_key_field) }.last
+      end
       new = source.attach(identifiers, fields: [new_key_field], insitu: false, one2one: true, persist_input: persist_identifiers)
       new = new.change_key(new_key_field, keep: keep, stream: stream, one2one: one2one, merge: merge)
       return new
