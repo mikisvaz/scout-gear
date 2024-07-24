@@ -94,6 +94,8 @@ module TSV
           line.chomp!
           if Proc === fix
             line = fix.call line
+            break if (FalseClass === line) || :break == line
+            next if line.nil?
           elsif fix
             line = Misc.fixutf8(line)
           end
