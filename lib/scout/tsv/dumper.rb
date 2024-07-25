@@ -41,7 +41,7 @@ module TSV
       @filename = options[:filename]
       @mutex = Mutex.new
       ConcurrentStream.setup(@sin, pair: @sout)
-      ConcurrentStream.setup(@sout, pair: @sin)
+      ConcurrentStream.setup(@sout, pair: @sin, filename: filename)
     end
 
     def set_stream(stream)
