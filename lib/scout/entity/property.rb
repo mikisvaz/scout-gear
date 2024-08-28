@@ -20,7 +20,8 @@ module Entity
         Persist.annotation_repo_persist(repo, [name, obj.id] * ":", &block)
       else
 
-        Persist.persist([name, obj.id] * ":", type, options.dup, &block)
+        _id = obj.nil? ? 'nil' : obj.id
+        Persist.persist([name, _id] * ":", type, options.dup, &block)
       end
     end
 
