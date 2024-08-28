@@ -62,7 +62,7 @@ class Step
           end
 
     if $inputs and $inputs.any? 
-      job_inputs = Workflow.load_step(path).recursive_inputs.to_hash
+      job_inputs = Step.new(path).recursive_inputs.to_hash
       IndiferentHash.setup(job_inputs)
 
       $inputs.each do |input|
