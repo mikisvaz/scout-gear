@@ -45,6 +45,7 @@ module Open
     elsif Path === into
       Open.write(into) do |io|
         self.traverse(obj, into: io, cpus: cpus, bar: bar, callback: callback, unnamed: unnamed, **options, &block)
+        io.join if io.respond_to?(:join)
       end
       return into
     end
