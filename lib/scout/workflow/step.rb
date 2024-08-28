@@ -374,7 +374,7 @@ class Step
   end
 
   def identify_path
-    Resource.identify @path
+    Resource.identify path
   end
 
   def digest_str
