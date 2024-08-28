@@ -254,6 +254,7 @@ class Step
         run(noload)
       end
       join
+      exit! 0
     end
     Process.detach pid
     grace
