@@ -85,7 +85,7 @@ module Workflow
         candidates = workload.
           select{|k,v| v.empty? }.
           collect{|k,v| k }.
-          reject{|k| k.done? || k.running? }
+          reject{|k| k.done? || k.running? || (k.error? && ! k.recoverable_error?) }
       else
         candidates = workload. #select{|k,v| Orchestrator.job_rules(rules, k) }.
           select{|k,v| v.empty? }.
@@ -216,6 +216,7 @@ module Workflow
                     raise TryAgain
                   end
                 else
+                  Log.warn "Non-recoverable error in #{job.path}"
                   next
                 end
               ensure
