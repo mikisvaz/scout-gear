@@ -12,6 +12,7 @@ module Entity
     base.instance_variable_set(:@persisted_methods, {})
     base.include Entity::Object
     base.include AnnotatedArray
+    base.format = base.to_s
     base
   end
 
