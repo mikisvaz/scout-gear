@@ -41,6 +41,7 @@ class Step
       end
 
       next if dep.done?
+      next if dep.error? && ! dep.recoverable_error?
 
       if dep.dependencies
         dep.dependencies.each do |d|
@@ -72,6 +73,8 @@ class Step
   def run_dependencies
     all_dependencies.each do |dep| 
       next if dep.running? || dep.done?
+      next if dep.error? && ! dep.recoverable_error?
+
       compute_options = compute[dep.path] if compute
       compute_options = [] if compute_options.nil?
 
