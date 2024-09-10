@@ -91,6 +91,8 @@ module Entity
       end
     end
 
+    name = default if name.nil?
+
     self.send(:include, Entity::Identified) unless Entity::Identified === self
 
     self.format = all_fields
@@ -106,6 +108,4 @@ module Entity
     @identifier_files << file
     @identifier_files.uniq!
   end
-
-
 end
