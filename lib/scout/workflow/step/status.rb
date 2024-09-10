@@ -22,7 +22,7 @@ class Step
 
   def updated?
     return false if self.error? && self.recoverable_error?
-    return true if self.done? && ! ENV["SCOUT_UPDATE"]
+    return true if (self.done? || (self.error? && ! self.recoverable_error?)) && ! ENV["SCOUT_UPDATE"]
     newer = rec_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += input_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
 

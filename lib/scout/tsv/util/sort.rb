@@ -1,4 +1,10 @@
+require 'scout/entity'
+
 module TSV
+  def prepare_entity(...)
+    Entity.prepare_entity(...)
+  end
+
   def sort_by(field = nil, just_keys = false, &block)
     field = :all if field.nil?
 
