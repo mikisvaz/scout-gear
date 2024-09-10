@@ -17,7 +17,7 @@ module Entity
 
   def self.prepare_entity(entity, field, options = {})
     return entity unless defined? Entity
-    return entity unless String === entity or Array === entity
+    return entity unless String === entity or Array === entity or Numeric === entity
     options ||= {}
 
     dup_array = options.delete :dup_array
