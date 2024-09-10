@@ -16,7 +16,8 @@ require_relative 'tsv/csv'
 
 module TSV
   extend Annotation
-  annotation :key_field, :fields, :type, :cast, :filename, :namespace, :unnamed, :identifiers, :serializer
+  annotation :key_field, :fields, :type, :cast, :filename, :namespace, :unnamed, :identifiers, :serializer, :entity_options
+
 
   def self.str2options(str)
     field_options,_sep, rest =  str.partition("#")

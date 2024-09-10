@@ -61,13 +61,21 @@ module TSV
             key = @type == :flat ? values : values[key_pos] if key_pos != :key 
 
             values = values.values_at(*positions)
-            NamedArray.setup(values, fields)
             if key_index
               if @type == :double
                 values.insert key_index, [orig_key]
               else
                 values.insert key_index, orig_key
               end
+            end
+          end
+
+          if ! unnamed && fields
+            case @type
+            when :flat, :single
+              values = Entity.prepare_entity(values, fields.first)
+            else
+              values = NamedArray.setup(values, fields, entity_options)
             end
           end
 

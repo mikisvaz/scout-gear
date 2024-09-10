@@ -275,5 +275,104 @@ row3    a
       assert_equal %w(a aa aaa), data["row1"]
     end
   end
+
+  def test_traverse_entity_list
+    m = Module.new do
+      extend Entity
+      self.format = "ValueA"
+    end
+
+    content =<<-EOF
+#Id    ValueA
+row1    a
+row2    A
+row3    a
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/, :type => :list)
+      data = {}
+      k, f = tsv.traverse "Id", ["ValueA"] do |k,v|
+        data[k] = v
+      end
+      assert_equal %w(a), data["row1"]
+      assert Annotation::AnnotatedObject === data["row1"]
+    end
+  end
+
+  def test_traverse_entity_double
+    m = Module.new do
+      extend Entity
+      self.format = "ValueA"
+    end
+
+    content =<<-EOF
+#Id    ValueA
+row1    a|aa|aaa
+row2    A
+row3    a
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/)
+      data = {}
+      k, f = tsv.traverse "Id", ["ValueA"] do |k,v|
+        data[k] = v
+      end
+      assert_equal %w(a aa aaa), data["row1"][0]
+      assert NamedArray === data["row1"]
+      assert AnnotatedArray === data["row1"]["ValueA"]
+    end
+  end
+
+
+  def test_traverse_entity_flat
+    m = Module.new do
+      extend Entity
+      self.format = "ValueA"
+    end
+
+    content =<<-EOF
+#Id    ValueA
+row1    a aa aaa
+row2    A
+row3    a
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/, :type => :flat)
+      data = {}
+      k, f = tsv.traverse "Id", ["ValueA"] do |k,v|
+        data[k] = v
+      end
+      assert_equal %w(a aa aaa), data["row1"]
+      assert AnnotatedArray === data["row1"]
+      assert Annotation::AnnotatedObject === data["row1"][0]
+    end
+  end
+
+  def test_traverse_entity_single
+    m = Module.new do
+      extend Entity
+      self.format = "ValueA"
+    end
+
+    content =<<-EOF
+#Id    ValueA
+row1    a
+row2    A
+row3    a
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :sep => /\s+/, :type => :single)
+      data = {}
+      k, f = tsv.traverse "Id", ["ValueA"] do |k,v|
+        data[k] = v
+      end
+      assert_equal "a", data["row1"]
+      assert Annotation::AnnotatedObject === data["row1"]
+    end
+  end
 end
 

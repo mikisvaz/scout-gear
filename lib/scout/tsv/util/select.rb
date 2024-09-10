@@ -156,8 +156,14 @@ module TSV
       case
       when ((Array === method) and (key == :key or key_field == key))
         with_unnamed do
-          keys.each do |key|
-            new[key] = self[key] if invert ^ (method.include? key)
+          if invert
+            keys.each do |key|
+              new[key] = self[key] unless method.include?(key)
+            end
+          else
+            method.each do |key|
+              new[key] = self[key] if self.include?(key)
+            end
           end
         end
       when Array === method

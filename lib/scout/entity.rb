@@ -3,6 +3,7 @@ require_relative 'entity/format'
 require_relative 'entity/property'
 require_relative 'entity/object'
 require_relative 'entity/identifiers'
+require_relative 'entity/named_array'
 
 module Entity
   def self.extended(base)

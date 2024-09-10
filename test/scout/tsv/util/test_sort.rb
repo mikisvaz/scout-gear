@@ -46,5 +46,29 @@ row2 A b C
       assert_equal %w(row1 row2), tsv.sort("ValueB"){|a,b| a[1] <=> b[1] }.collect{|k,v| k}
     end
   end
+
+  def test_sort_entity
+    content =<<-EOF
+#ID ValueA ValueB Comment NumericValue
+row1 a B c 20
+row2 A b C 100
+row3 A b C 3
+    EOF
+
+    m = Module.new do
+      extend Entity
+      self.format = "NumericValue"
+
+      def <=>(b)
+        self.to_f <=> b.to_f
+      end
+    end
+
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(File.open(filename), :type => :list, :sep => /\s/)
+      assert_equal %w(row3 row1 row2), tsv.sort("NumericValue", true)
+    end
+  end
 end
 
