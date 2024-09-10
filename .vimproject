@@ -107,6 +107,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     object.rb
     format.rb
     identifiers.rb
+    named_array.rb
    }
    association.rb
    association=association{
