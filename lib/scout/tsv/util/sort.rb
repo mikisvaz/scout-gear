@@ -19,11 +19,13 @@ module TSV
         end
       when :list, :flat
         through :key, field do |key, value|
-          elems << [key, value[field]]
+          v = field == :key ? key : value[field]
+          elems << [key, v]
         end
       when :double
         through :key, field do |key, value|
-          elems << [key, value[field]]
+          v = field == :key ? key : value[field]
+          elems << [key, v]
         end
       end
     end
