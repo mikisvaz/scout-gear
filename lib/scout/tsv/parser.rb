@@ -184,7 +184,7 @@ module TSV
                 merged = []
                 these_items.each_with_index do |new,i|
                   new = one2one ? [nil] : [] if new.empty?
-                  merged[i] = current[i] + new
+                  merged[i] = (current[i] || []) + new
                 end
                 data[key] = merged
               end

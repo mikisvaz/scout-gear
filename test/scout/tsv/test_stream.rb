@@ -251,5 +251,28 @@ YPR161C	SGV1	AAB68058
     assert_equal 2, tsv["YHR055C"][0].length
     assert_equal %w(SGV1) * 3, tsv["YPR161C"][2]
   end
+
+  def test_paste_stream_flat
+    text1=<<-EOF
+#: :sep=" "
+#Row LabelA LabelB LabelC
+row1 A B C
+row2 AA BB CC
+row3 AAA BBB CCC
+    EOF
+
+    text2=<<-EOF
+#: :sep=" "#:type=:flat
+#Row Flat
+row1 f1 f2 f3
+    EOF
+
+
+    s1 = StringIO.new text1
+    s2 = StringIO.new text2
+    tsv = TSV.open TSV.paste_streams([s1,s2], :sep => " ", :type => :double)
+    assert_include tsv["row1"], %w(f1 f2 f3)
+  end
+
 end
 

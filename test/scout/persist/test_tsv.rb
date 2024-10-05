@@ -142,5 +142,23 @@ row2    a    a    id3
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
   end
+
+  def test_tsv_open_persist
+    content =<<-'EOF'
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+
+    tsv = nil
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, sep: /\s+/, type: :double, persist: true, merge: true)
+      assert Array === tsv.fields
+      tsv = TSV.open(filename, sep: /\s+/, type: :double, persist: true, merge: true)
+      assert Array === tsv.fields
+    end
+  end
 end
 

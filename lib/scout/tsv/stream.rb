@@ -38,7 +38,8 @@ module TSV
 
       streams = streams.collect do |stream|
 
-        parser = TSV::Parser.new stream, type: type, sep: sep
+        parser = TSV::Parser.new stream, sep: sep
+        #parser.type = type
 
         sfields = parser.fields
 
@@ -105,6 +106,7 @@ module TSV
         else
           vs = line.split(sep, -1)
           key, *p = vs
+          p = [p] if parser_types[i] == :flat
           keys[i]= key
           parts[i]= p
         end
@@ -146,6 +148,7 @@ module TSV
               else
                 k, *p = line.chomp.split(sep, -1)
                 p = p.collect{|e| e.nil? ? "" : e }
+                p = [p] if parser_types[i] == :flat
 
                 if k == keys[i]
                   new_parts = NamedArray.zip_fields([new_parts]).zip(p).collect{|p| [p.flatten * "|"] }
