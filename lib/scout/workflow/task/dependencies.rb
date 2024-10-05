@@ -44,8 +44,7 @@ module Task
         step_inputs.include?(name)  
       end
       dep_non_default_inputs.reject! do |name|
-        definition_options.include?(name) && 
-          (definition_options[name] != :placeholder || definition_options[name] != dep.inputs[name])
+        definition_options.include?(name)
       end
 
       dep_non_default_inputs
