@@ -37,8 +37,10 @@ module Task
       IndiferentHash.setup(provided_inputs)
 
       if id.nil?
+        jobname_input = nil
         inputs.each do |name,type,desc,default,input_options|
           next unless input_options && input_options[:jobname]
+          jobname_input = name
           id = provided_inputs[name] || default
         end
         id = DEFAULT_NAME if id.nil?
@@ -68,6 +70,8 @@ module Task
       #non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
 
       non_default_inputs.uniq!
+
+      non_default_inputs.delete(jobname_input) if non_default_inputs.any?
 
       if non_default_inputs.any?
         hash = Misc.digest(:inputs => input_digest_str, :dependencies => dependencies)
