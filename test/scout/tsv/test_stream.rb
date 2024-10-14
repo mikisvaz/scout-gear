@@ -273,6 +273,5 @@ row1 f1 f2 f3
     tsv = TSV.open TSV.paste_streams([s1,s2], :sep => " ", :type => :double)
     assert_include tsv["row1"], %w(f1 f2 f3)
   end
-
 end
 
