@@ -143,6 +143,10 @@ class Step
     info[:messages]
   end
 
+  def message(message)
+    merge_info :message => message
+  end
+
   def status
     info[:status].tap{|s| s.nil? ? s : s.to_sym }
   end
