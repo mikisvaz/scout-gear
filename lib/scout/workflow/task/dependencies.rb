@@ -11,7 +11,7 @@ module Task
       workflow = step_options.delete(:workflow) if step_options.include?(:workflow)
       id = step_options.delete(:id) if step_options.include?(:id)
       id = step_options.delete(:jobname) if step_options.include?(:jobname)
-      id = nil if id == Workflow::DEFAULT_NAME
+      id = nil if id == Task::DEFAULT_NAME
 
       step_inputs = step_options.include?(:inputs)? step_options.delete(:inputs) : step_options
       step_inputs = IndiferentHash.add_defaults step_inputs, definition_options
