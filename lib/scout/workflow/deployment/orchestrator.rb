@@ -192,7 +192,7 @@ module Workflow
         workload = Orchestrator.workload(jobs)
         all_jobs = workload.keys
 
-        all_jobs.each{|job| job.clean unless job.done? && job.updated? }
+        all_jobs.each{|job| job.clean unless (job.done? && job.updated?) || (job.error? && ! job.recoverable_error?) }
 
         top_level_jobs = jobs.collect{|job| job.path }
         failed_jobs = []
