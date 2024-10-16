@@ -1,6 +1,6 @@
 require_relative 'parser'
 module TSV
-  def traverse(key_field_pos = :key, fields_pos = nil, type: nil, one2one: false, unnamed: false, key_field: nil, fields: nil, bar: false, cast: nil, select: nil, uniq: false, &block)
+  def traverse(key_field_pos = :key, fields_pos = nil, type: nil, one2one: false, unnamed: nil, key_field: nil, fields: nil, bar: false, cast: nil, select: nil, uniq: false, &block)
     key_field = key_field_pos if key_field.nil?
     fields = fields_pos.dup if fields.nil?
     type = @type if type.nil?
@@ -9,6 +9,7 @@ module TSV
     fields = [fields] unless fields.nil? || Array === fields
     positions = (fields.nil? || fields == :all) ? nil : self.identify_field(fields)
     positions = nil if fields == self.fields
+    unnamed = @unnamed if unnamed.nil?
 
     if key_pos == :key
       key_name = @key_field
