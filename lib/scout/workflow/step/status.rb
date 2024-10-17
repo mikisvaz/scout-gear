@@ -20,12 +20,17 @@ class Step
     self.error? && ! (ScoutException === self.exception)
   end
 
-  def updated?
-    return false if self.error? && self.recoverable_error?
-    return true if (self.done? || (self.error? && ! self.recoverable_error?)) && ! ENV["SCOUT_UPDATE"]
+  def newer_dependencies
     newer = rec_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += input_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += rec_dependencies.collect{|dep| dep.input_dependencies }.flatten.select{|dep| Path.newer?(self.path, dep.path) }
+    newer
+  end
+
+  def updated?
+    return false if self.error? && self.recoverable_error?
+    return true if (self.done? || (self.error? && ! self.recoverable_error?)) && ! ENV["SCOUT_UPDATE"]
+    newer = newer_dependencies
 
     Log.low "Newer deps found for #{Log.fingerprint self}: #{Log.fingerprint newer}" if newer.any?
     newer.empty?
