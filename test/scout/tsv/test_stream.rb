@@ -218,6 +218,44 @@ row2\tBB
     assert_equal ["AAA"], tsv["row3"][0]
   end
 
+  def test_concat_4_streams
+
+    text1=<<-EOF
+#Key\tValueA
+row1\tA
+row2\tAA
+    EOF
+
+    text2=<<-EOF
+#Key\tValueA
+row3\tAAA
+row2\tBB
+    EOF
+
+    text3=<<-EOF
+#Key\tValueA
+row4\tAAA
+row5\tBB
+    EOF
+
+    text4=<<-EOF
+#Key\tValueA
+row6\tAAA
+row7\tBB
+    EOF
+
+    s1 = StringIO.new text1
+    s2 = StringIO.new text2
+    s3 = StringIO.new text3
+    s4 = StringIO.new text4
+    tsv = TSV.open TSV.concat_streams([s1,s2,s3,s4]), :merge => true
+    assert_equal ["A"], tsv["row1"][0]
+    assert_equal ["AA","BB"], tsv["row2"][0]
+    assert_equal ["AAA"], tsv["row3"][0]
+    assert_equal ["BB"], tsv["row7"][0]
+  end
+
+
   def test_paste_streams_repeat
     text1=<<-EOF
 YHR055C	856452|856450	YHR055C|YHR055C
