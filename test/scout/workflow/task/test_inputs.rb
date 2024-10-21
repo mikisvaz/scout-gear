@@ -36,17 +36,17 @@ class TestTaskInput < Test::Unit::TestCase
   def test_assign_inputs
     task = self.example_task
 
-    assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => %w(1 2)).last
+    assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => %w(1 2))[1]
     
     TmpFile.with_file("1\n2") do |integer_array_file|
-      assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file).last
+      assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file)[1]
     end
   end
 
   def test_boolean
     task = self.example_task
 
-    assert_equal [:boolean], task.assign_inputs(:string => "String", :integer => 1, :boolean => true).last
+    assert_equal [:boolean], task.assign_inputs(:string => "String", :integer => 1, :boolean => true)[1]
 
     TmpFile.with_file("1\n2") do |integer_array_file|
       Open.open(integer_array_file) do |f|
@@ -60,7 +60,7 @@ class TestTaskInput < Test::Unit::TestCase
   def test_keep_stream
     task = self.example_task
 
-    assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => %w(1 2)).last
+    assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => %w(1 2))[1]
 
     TmpFile.with_file("1\n2") do |integer_array_file|
       Open.open(integer_array_file) do |f|
@@ -76,15 +76,15 @@ class TestTaskInput < Test::Unit::TestCase
     task = self.example_task
 
     TmpFile.with_file("2\n3") do |integer_array_file|
-      assert_equal task.process_inputs(:string => "String", :integer => 2, :integer_array => %w(2 3)).last,
-        task.process_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file).last
+      assert_equal task.process_inputs(:string => "String", :integer => 2, :integer_array => %w(2 3))[1],
+        task.process_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file)[1]
     end
   end
 
   def test_digest_stream
     task = self.example_task
 
-    assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => %w(1 2)).last
+    assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => %w(1 2))[1]
 
     TmpFile.with_file("1\n2") do |integer_array_file|
       hash1 = Open.open(integer_array_file) do |f|

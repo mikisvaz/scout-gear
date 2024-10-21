@@ -45,15 +45,13 @@ module Task
       provided_inputs = {} if provided_inputs.nil?
       IndiferentHash.setup(provided_inputs)
 
-      if id.nil?
-        jobname_input = nil
-        inputs.each do |name,type,desc,default,input_options|
-          next unless input_options && input_options[:jobname]
-          jobname_input = name
-          id = provided_inputs[name] || default
-        end
-        id = DEFAULT_NAME if id.nil?
+      jobname_input = nil
+      inputs.each do |name,type,desc,default,input_options|
+        next unless input_options && input_options[:jobname]
+        jobname_input = name
       end
+
+      id = provided_inputs[jobname_input] if jobname_input && id.nil?
 
       missing_inputs = []
       self.inputs.each do |input,type,desc,val,options|
@@ -71,7 +69,7 @@ module Task
 
       provided_inputs = load_inputs(provided_inputs.delete(:load_inputs)).merge(provided_inputs) if Hash === provided_inputs && provided_inputs[:load_inputs]
 
-      job_inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
+      job_inputs, non_default_inputs, input_digest_str, dep_jobname_input = process_inputs provided_inputs, id
 
       compute = {}
       dependencies = dependencies(id, provided_inputs, non_default_inputs, compute)
@@ -82,7 +80,9 @@ module Task
 
       non_default_inputs.delete(jobname_input) if non_default_inputs.any?
 
-      if non_default_inputs.any?
+      id = DEFAULT_NAME if id.nil?
+
+      if non_default_inputs.any? || (jobname_input && provided_inputs[jobname_input] && provided_inputs[jobname_input] != id)
         hash = Misc.digest(:inputs => input_digest_str, :dependencies => dependencies)
         name = [id, hash] * "_"
       else

@@ -35,6 +35,7 @@ module Task
     input_array = []
     input_names = []
     non_default_inputs = []
+    jobname_input = nil
     self.inputs.each_with_index do |p,i|
       name, type, desc, value, options = p
       input_names << name
@@ -55,10 +56,12 @@ module Task
         same_as_jobname = true
       end
 
+      jobname_input = name if same_as_jobname
+
       final = if ! provided.nil? && ! same_as_default && ! same_as_jobname
                 non_default_inputs << name.to_sym
                 provided
-              elsif options && options[:jobname]
+              elsif options && options[:jobname] && id
                 id
               else
                 value
@@ -73,13 +76,13 @@ module Task
 
     NamedArray.setup(input_array, input_names)
 
-    [input_array, non_default_inputs]
+    [input_array, non_default_inputs, jobname_input]
   end
 
   def process_inputs(provided_inputs = {}, id = nil)
-    input_array, non_default_inputs = assign_inputs provided_inputs, id
+    input_array, non_default_inputs, jobname_input = assign_inputs provided_inputs, id
     digest_str = Misc.digest_str(input_array)
-    [input_array, non_default_inputs, digest_str]
+    [input_array, non_default_inputs, digest_str, jobname_input]
   end
 
   def self.save_file_input(orig_file, directory)

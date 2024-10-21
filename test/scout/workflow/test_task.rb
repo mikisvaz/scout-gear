@@ -47,4 +47,27 @@ class TestTask < Test::Unit::TestCase
       wf.job(:task_499)
     end
   end
+
+  def test_dependencies
+    wf = Module.new do
+      extend Workflow
+      self.name = "TestWF"
+
+      input :name, :string, "Name", nil, jobname: true
+      task :step1 => :string do |name|
+        name
+      end
+
+      dep :step1
+      task :step2 => :string do
+        step(:step1).load
+      end
+
+    end
+
+    Log.with_severity 0 do
+      job = wf.job(:step2, nil, name: "Name")
+      assert_equal "Name", job.run
+    end
+  end
 end
