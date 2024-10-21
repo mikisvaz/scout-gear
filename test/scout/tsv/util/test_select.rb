@@ -23,6 +23,28 @@ row2    AA    BB    Id33
     assert_equal ['row2'], s.keys
   end
 
+  def test_select_invert
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    AA    BB    Id33
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename, :persist => true)
+    end
+
+    s = tsv.select("ValueA" => 'a')
+
+    assert_equal ['row1'], s.keys
+
+    s = tsv.select({"ValueA" => 'a'}, true)
+
+    assert_equal ['row2'], s.keys
+  end
+
   def test_select_values
     content =<<-'EOF'
 #: :sep=" "

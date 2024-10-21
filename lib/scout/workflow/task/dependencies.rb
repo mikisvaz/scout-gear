@@ -14,7 +14,8 @@ module Task
       id = nil if id == Task::DEFAULT_NAME
 
       step_inputs = step_options.include?(:inputs)? step_options.delete(:inputs) : step_options
-      step_inputs = IndiferentHash.add_defaults step_inputs, definition_options
+      step_inputs = IndiferentHash.add_defaults step_inputs.dup, definition_options
+
 
       resolved_inputs = {}
       step_inputs.each do |k,v|
@@ -25,6 +26,7 @@ module Task
           resolved_inputs[k] = v
         end
       end
+
       job = workflow.job(task, id, resolved_inputs)
       compute_options = definition_options[:compute] || []
       compute_options = [compute_options] unless Array === compute_options
@@ -52,6 +54,7 @@ module Task
     end
 
     deps.each do |workflow,task,definition_options,block=nil|
+      definition_options = definition_options.dup
       definition_options[:id] = definition_options.delete(:jobname) if definition_options.include?(:jobname)
 
       if provided_inputs.include?(overriden = [workflow.name, task] * "#")
@@ -86,7 +89,7 @@ module Task
           non_default_inputs.concat(dep_non_default_inputs)
         when Hash
           step_options = block_options.merge(res)
-          dep, step_inputs = load_dep.call(id, workflow, task, step_options, block_options, dependencies)
+          dep, step_inputs = load_dep.call(id, workflow, task, step_options.dup, block_options, dependencies)
           dependencies << dep
           dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
           non_default_inputs.concat(dep_non_default_inputs)
@@ -94,7 +97,7 @@ module Task
           res.each do |_res|
             if Hash === _res
               step_options = block_options.merge(_res)
-              dep, step_inputs = load_dep.call(id, workflow, task, step_options, block_options, dependencies)
+              dep, step_inputs = load_dep.call(id, workflow, task, step_options.dup, block_options, dependencies)
               dependencies << dep
               dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
               non_default_inputs.concat(dep_non_default_inputs)
@@ -108,7 +111,7 @@ module Task
         end
       else
         step_options = IndiferentHash.add_defaults definition_options.dup, provided_inputs
-        dep, step_inputs = load_dep.call(id, workflow, task, step_options, definition_options, dependencies)
+        dep, step_inputs = load_dep.call(id, workflow, task, step_options.dup, definition_options, dependencies)
         dependencies << dep
         dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
         non_default_inputs.concat(dep_non_default_inputs)
