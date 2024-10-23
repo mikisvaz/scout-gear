@@ -169,7 +169,7 @@ class Step
   end
 
   def overriden_deps
-    rec_dependencies.select{|d| d.overriden? }
+    dependencies.select{|d| d.overriden? }
   end
 
   def exception
