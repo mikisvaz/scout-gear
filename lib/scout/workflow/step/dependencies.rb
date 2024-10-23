@@ -20,7 +20,7 @@ class Step
     recursive_inputs = NamedArray === inputs ? inputs.to_hash : {}
     return recursive_inputs if dependencies.nil?
     dependencies.inject(recursive_inputs) do |acc,dep|
-      acc.merge(dep.recursive_inputs)
+      acc = dep.recursive_inputs.merge(acc)
     end
   end
 
