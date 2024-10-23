@@ -16,12 +16,20 @@ module Task
       step_inputs = step_options.include?(:inputs)? step_options.delete(:inputs) : step_options
       step_inputs = IndiferentHash.add_defaults step_inputs.dup, definition_options
 
-
       resolved_inputs = {}
       step_inputs.each do |k,v|
         if Symbol === v
           input_dep = dependencies.select{|d| d.task_name == v }.first
-          resolved_inputs[k] = input_dep || provided_inputs[v] || step_inputs[v] || v
+          resolved_inputs[k] = if input_dep
+                                 input_dep
+                               elsif provided_inputs.include?(v) && self.inputs.collect(&:first).include?(v)
+                                 provided_inputs[v]
+                               elsif step_inputs.include?(v) && self.inputs.collect(&:first).include?(v)
+                                 step_inputs[v]
+                               else
+                                 v
+                               end
+          #resolved_inputs[k] = input_dep || provided_inputs[v] || step_inputs[v] || v
         else
           resolved_inputs[k] = v
         end
@@ -72,8 +80,8 @@ module Task
       definition_options ||= {}
 
       if block
-        fixed_provided_inputs = self.assign_inputs(provided_inputs).first.to_hash
-        self.inputs.each do |name,type,desc,value|
+        fixed_provided_inputs = self.assign_inputs(provided_inputs, id).first.to_hash
+        self.inputs.each do |name,type,desc,value,options|
           fixed_provided_inputs[name] = value unless fixed_provided_inputs.include?(name)
         end
         fixed_provided_inputs = IndiferentHash.add_defaults fixed_provided_inputs, provided_inputs
