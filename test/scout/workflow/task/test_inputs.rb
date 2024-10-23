@@ -271,4 +271,21 @@ class TestTaskInput < Test::Unit::TestCase
 
     assert w.tasks[:repeat_salute_miguel].recursive_inputs.empty?
   end
+
+  def test_jobname
+    w = Module.new do
+      extend Workflow
+
+      self.name = "SaluteWF"
+
+      input :name, :string, "Name", "Peter", jobname: true
+      task :salute => :string do |name|
+        "Hi #{name}"
+      end
+
+    end
+
+    assert_equal [["Paul"], [], nil], w.tasks[:salute].assign_inputs({}, "Paul")
+    assert_equal [["Paul"], [], :name], w.tasks[:salute].assign_inputs({name: "Paul"}, "Paul")
+  end
 end
