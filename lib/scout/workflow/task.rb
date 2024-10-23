@@ -33,7 +33,7 @@ module Task
   def job(id = nil, provided_inputs = nil)
 
     if Hash === provided_inputs
-      memory_inputs = provided_inputs.values_at *self.recursive_inputs.collect{|t| t.first }
+      memory_inputs = provided_inputs.values_at *self.recursive_inputs.collect{|t| t.first }.uniq
       memory_inputs += provided_inputs.select{|k,v| k.to_s.include?("#") }.collect{|p| p * "=" }
       memory_inputs << provided_inputs[:load_inputs]
     else
