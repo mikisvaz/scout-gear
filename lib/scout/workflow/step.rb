@@ -368,6 +368,10 @@ class Step
     dependencies.each do |dep|
       return dep if dep.task_name && dep.task_name.to_sym == task_name
       return dep if dep.overriden_task && dep.overriden_task.to_sym == task_name
+    end
+    dependencies.each do |dep|
+      return dep if dep.task_name && dep.task_name.to_sym == task_name
+      return dep if dep.overriden_task && dep.overriden_task.to_sym == task_name
       rec_dep = dep.step(task_name)
       return rec_dep if rec_dep
     end
