@@ -285,7 +285,7 @@ class TestTaskInput < Test::Unit::TestCase
 
     end
 
-    assert_equal [["Paul"], [], nil], w.tasks[:salute].assign_inputs({}, "Paul")
-    assert_equal [["Paul"], [], :name], w.tasks[:salute].assign_inputs({name: "Paul"}, "Paul")
+    assert_equal [["Paul"], [:name], nil], w.tasks[:salute].assign_inputs({}, "Paul")
+    assert_equal [["Paul"], [:name], :name], w.tasks[:salute].assign_inputs({name: "Paul"}, "Paul")
   end
 end

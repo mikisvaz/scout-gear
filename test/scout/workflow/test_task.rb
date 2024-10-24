@@ -48,7 +48,7 @@ class TestTask < Test::Unit::TestCase
     end
   end
 
-  def test_dependencies
+  def test_dependencies_jobname_input
     wf = Module.new do
       extend Workflow
       self.name = "TestWF"
@@ -63,11 +63,22 @@ class TestTask < Test::Unit::TestCase
         step(:step1).load
       end
 
+      dep :step1, jobname: nil
+      task :step3 => :string do
+        step(:step1).load
+      end
     end
 
     Log.with_severity 0 do
       job = wf.job(:step2, nil, name: "Name")
       assert_equal "Name", job.run
+      assert_equal "Name", job.step(:step1).name
+      job = wf.job(:step2, "Name2", name: "Name")
+      assert_equal "Name", job.run
+      assert_equal "Name2", job.step(:step1).clean_name
+      job = wf.job(:step3, "Name2", name: "Name")
+      assert_equal "Name", job.run
+      assert_equal "Name", job.step(:step1).name
     end
   end
 end

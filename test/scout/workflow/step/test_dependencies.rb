@@ -89,5 +89,31 @@ class TestStepDependencies < Test::Unit::TestCase
       end
     end
   end
+
+  def test_recursive_inputs_priority
+    tmpfile = tmpdir.test_step
+    step1 = Step.new tmpfile.step1, NamedArray.setup(["1"], %w(input1)) do |s|
+      s.length
+    end
+
+    step2 = Step.new tmpfile.step2, NamedArray.setup(["2"], %w(input1)) do |times|
+      step1 = dependencies.first
+      (step1.inputs.first + " has " + step1.load.to_s + " characters") * times
+    end
+
+    step3 = Step.new tmpfile.step2, NamedArray.setup([], %w()) do |times|
+      step1 = dependencies.first
+      (step1.inputs.first + " has " + step1.load.to_s + " characters") * times
+    end
+
+
+    step2.dependencies = [step1]
+
+    step3.dependencies = [step1, step2]
+
+    assert_equal "2", step2.inputs["input1"]
+    assert_equal "2", step2.recursive_inputs["input1"]
+    assert_equal "1", step3.recursive_inputs["input1"]
+  end
 end
 

@@ -353,5 +353,28 @@ class TestTaskDependencies < Test::Unit::TestCase
     assert_equal "0", wf.job(:step2, :input1 => "-2").run
   end
 
-end
+  def test_jobname_input
+    wf = Workflow.annonymous_workflow "JobnameInput" do
+      input :input1, :string, "", nil, jobname: true
+      task :step1 => :string do |i1| 
+        i1
+      end
 
+      input :input2, :string, "", "Hi"
+      dep :step1 do |jobname,options|
+        {jobname: options[:input2]}
+      end
+      task :step2 do
+        step(:step1).load
+      end
+    end
+
+    assert_equal "Hi", wf.job(:step2).run.strip
+    assert_equal "Hello", wf.job(:step2, input2: "Hello").run.strip
+
+    job = wf.job(:step2, input1: "Hello")
+    assert_equal "Hello", job.run
+    assert_equal "Default", job.clean_name
+    assert_equal "Hi", job.step(:step1).clean_name
+  end
+end

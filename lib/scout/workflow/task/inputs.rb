@@ -62,6 +62,7 @@ module Task
                 non_default_inputs << name.to_sym
                 provided
               elsif options && options[:jobname] && id
+                non_default_inputs << name.to_sym
                 id
               else
                 value

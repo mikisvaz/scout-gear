@@ -49,11 +49,8 @@ module Task
     end
 
     # Helper function
-    find_dep_non_default_inputs = proc do |dep,definition_options,step_inputs={}|
+    find_dep_non_default_inputs = proc do |dep,definition_options|
       dep_non_default_inputs = dep.non_default_inputs
-      dep_non_default_inputs.select do |name|
-        step_inputs.include?(name)  
-      end
       dep_non_default_inputs.reject! do |name|
         definition_options.include?(name)
       end
@@ -99,7 +96,7 @@ module Task
           step_options = block_options.merge(res)
           dep, step_inputs = load_dep.call(id, workflow, task, step_options.dup, block_options, dependencies)
           dependencies << dep
-          dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
+          dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options)
           non_default_inputs.concat(dep_non_default_inputs)
         when Array
           res.each do |_res|
@@ -107,7 +104,7 @@ module Task
               step_options = block_options.merge(_res)
               dep, step_inputs = load_dep.call(id, workflow, task, step_options.dup, block_options, dependencies)
               dependencies << dep
-              dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
+              dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options)
               non_default_inputs.concat(dep_non_default_inputs)
             else
               dep = _res
@@ -121,7 +118,7 @@ module Task
         step_options = IndiferentHash.add_defaults definition_options.dup, provided_inputs
         dep, step_inputs = load_dep.call(id, workflow, task, step_options.dup, definition_options, dependencies)
         dependencies << dep
-        dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options, step_inputs)
+        dep_non_default_inputs = find_dep_non_default_inputs.call(dep, definition_options)
         non_default_inputs.concat(dep_non_default_inputs)
       end
     end

@@ -69,7 +69,7 @@ module Task
 
       provided_inputs = load_inputs(provided_inputs.delete(:load_inputs)).merge(provided_inputs) if Hash === provided_inputs && provided_inputs[:load_inputs]
 
-      job_inputs, non_default_inputs, input_digest_str, dep_jobname_input = process_inputs provided_inputs, id
+      job_inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
 
       compute = {}
       dependencies = dependencies(id, provided_inputs, non_default_inputs, compute)
@@ -78,11 +78,9 @@ module Task
 
       non_default_inputs.uniq!
 
-      non_default_inputs.delete(jobname_input) if non_default_inputs.any?
-
       id = DEFAULT_NAME if id.nil?
 
-      if non_default_inputs.any? || (jobname_input && provided_inputs[jobname_input] && provided_inputs[jobname_input] != id)
+      if non_default_inputs.any? && !(non_default_inputs == [jobname_input] && provided_inputs[jobname_input] == id)
         hash = Misc.digest(:inputs => input_digest_str, :dependencies => dependencies)
         name = [id, hash] * "_"
       else
