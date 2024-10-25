@@ -1,6 +1,6 @@
 class Step
   def abort(exception = nil)
-    if (pid == info[:pid]) && pid != Process.pid && Misc.pid_alive?(pid)
+    if (pid = info[:pid]) && pid != Process.pid && Misc.pid_alive?(pid)
       Log.debug "Kill process #{pid} to abort step #{Log.fingerprint self}"
       begin
         s = Misc.abort_child pid, true
