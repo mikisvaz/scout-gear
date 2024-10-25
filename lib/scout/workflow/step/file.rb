@@ -7,6 +7,7 @@ class Step
                      else
                        Path.setup(dir)
                      end
+                     dir = dir.find
                      dir.pkgdir = self
                      dir
                    end

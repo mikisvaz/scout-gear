@@ -4,9 +4,11 @@ class Step
     Path.setup(path) unless Path === path
     relocated = path.relocate
     return relocated if Open.exists?(relocated)
-    subpath = path.split("/")[-3..-1] * "/"
-    relocated = Path.setup("var/jobs")[subpath]
-    return relocated if Open.exists?(relocated)
+    if path.scan("/").length >= 2
+      subpath = path.split("/")[-3..-1] * "/"
+      relocated = Path.setup("var/jobs")[subpath]
+      return relocated if Open.exists?(relocated)
+    end
     path
   end
 
