@@ -166,6 +166,15 @@ module Task
   end
 
   def load_inputs(directory)
+    if Open.exists?(directory) && ! Open.directory?(directory)
+      TmpFile.with_file do |tmp_directory|
+        Misc.in_dir tmp_directory do
+          CMD.cmd("tar xvfz '#{directory}'")
+        end
+        return load_inputs(tmp_directory)
+      end
+    end
+
     inputs = IndiferentHash.setup({})
     self.recursive_inputs.each do |p|
       name, type, desc, value, options = p
