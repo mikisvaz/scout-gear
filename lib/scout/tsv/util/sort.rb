@@ -19,12 +19,12 @@ module TSV
         end
       when :list, :flat
         through :key, field do |key, value|
-          v = field == :key ? key : value[field]
+          v = field == :key ? key : value[0]
           elems << [key, v]
         end
       when :double
         through :key, field do |key, value|
-          v = field == :key ? key : value[field]
+          v = field == :key ? key : value[0]
           elems << [key, v]
         end
       end
@@ -94,11 +94,11 @@ module TSV
         end
       when :list, :flat
         through :key, field do |key, values|
-          elems << [key, values[field]]
+          elems << [key, values[0]]
         end
       when :double
         through :key, field do |key, values|
-          elems << [key, values[field]]
+          elems << [key, values[0]]
         end
       end
     end
