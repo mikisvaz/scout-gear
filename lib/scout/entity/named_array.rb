@@ -7,6 +7,7 @@ module NamedArray
     pos = NamedArray.identify_name(@fields, key)
     return nil if pos.nil?
     v = super(pos)
-    Entity.prepare_entity(v, key)
+    field = @fields && Integer === key && ! @fields.include?(key) ? @fields[key] : key
+    Entity.prepare_entity(v, field)
   end
 end
