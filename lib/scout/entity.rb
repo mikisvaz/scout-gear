@@ -20,11 +20,12 @@ module Entity
   def self.prepare_entity(entity, field, options = {})
     return entity unless defined? Entity
     return entity unless String === entity or Array === entity or Numeric === entity
-    options ||= {}
-
-    dup_array = options.delete :dup_array
 
     if Entity === field or (Entity.respond_to?(:formats) and (_format = Entity.formats.find(field)))
+      options ||= {}
+
+      dup_array = options.delete :dup_array
+
       params = options.dup
 
       params[:format] ||= params.delete "format"
