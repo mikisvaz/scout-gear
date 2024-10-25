@@ -17,16 +17,20 @@ module Entity
     def find(value)
       @find_cache ||= {}
 
-      @find_cache[value] ||= begin
+      if @find_cache.include?(value)
+        @find_cache[value]
+      else
+        @find_cache[value] = begin
                                if orig_include? value
-                                 @find_cache[value] = value
+                                 value
                                else
+                                 value = value.to_s
                                  found = nil
                                  each do |k,v|
-                                   if value.to_s == k.to_s
+                                   if value == k.to_s
                                      found = k
                                      break
-                                   elsif value.to_s =~ /\(#{Regexp.quote k}\)/
+                                   elsif value =~ /\(#{Regexp.quote k.to_s}\)/
                                      found = k
                                      break
                                    end
@@ -34,6 +38,7 @@ module Entity
                                  found
                                end
                              end
+      end
     end
 
     def [](value)
