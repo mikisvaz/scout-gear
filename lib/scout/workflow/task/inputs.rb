@@ -63,7 +63,7 @@ module Task
                 provided
               elsif options && options[:jobname] && id
                 non_default_inputs << name.to_sym
-                id
+                provided || id
               else
                 value
               end

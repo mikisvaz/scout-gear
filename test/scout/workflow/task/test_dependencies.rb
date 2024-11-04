@@ -377,4 +377,47 @@ class TestTaskDependencies < Test::Unit::TestCase
     assert_equal "Default", job.clean_name
     assert_equal "Hi", job.step(:step1).clean_name
   end
+
+  def test_jobname_input_reset
+    wf = Workflow.annonymous_workflow "JobnameInput" do
+      input :input1, :string, "", nil, jobname: true
+      task :step1 => :string do |i1| 
+        i1
+      end
+
+      input :input2, :string, "", "Hi", jobname: true
+      dep :step1, input1: "Name1", jobname: nil do |jobname,options|
+        {inputs: options}
+      end
+      task :step2 do
+        step(:step1).load
+      end
+
+    end
+
+    job = wf.job(:step2, input2: "Name2")
+    assert_equal "Name2", job.clean_name
+    assert_equal "Name1", job.step(:step1).clean_name
+    assert_equal "Name", wf.job(:step1, input1: "Name").clean_name
+  end
+
+  def test_non_default_inputs_ignore_hidden
+    wf = Workflow.annonymous_workflow "JobnameInput" do
+      input :input1, :string, "", nil, jobname: true
+      task :step1 => :string do |i1| 
+        i1
+      end
+
+      dep :step1, jobname: nil, input1: :placeholder do |jobname,options|
+        {inputs: options.merge(input1: "TEST") }
+      end
+      task :step2 do
+        step(:step1).load
+      end
+
+    end
+
+    job = wf.job(:step2, input2: "Name2")
+    assert job.non_default_inputs.empty?
+  end
 end

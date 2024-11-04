@@ -79,6 +79,8 @@ class TestTask < Test::Unit::TestCase
       job = wf.job(:step3, "Name2", name: "Name")
       assert_equal "Name", job.run
       assert_equal "Name", job.step(:step1).name
+
+      assert_equal "Name", wf.job(:step1, "Test", name: "Name").inputs[:name]
     end
   end
 end

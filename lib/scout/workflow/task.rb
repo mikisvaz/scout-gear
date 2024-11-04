@@ -52,6 +52,7 @@ module Task
       end
 
       id = provided_inputs[jobname_input] if jobname_input && id.nil?
+      #id = provided_inputs[:id] if provided_inputs.include?(:id)
 
       missing_inputs = []
       self.inputs.each do |input,type,desc,val,options|
