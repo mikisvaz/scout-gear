@@ -176,11 +176,14 @@ module Task
     end
 
     inputs = IndiferentHash.setup({})
+    seen = []
     self.recursive_inputs.each do |p|
       name, type, desc, value, options = p
+      next if seen.include?(name)
       filename = File.join(directory, name.to_s) 
       value = Task.load_input_from_file(filename, type, options)
       inputs[name] = value unless value.nil?
+      seen << name
     end
 
     Dir.glob(File.join(directory, "*#*")).each do |file|
