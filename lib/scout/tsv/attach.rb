@@ -92,6 +92,9 @@ module TSV
         end
 
         other_field_positions = other.identify_field(fields.dup) 
+        fields.zip(other_field_positions) do |o,n|
+          raise "Field #{o} not found. Options: #{Log.fingerprint other.fields}" if n.nil? 
+        end
 
         log_message = "Attach #{Log.fingerprint fields - source.fields} to #{Log.fingerprint source} (#{[match_key, other_key] * "=~"})"
         Log.debug log_message
