@@ -44,7 +44,8 @@ module TSV
   end
 
   def add_field(name = nil)
-    through do |key, values|
+    keys.each do |key|
+      values = self[key]
       new_values = yield(key, values)
       new_values = [new_values].compact if type == :double and not Array === new_values
 
