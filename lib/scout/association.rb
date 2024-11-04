@@ -6,6 +6,13 @@ require_relative 'association/item'
 
 module Association
   def self.open(obj, source: nil, target: nil, fields: nil, source_format: nil, target_format: nil, format: nil, **kwargs)
+
+    if String === obj && kwargs[:namespace] && obj.include?("NAMESPACE")
+      new_obj = obj.sub("NAMESPACE", kwargs[:namespace])
+      obj.annotate(new_obj)
+      obj = new_obj
+    end
+
     all_fields = TSV.all_fields(obj)
     source_pos, field_pos, source_header, field_headers, source_format, target_format = headers(all_fields, fields, kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format, format: format))
 
