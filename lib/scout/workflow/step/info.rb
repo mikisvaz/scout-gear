@@ -121,6 +121,7 @@ class Step
     if message.nil?
       Log.info [Log.color(:status, status, true), Log.color(:task, task_name, true), Log.color(:path, path)] * " "
     else
+      message = Log.fingerprint(message)
       Log.info [Log.color(:status, status, true), Log.color(:task, task_name, true), message, Log.color(:path, path)] * " "
     end
   end
