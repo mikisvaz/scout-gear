@@ -45,7 +45,7 @@ module TSV
                           when :single
                             nil
                           end
-          obj = Misc.array2hash(obj, default_value)
+          obj = IndiferentHash.array2hash(obj, default_value)
         end
         original_setup(obj, options, &block)
       else
@@ -58,7 +58,7 @@ module TSV
                           when :single
                             nil
                           end
-          obj = Misc.array2hash(obj, default_value)
+          obj = IndiferentHash.array2hash(obj, default_value)
         end
         original_setup(obj, *rest, &block)
       end
