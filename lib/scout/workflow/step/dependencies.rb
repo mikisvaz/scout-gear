@@ -84,6 +84,8 @@ class Step
       compute_options = compute[dep.path] if compute
       compute_options = [] if compute_options.nil?
 
+      next if compute_options.include?(false)
+
       stream = compute_options.include?(:stream)
       stream = true unless ENV["SCOUT_EXPLICIT_STREAMING"] == 'true'
       stream = :no_load if compute_options.include?(:produce)

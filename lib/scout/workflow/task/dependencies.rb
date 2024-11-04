@@ -44,6 +44,7 @@ module Task
       compute[job.path] = compute_options if compute_options.any?
 
       job.overriden = false if definition_options[:not_overriden]
+      job.compute = job.compute.nil? ? compute : job.compute.merge(compute)
 
       [job, step_inputs]
     end

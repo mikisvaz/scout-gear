@@ -62,7 +62,7 @@ class Step
   end
 
   def canfail?
-    @compute && @compute.include?(:canfail)
+    @compute && @compute[self.path] && @compute[self.path].include?(:canfail)
   end
 
   def started?
