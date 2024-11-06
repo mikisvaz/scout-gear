@@ -106,12 +106,25 @@ class Step
     all_dependencies.each{|dep| dep.abort if dep.running? } 
   end
 
-  def self.wait_for_jobs(jobs)
+  def self.wait_for_jobs(jobs, canfail=false)
     threads = []
     jobs.each do |job|
       threads << Thread.new do
         Thread.current.report_on_exception = false
-        job.join
+        begin
+          job.join
+        rescue Exception
+          case canfail
+          when TrueClass
+            next
+          else
+            if canfail === $!
+              next
+            else
+              raise $!
+            end
+          end
+        end
       end
     end
     threads.each do |t|
