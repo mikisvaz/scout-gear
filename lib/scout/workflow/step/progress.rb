@@ -22,7 +22,8 @@ class Step
 
   def traverse(obj, desc: nil , **kwargs, &block)
     desc = "Processing #{self.short_path}" if desc.nil?
-    TSV.traverse obj, **kwargs.merge(bar: self.progress_bar(desc)), &block
+    kwargs[:bar] = self.progress_bar(desc) unless kwargs.include?(:bar)
+    TSV.traverse obj, **kwargs, &block
   end
 end
 
