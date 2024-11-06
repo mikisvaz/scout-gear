@@ -220,6 +220,7 @@ class Step
           end
 
           @result.abort_callback = proc do |exception|
+            Open.rm self.path
             if exception.nil? || Aborted === exception || Interrupt === exception
               merge_info :status => :aborted, :end => Time.now
             else
