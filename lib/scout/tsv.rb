@@ -114,12 +114,16 @@ module TSV
       end
 
       tsv = if TSV::Parser === file
-        TSV.parse(file, **options)
-      else
-        options[:tsv_invert_grep] ||= invert_grep if invert_grep
-        Open.open(file, grep: grep, invert_grep: invert_grep, fixed_grep: fixed_grep, nocache: nocache) do |f|
-          TSV.parse(f, **options)
-        end
+              TSV.parse(file, **options)
+            else
+              options[:tsv_invert_grep] ||= invert_grep if invert_grep
+              Open.open(file, grep: grep, invert_grep: invert_grep, fixed_grep: fixed_grep, nocache: nocache) do |f|
+                TSV.parse(f, **options)
+              end
+            end
+
+      if tsv.identifiers.nil? and Path === tsv.filename and tsv.filename.identifier_file_path
+        tsv.identifiers = tsv.filename.identifier_file_path.find if tsv.filename.identifier_file_path.exists?
       end
 
       tsv.unnamed = unnamed unless unnamed.nil?

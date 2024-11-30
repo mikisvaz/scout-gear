@@ -387,4 +387,26 @@ row2    A    B    Id3
       tsv = TSV.open(filename, :sep => /\s+/, :identifiers => Scout.share.identifiers)
     end
   end
+
+  def test_identifier_file_auto
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+    EOF
+
+    ids =<<-EOF
+#Id    Alias
+row1    r1
+row2    r2
+    EOF
+
+    TmpFile.with_dir do |dir|
+      Path.setup(dir)
+      Open.write(dir.tsv_file, content)
+      Open.write(dir.identifiers, ids)
+      tsv = TSV.open(dir.tsv_file)
+      assert_equal dir.identifiers, tsv.identifiers
+    end
+  end
 end
