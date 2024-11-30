@@ -34,14 +34,16 @@ module Workflow
     end
 
     def self.job_rules(rules, job)
+      IndiferentHash.setup(rules)
       workflow = job.workflow.name
       task_name = job.task_name.to_s
       defaults = rules["defaults"] || {}
 
       return IndiferentHash.setup(defaults) unless rules[workflow]
-      return IndiferentHash.setup(defaults) unless rules[workflow][task_name]
+      workflow_rules = IndiferentHash.setup(rules[workflow])
+      return IndiferentHash.setup(defaults) unless workflow_rules[task_name]
+      job_rules = IndiferentHash.setup(workflow_rules[task_name])
 
-      job_rules = IndiferentHash.setup(rules[workflow][task_name])
       defaults.each{|k,v| job_rules[k] = v if job_rules[k].nil? } if defaults
       job_rules
     end
@@ -107,7 +109,7 @@ module Workflow
 
     attr_accessor :available_resources, :resources_requested, :resources_used, :timer
 
-    def initialize(timer = 5, available_resources = {})
+    def initialize(timer = 5, available_resources = nil)
       available_resources  = {:cpus => Etc.nprocessors } if available_resources.nil?
       @timer               = timer
       @available_resources = IndiferentHash.setup(available_resources)

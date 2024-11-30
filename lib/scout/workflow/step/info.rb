@@ -173,6 +173,13 @@ class Step
     dependencies.select{|d| d.overriden? }
   end
 
+  def recursive_overriden_deps
+    overriden_deps = dependencies.select{|d| 
+      d.overriden? 
+    }
+    (overriden_deps + overriden_deps.collect{|d| d.recursive_overriden_deps }).flatten.uniq
+  end
+
   def exception
     info[:exception]
   end

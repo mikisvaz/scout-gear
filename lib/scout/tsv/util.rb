@@ -85,8 +85,9 @@ module TSV
 
   def each(*args, &block)
     if block_given?
+      actual_unnamed = @unnamed.nil? ? true : @unnamed
       super(*args) do |k,v|
-        NamedArray.setup(v, @fields) unless @unnamed || @type == :flat || ! (Array === v)
+        NamedArray.setup(v, @fields) unless actual_unnamed || @type == :flat || ! (Array === v)
         block.call(k, v)
       end
     else
@@ -106,7 +107,8 @@ module TSV
     end
   end
 
-  def with_unnamed(unnamed = true)
+  def with_unnamed(unnamed = nil)
+    unnamed = true if unnamed.nil?
     begin
       old_unnamed = @unnamed
       @unnamed = unnamed

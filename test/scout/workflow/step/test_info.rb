@@ -58,4 +58,39 @@ class TestStepInfo < Test::Unit::TestCase
       assert_equal %w(Message1 Message2), step1.messages
     end
   end
+
+  def test_overriden_fixed
+    TmpFile.with_file("HELLO") do |file|
+      wf = Module.new do
+        extend Workflow
+
+        self.name = "TestWF"
+
+        task :message => :string do
+          "HI"
+        end
+
+        dep :message
+        task :say => :string do
+          "I say #{step(:message).load}"
+        end
+
+        task_alias :say_hello, self, :say, "TestWF#message" => file, :not_overriden => true
+      end
+
+      assert_equal "I say HI", wf.job(:say).run
+
+      job1 = wf.job(:say, "TestWF#message" => file)
+      assert_equal "I say HELLO", job1.run
+
+      job2 = wf.job(:say_hello)
+      assert_equal "I say HELLO", job2.run
+
+      assert job1.overriden?
+      refute job2.overriden?
+
+      assert job1.overriden_deps.any?
+      refute job2.overriden_deps.any?
+    end
+  end
 end

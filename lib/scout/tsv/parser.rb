@@ -438,7 +438,7 @@ module TSV
     end
   end
 
-  def self.parse(stream, fix: true, header_hash: "#", sep: "\t", filename: nil, namespace: nil, unnamed: false, serializer: nil, **kwargs, &block)
+  def self.parse(stream, fix: true, header_hash: "#", sep: "\t", filename: nil, namespace: nil, unnamed: nil, serializer: nil, **kwargs, &block)
     parser = TSV::Parser === stream ? stream : TSV::Parser.new(stream, fix: fix, header_hash: header_hash, sep: sep)
 
     cast = kwargs[:cast]

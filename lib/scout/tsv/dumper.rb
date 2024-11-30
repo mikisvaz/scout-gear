@@ -40,6 +40,7 @@ module TSV
       @initialized = false
       @filename = options[:filename]
       @mutex = Mutex.new
+      @namespace = options[:namespace]
       ConcurrentStream.setup(@sin, pair: @sout)
       ConcurrentStream.setup(@sout, pair: @sin, filename: filename)
     end
@@ -174,13 +175,35 @@ module TSV
       end
     end
 
-    if stream.nil?
-      t = Thread.new do 
-        begin
-          Thread.current.report_on_exception = true
-          Thread.current["name"] = "Dumper thread"
-          dumper.init(preamble: preamble)
+    self.with_unnamed do
+      if stream.nil?
+        t = Thread.new do 
+          begin
+            Thread.current.report_on_exception = true
+            Thread.current["name"] = "Dumper thread"
+            dumper.init(preamble: preamble)
 
+            if keys
+              keys.each do |k|
+                dump_entry.call k, self[k]
+              end
+            else
+              self.each &dump_entry
+            end
+
+            dumper.close
+          rescue
+            dumper.abort($!)
+          end
+        end
+        Thread.pass until t["name"]
+        stream = dumper.stream
+        ConcurrentStream.setup(stream, :threads => [t])
+        stream
+      else
+        dumper.set_stream stream
+        begin
+          dumper.init(preamble: preamble)
           if keys
             keys.each do |k|
               dump_entry.call k, self[k]
@@ -193,28 +216,8 @@ module TSV
         rescue
           dumper.abort($!)
         end
+        stream
       end
-      Thread.pass until t["name"]
-      stream = dumper.stream
-      ConcurrentStream.setup(stream, :threads => [t])
-      stream
-    else
-      dumper.set_stream stream
-      begin
-        dumper.init(preamble: preamble)
-        if keys
-          keys.each do |k|
-            dump_entry.call k, self[k]
-          end
-        else
-          self.each &dump_entry
-        end
-
-        dumper.close
-      rescue
-        dumper.abort($!)
-      end
-      stream
     end
   end
 

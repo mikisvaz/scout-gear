@@ -16,6 +16,8 @@ row2    a    a    id3
       TSV.open(filename, :sep => " " )
     end
     assert_equal %w(row1 row2), tsv.collect{|k,v| k }
+    refute NamedArray === tsv.collect{|k,v| v }.first
+    tsv.unnamed = false
     assert NamedArray === tsv.collect{|k,v| v }.first
     assert "row1", tsv["row1"].key
   end

@@ -10,6 +10,7 @@ module TSV
     positions = (fields.nil? || fields == :all) ? nil : self.identify_field(fields)
     positions = nil if fields == self.fields
     unnamed = @unnamed if unnamed.nil?
+    unnamed = false if unnamed.nil?
 
     if key_pos == :key
       key_name = @key_field
