@@ -75,9 +75,9 @@ module Task
       compute = {}
       dependencies = dependencies(id, provided_inputs, non_default_inputs, compute)
 
-      #non_default_inputs.concat provided_inputs.keys.select{|k| String === k && k.include?("#") } if Hash === provided_inputs
-
       non_default_inputs.uniq!
+
+      non_default_inputs.delete_if{|k| k.to_s.include? "#" } unless dependencies.select{|d| d.overriden? }.any?
 
       id = DEFAULT_NAME if id.nil?
 
