@@ -166,7 +166,7 @@ module Workflow
       dep.join
       raise dep.exception if dep.error?
       raise Aborted, "Aborted dependency #{dep.path}" if dep.aborted?
-      set_info :type, dep.info[:type]
+      merge_info type: dep.info[:type], task_alias: true
 
       forget = config :forget_task_alias, "forget_task_alias"
       forget = config :forget_dep_tasks, "forget_dep_tasks", :default => FORGET_TASK_ALIAS if forget.nil?
