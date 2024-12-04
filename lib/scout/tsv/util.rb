@@ -180,4 +180,10 @@ Example:
     self.annotate(super(other))
   end
 
+  def merge_zip(other)
+    other.each do |k,v|
+      self.zip_new k, v
+    end
+  end
+
 end
