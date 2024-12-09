@@ -75,7 +75,12 @@ module TSV
   end
 
   def self.open(file, options = {})
-    grep, invert_grep, fixed_grep, nocache, monitor, entity_options, unnamed = IndiferentHash.process_options options, :grep, :invert_grep, :fixed_grep, :nocache, :monitor, :entity_options, :unnamed
+    grep, invert_grep, fixed_grep, nocache, monitor, entity_options, unnamed, field = IndiferentHash.process_options options, :grep, :invert_grep, :fixed_grep, :nocache, :monitor, :entity_options, :unnamed, :field
+
+    if field and options[:field].nil?
+      options[:fields] = [field]
+      options[:type] ||= :single
+    end
 
     persist_options = IndiferentHash.pull_keys options, :persist
     persist_options = IndiferentHash.add_defaults persist_options, prefix: "TSV", type: :HDB, persist: false

@@ -409,4 +409,22 @@ row2    r2
       assert_equal dir.identifiers, tsv.identifiers
     end
   end
+
+  def test_single_field
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/, field: "ValueB")
+      assert_equal "b", tsv["row1"]
+    end
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/, field: "ValueA", type: :flat)
+      assert_equal %w(a aa aaa), tsv["row1"]
+    end
+  end
 end
