@@ -23,7 +23,9 @@ module TSVAdapter
   end
 
   def save_annotation_hash
-    self.orig_set(ANNOTATION_ATTR_HASH_KEY, ANNOTATION_ATTR_HASH_SERIALIZER.dump(self.annotation_hash))
+    self.with_write do
+      self.orig_set(ANNOTATION_ATTR_HASH_KEY, ANNOTATION_ATTR_HASH_SERIALIZER.dump(self.annotation_hash))
+    end
   end
 
   def self.extended(base)
@@ -160,6 +162,16 @@ module TSVAdapter
       end
       @writable = true
     rescue NoMethodError
+    end
+  end
+
+  def with_write(*args, &block)
+    if @write
+      yield
+    elsif @closed
+      write_and_close &block
+    else
+      write_and_read &block
     end
   end
 

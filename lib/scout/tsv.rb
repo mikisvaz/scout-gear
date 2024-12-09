@@ -80,6 +80,7 @@ module TSV
     persist_options = IndiferentHash.pull_keys options, :persist
     persist_options = IndiferentHash.add_defaults persist_options, prefix: "TSV", type: :HDB, persist: false
     persist_options[:data] ||= options[:data]
+    persist_options[:update] = options.delete(:update) if options.include?(:update)
 
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
 

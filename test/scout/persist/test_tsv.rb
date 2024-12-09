@@ -40,6 +40,7 @@ row2    a    a    id3
       end
     end
 
+    assert_include tsv.fields, "ValueA"
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
   end
@@ -67,6 +68,7 @@ row2    a    a    id3
       end
       refute Open.exists?(tk)
       assert Open.exists?(data.persistence_path)
+      refute tsv.fields.nil?
     end
 
     assert_include tsv.keys, 'row1'

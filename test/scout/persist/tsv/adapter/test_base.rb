@@ -39,5 +39,25 @@ class TestTSVAdapter < Test::Unit::TestCase
     assert_equal [1, 2, 3], tsv["a"]
     assert_equal [1, 2, 3], Marshal.load(tsv.orig_get("a"))
   end
+
+  def test_persist_annotations
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double#:merge=:concat
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    a    a    id3
+    EOF
+
+    TmpFile.with_file(content) do |tsv_file|
+      pid = Process.fork do
+        tsv = TSV.open tsv_file, persist: true
+      end
+      Process.waitpid pid
+      tsv = TSV.open tsv_file, persist: true
+      refute tsv.fields.nil?
+    end
+  end
+
 end
 
