@@ -48,7 +48,8 @@ module Persist
 
   def self.tsv(id, options = {}, engine: nil, persist_options: {})
     engine ||= persist_options[:engine] || :HDB
-    Persist.persist(id, engine, persist_options.merge(:other_options => options)) do |filename|
+    persist_options[:other_options] = options unless persist_options.include?(:other_options)
+    Persist.persist(id, engine, persist_options) do |filename|
       if filename.nil?
         yield(persist_options[:data] || {})
       else

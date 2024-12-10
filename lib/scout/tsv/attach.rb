@@ -255,8 +255,13 @@ module TSV
   def self.identifier_files(obj)
     if TSV === obj
       obj.identifier_files
-    elsif Path === obj
-      obj.dirname.identifiers
+    elsif Path.is_filename?(obj)
+      path = Path === obj ? obj : Path.setup(obj)
+      if obj.dirname.identifiers.exists?
+        obj.dirname.identifiers
+      else
+        [TSV.parse_options(obj)[:identifiers]]
+      end
     else
       nil
     end

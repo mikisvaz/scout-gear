@@ -35,7 +35,6 @@ module TSV
     alias original_setup setup
 
     def setup(obj, *rest, &block)
-
       if rest.length == 1 && String === rest.first
         options = TSV.str2options(rest.first)
         if Array === obj

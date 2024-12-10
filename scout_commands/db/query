@@ -1,0 +1,83 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/association'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Query a database
+
+$ #{$0} [<options>] <name> <entity>
+
+-h--help Print this help
+-l--list Only list matches
+-s--source* Source description
+-t--target* Target description
+-n--namespace* Namespace
+-i--identifiers* Identifiers
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+name, entity = ARGV
+
+raise MissingParameterException, :name if name.nil?
+raise MissingParameterException, :entity if entity.nil?
+
+registry = begin
+             Scout.var.databases.registry.yaml
+           rescue
+             {}
+           end
+
+list = IndiferentHash.process_options options, :list
+
+raise ParameterException "Database #{name} not found Options: #{Log.fingerprint registry.keys}" unless registry.include? name
+
+file, db_options = registry[name]
+options = db_options.merge(options)
+
+IndiferentHash.setup(options)
+options.keys_to_sym!
+
+index = Association.index(file, **options)
+
+if entity.end_with?("~")
+  matches = index.match(entity[0..-2])
+elsif entity.start_with?("~")
+  index = index.reverse
+  matches = index.match(entity[1..-1])
+  reverse = true
+elsif entity.include?("~")
+  matches = [entity]
+else
+  matches = index.match(entity)
+end
+
+AssociationItem.setup(matches) if reverse
+
+if matches.any?
+  if list
+    if reverse
+      puts matches.collect(&:invert) * "\n"
+    else
+      puts matches * "\n"
+    end
+  else
+    matches.each do |match|
+      puts Log.color :magenta, (reverse ? match.invert : match)
+      puts index[match].prety_print 
+    end
+  end
+else
+  STDERR.puts "Query #{entity} return no results"
+end
+

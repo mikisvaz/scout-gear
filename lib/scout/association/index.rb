@@ -157,7 +157,7 @@ module Association
                        new.read
                      end
 
-                     new.unnamed = true
+                     new.unnamed = self.unnamed
 
                      new.undirected = undirected
 

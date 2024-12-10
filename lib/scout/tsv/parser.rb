@@ -305,6 +305,10 @@ module TSV
     end
   end
 
+  def self.parse_options(...)
+    parse_header(...)[:options]
+  end
+
   KEY_PARAMETERS = begin
                      params = []
                      (method(:parse_line).parameters + method(:parse_stream).parameters).each do |type, name|
@@ -415,7 +419,7 @@ module TSV
       end
 
       if data
-        TSV.setup(data, :key_field => key_field_name, :fields => field_names, :type => @type)
+        TSV.setup(data, @source_options.merge(:key_field => key_field_name, :fields => field_names, :type => @type))
       else
         [key_field || self.key_field, fields || self.fields]
       end
@@ -479,9 +483,9 @@ module TSV
     data = parser.traverse **kwargs, &block
     data.type = type
     data.cast = cast
-    data.filename = filename || parser.options[:filename]
-    data.namespace = namespace || parser.options[:namespace]
-    data.identifiers = identifiers
+    data.filename = filename || parser.options[:filename] if data.filename.nil?
+    data.namespace = namespace || parser.options[:namespace] if data.namespace.nil?
+    data.identifiers = identifiers || parser.options[:identifiers] if data.identifiers.nil?
     data.unnamed = unnamed
     data.save_annotation_hash if data.respond_to?(:save_annotation_hash)
     data

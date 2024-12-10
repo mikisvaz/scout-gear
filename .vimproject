@@ -138,6 +138,11 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   update
   template
   offsite
+  db=db{
+   register
+   query
+   show
+  }
   workflow=workflow{
    task
    list

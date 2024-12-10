@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Register a database
+
+$ #{$0} [<options>] <name> <filename>
+
+-h--help Print this help
+-s--source* Source description
+-t--target* Target description
+-n--namespace* Namespace
+-i--identifiers* Identifiers
+EOF
+if options.delete :help
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+name, file = ARGV
+
+raise MissingParameterException, :name if name.nil?
+raise MissingParameterException, :file if file.nil?
+
+registry = begin
+             Scout.var.databases.registry.yaml
+           rescue
+             {}
+           end
+
+file = Scout.identify(File.expand_path(file))
+registry[name] = [Scout.identify(file), options]
+
+Scout.var.databases.registry.write(registry.to_yaml)
+

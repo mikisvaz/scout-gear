@@ -7,23 +7,31 @@ require_relative 'association/item'
 module Association
   def self.open(obj, source: nil, target: nil, fields: nil, source_format: nil, target_format: nil, format: nil, **kwargs)
 
-    if String === obj && kwargs[:namespace] && obj.include?("NAMESPACE")
-      new_obj = obj.sub("NAMESPACE", kwargs[:namespace])
+
+    if Path.is_filename?(obj)
+      options = TSV.parse_options(obj).merge(kwargs)
+    else
+      options = kwargs.dup
+    end
+
+    if String === obj && options[:namespace] && obj.include?("NAMESPACE")
+      new_obj = obj.gsub(/\[?NAMESPACE\]?/, options[:namespace])
       obj.annotate(new_obj)
       obj = new_obj
     end
 
     all_fields = TSV.all_fields(obj)
-    source_pos, field_pos, source_header, field_headers, source_format, target_format = headers(all_fields, fields, kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format, format: format))
+    source_pos, field_pos, source_header, field_headers, source_format, target_format = headers(all_fields, fields, options.merge(source: source, target: target, source_format: source_format, target_format: target_format, format: format))
 
     original_source_header = all_fields[source_pos]
     original_field_headers = all_fields.values_at(*field_pos)
     original_target_header = all_fields[field_pos.first]
 
-    type, identifiers = IndiferentHash.process_options kwargs, :type, :identifiers
+    type, identifiers = IndiferentHash.process_options options, :type, :identifiers
 
     if source_format
       translation_files = [TSV.identifier_files(obj), Entity.identifier_files(source_format), identifiers].flatten.compact
+      translation_files.collect!{|f| Path.is_filename?(f, false) ? Path.setup(f.gsub(/\[?NAMESPACE\]?/, options[:namespace])) : f }
       source_index = begin
                        TSV.translation_index(translation_files, source_header, source_format)
                      rescue
@@ -33,6 +41,7 @@ module Association
 
     if target_format
       translation_files = [TSV.identifier_files(obj), Entity.identifier_files(target_format), identifiers].flatten.compact
+      translation_files.collect!{|f| Path.is_filename?(f, false) ? Path.setup(f.gsub(/\[?NAMESPACE\]?/, options[:namespace])) : f }
       target_index = begin
                        TSV.translation_index(translation_files, field_headers.first, target_format)
                      rescue
@@ -74,10 +83,10 @@ module Association
     if source_index.nil? && target_index.nil?
       if TSV === obj
         IndiferentHash.pull_keys kwargs, :persist
-        type = kwargs[:type] || obj.type
-        res = obj.reorder original_source_header, all_fields.values_at(*field_pos), **kwargs.merge(type: type, merge: true)
+        type = options[:type] || obj.type
+        res = obj.reorder original_source_header, all_fields.values_at(*field_pos), **options.merge(type: type, merge: true)
       else
-        res = TSV.open(obj, key_field: original_source_header, fields: all_fields.values_at(*field_pos), **kwargs.merge(type: type))
+        res = TSV.open(obj, key_field: original_source_header, fields: all_fields.values_at(*field_pos), **options.merge(type: type))
       end
       res.key_field = final_key_field
       res.fields = final_fields
