@@ -50,6 +50,8 @@ module TSV
       new_values = [new_values].compact if type == :double and not Array === new_values
 
       case
+      when type == :single
+        values = new_values
       when (values.nil? and (fields.nil? or fields.empty?))
         values = [new_values]
       when values.nil?  
