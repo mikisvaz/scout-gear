@@ -193,7 +193,7 @@ module TSV
       dumper.close
 
       streams.each do |stream|
-        stream.close if stream.respond_to?(:close) && ! stream.closed?
+        stream.close if stream.respond_to?(:close)
         stream.join if stream.respond_to?(:join)
       end
       end
