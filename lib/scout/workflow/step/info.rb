@@ -50,6 +50,15 @@ class Step
     @info
   end
 
+  def pid
+    info[:pid]
+  end
+
+  def pid=(pid)
+    set_info :pid, pid
+  end
+
+
   def merge_info(new_info)
     info = self.info
     new_info.each do |key,value|
