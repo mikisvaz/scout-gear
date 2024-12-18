@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/knowledge_base'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Show a database
+
+$ #{$0} [<options>] <name>
+
+-h--help Print this help
+-kb--knowledge_base* Knowlege base name (or :default)
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+knowledge_base = KnowledgeBase.load options[:knowledge_base] || :default
+
+name = ARGV.first
+
+if name.nil?
+  puts knowledge_base.all_databases * "\n"
+else
+
+  raise ParameterException "Database #{name} not found Options: #{Log.fingerprint knowledge_base.all_databases}" unless knowledge_base.include? name
+
+  Log.tsv knowledge_base.get_database(name, options)
+end

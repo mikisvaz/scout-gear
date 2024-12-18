@@ -48,12 +48,12 @@ module Annotation
 
     fields = fields.flatten.compact.uniq
 
-    annotations = if Annotation.is_annotated?(objs) 
-                    objs.annotations 
+    annotations = if Annotation.is_annotated?(objs)
+                    objs.annotation_hash.keys
                   elsif (Array === objs && objs.any?)
                     first = objs.compact.first
                     if Annotation.is_annotated?(first)
-                      objs.compact.first.annotations
+                      objs.compact.first.annotation_hash.keys
                     else
                       raise "Objects didn't have annotations"
                     end
@@ -158,7 +158,7 @@ module Annotation
         Annotation.load_tsv_values(id, values, tsv.fields)
       end
 
-      case tsv.key_field 
+      case tsv.key_field
       when "List"
         annotated_objects.first
       else

@@ -6,7 +6,9 @@ require_relative 'association/item'
 
 module Association
   def self.open(obj, source: nil, target: nil, fields: nil, source_format: nil, target_format: nil, format: nil, **kwargs)
-
+    IndiferentHash.setup(kwargs)
+    source = kwargs.delete :source if kwargs.include?(:source)
+    target = kwargs.delete :target if kwargs.include?(:target)
 
     if Path.is_filename?(obj)
       options = TSV.parse_options(obj).merge(kwargs)
@@ -29,9 +31,12 @@ module Association
 
     type, identifiers = IndiferentHash.process_options options, :type, :identifiers
 
-    if source_format
+    if source_format || target_format
       translation_files = [TSV.identifier_files(obj), Entity.identifier_files(source_format), identifiers].flatten.compact
-      translation_files.collect!{|f| Path.is_filename?(f, false) ? Path.setup(f.gsub(/\[?NAMESPACE\]?/, options[:namespace])) : f }
+      translation_files.collect!{|f| (Path.is_filename?(f, false) && options[:namespace]) ? Path.setup(f.gsub(/\[?NAMESPACE\]?/, options[:namespace])) : f }
+    end
+
+    if source_format
       source_index = begin
                        TSV.translation_index(translation_files, source_header, source_format)
                      rescue
@@ -40,8 +45,6 @@ module Association
     end
 
     if target_format
-      translation_files = [TSV.identifier_files(obj), Entity.identifier_files(target_format), identifiers].flatten.compact
-      translation_files.collect!{|f| Path.is_filename?(f, false) ? Path.setup(f.gsub(/\[?NAMESPACE\]?/, options[:namespace])) : f }
       target_index = begin
                        TSV.translation_index(translation_files, field_headers.first, target_format)
                      rescue
@@ -82,7 +85,7 @@ module Association
 
     if source_index.nil? && target_index.nil?
       if TSV === obj
-        IndiferentHash.pull_keys kwargs, :persist
+        IndiferentHash.pull_keys options, :persist
         type = options[:type] || obj.type
         res = obj.reorder original_source_header, all_fields.values_at(*field_pos), **options.merge(type: type, merge: true)
       else
@@ -109,8 +112,24 @@ module Association
     transformer
   end
 
-  def self.database(*args, **kwargs)
-    tsv = open(*args, **kwargs)
-    TSV::Transformer === tsv ? tsv.tsv(merge: true) : tsv
+  def self.database(file, *args, **kwargs)
+    persist_options = IndiferentHash.pull_keys kwargs, :persist
+
+    database_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, 
+      prefix: "Association::Index", serializer: :list,
+      other_options: kwargs  
+
+    Persist.tsv(file, kwargs, engine: "BDB", persist_options: database_persist_options) do |data|
+      tsv = open(file, *args, **kwargs)
+      if TSV::Transformer === tsv 
+        tsv.tsv(merge: true, data: data) 
+      elsif data.respond_to?(:persistence_path)
+        data.merge!(tsv)
+        tsv.annotate(data)
+        data
+      else
+        tsv
+      end
+    end
   end
 end

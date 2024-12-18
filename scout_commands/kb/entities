@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/knowledge_base'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Declare a type of entity and assing an identifiers file
+
+$ #{$0} [<options>] <entity> <identifier_files>
+
+-h--help Print this help
+-kb--knowledge_base* Knowlege base name (or :default)
+EOF
+if options.delete :help
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+entity, identifier_files = ARGV
+
+knowledge_base = KnowledgeBase.load options[:knowledge_base] || :default
+
+knowledge_base.entity_options[entity] ||= {}
+knowledge_base.entity_options[entity][:identifiers] ||= []
+knowledge_base.entity_options[entity][:identifiers] = [knowledge_base.entity_options[entity][:identifiers]] unless Array === knowledge_base.entity_options[entity][:identifiers]
+knowledge_base.entity_options[entity][:identifiers] += identifier_files.split(",")
+knowledge_base.entity_options[entity][:identifiers].uniq!
+knowledge_base.save

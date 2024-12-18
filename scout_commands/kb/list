@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/knowledge_base'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Description of the tool
+
+$ #{$0} [<options>] <filename> [<other|->]*
+
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+knowledge_base = KnowledgeBase.load options[:knowledge_base] || :default
+knowledge_base.define_entity_modules
+
+list_name = ARGV.first
+
+if list_name.nil?
+  knowledge_base.lists.each do |type,lists|
+    puts Log.color :title, type
+    puts lists * "\n"
+  end
+else
+  list = knowledge_base.load_list(list_name)
+
+  puts list * "\n"
+end

@@ -2,6 +2,10 @@ require 'scout/annotation'
 module Association
 
   def self.index(file, source: nil, target: nil, source_format: nil, target_format: nil, format: nil, **kwargs)
+    IndiferentHash.setup(kwargs)
+    source = kwargs.delete :source if kwargs.include?(:source)
+    target = kwargs.delete :target if kwargs.include?(:target)
+
     persist_options = IndiferentHash.pull_keys kwargs, :persist
     index_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, 
       prefix: "Association::Index", 

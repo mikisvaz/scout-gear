@@ -16,9 +16,9 @@ class TestEntityIdentifiers < Test::Unit::TestCase
 
   Person.add_identifiers datafile_test(Entity::Identified::NAMESPACE_TAG + '/identifiers'), "Name", "Alias"
 
-  teardown do
-    Entity.formats.clear
-  end
+  #teardown do
+  #  Entity.formats.clear
+  #end
 
   def test_alias
     miguel = Person.setup("Miguel", namespace: :person)

@@ -111,17 +111,26 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    }
    association.rb
    association=association{
-    fields.rb
     index.rb
+    fields.rb
     item.rb
    }
-
+   knowledge_base.rb
+   knowledge_base=knowledge_base{
+    registry.rb
+    entity.rb
+    query.rb
+    traverse.rb
+    enrichment.rb
+    list.rb
+   }
    offsite.rb
    offsite=offsite{
     ssh.rb
     sync.rb
     step.rb
    }
+   semaphore.rb
   }
   scout-gear.rb
   workflow-scout.rb
@@ -138,10 +147,14 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   update
   template
   offsite
-  db=db{
+  kb=kb{
+   config
+   entities
    register
-   query
    show
+   query
+   traverse
+   list
   }
   workflow=workflow{
    task
@@ -164,8 +177,12 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   test_helper.rb
   test_scout-gear.rb
   test_scout.rb
-  data=data{
+  data=data filter="*"{
    person=person{
+    brothers
+    identifiers
+    marriages
+    parents
    }
   }
   scout=scout{

@@ -7,21 +7,6 @@ class TestEntity < Test::Unit::TestCase
     Entity.entity_property_cache = tmpdir.property_cache
   end
 
-  module Person
-    extend Entity
-
-    annotation :language
-
-    property :salutation do
-      case language
-      when 'es'
-        "Hola #{self}"
-      else
-        "Hi #{self}"
-      end
-    end
-  end
-
   module EmptyEntity
     extend Entity
   end

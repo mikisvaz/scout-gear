@@ -102,7 +102,7 @@ module AssociationItem
   property :info => :array2single do
     fields = self.info_fields
 
-    return [{}] * self.length if fields.nil? or fields.empty?
+    next [{}] * self.length if fields.nil? or fields.empty?
 
     value = self.value
     value.collect{|v|

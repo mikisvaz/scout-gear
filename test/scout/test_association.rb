@@ -4,11 +4,20 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 require 'scout/tsv'
 class TestAssociation < Test::Unit::TestCase
 
-  def test_marriages_simple
-    database = Association.database(datadir_test.person.marriages, :source => "Wife", :target => "Husband")
+  def test_marriages_simple_no_persist
+    database = Association.database(datadir_test.person.marriages, :source => "Wife", :target => "Husband", persist: false)
     assert_equal "001", database["002"]["Husband"]
     assert_equal "2021", database["002"]["Date"]
+    refute database.respond_to?(:persistence_path)
   end
+
+  def test_marriages_simple_persist
+    database = Association.database(datadir_test.person.marriages, :source => "Wife", :target => "Husband", persist: true)
+    assert_equal "001", database["002"]["Husband"]
+    assert_equal "2021", database["002"]["Date"]
+    assert database.respond_to?(:persistence_path)
+  end
+
 
   def test_marriages_open
     database = Association.database(datadir_test.person.marriages, :source => "Wife (ID)=>Alias", :target => "Husband (ID)=>Name")
@@ -38,7 +47,7 @@ class TestAssociation < Test::Unit::TestCase
   end
 
   def test_brothers_rename
-    database = Association.database(datadir_test.person.brothers, :source => "Older=~Older (Alias)=>Name")
+    database = Association.database(datadir_test.person.brothers, source: "Older=~Older (Alias)=>Name")
     assert_equal "Older (Name)", database.key_field
   end
 
@@ -46,6 +55,11 @@ class TestAssociation < Test::Unit::TestCase
     tsv = datadir_test.person.parents.tsv type: :flat, fields: ["Parent"]
     database = Association.database(tsv)
     assert_equal database["Miki"], %w(Juan Mariluz)
+  end
+
+  def test_persist
+    database = Association.database(datadir_test.person.brothers, source: "Older=~Older (Alias)=>Name", persist: true)
+    assert database.respond_to?(:persistence_path)
   end
 end
 

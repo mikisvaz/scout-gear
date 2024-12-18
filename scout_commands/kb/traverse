@@ -1,0 +1,66 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/knowledge_base'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Traverse databases
+
+$ #{$0} [<options>] <traversal>
+
+-h--help Print this help
+-kb--knowledge_base* Knowlege base name (or :default)
+-p--paths Only list paths
+-e--entities Only list entities
+-l--list* List entities matching capture
+-ln--list_name* Save list of matches with a name
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+traversal = ARGV.first
+
+raise MissingParameterException, :traversal if traversal.nil?
+
+knowledge_base = KnowledgeBase.load options[:knowledge_base] || :default
+
+only_paths, only_entities, list, list_name = IndiferentHash.process_options options, :paths, :entities, :list, :list_name
+
+rules = traversal.split(/,\s*/)
+
+knowledge_base.define_entity_modules
+
+entities, paths = knowledge_base.traverse(rules, only_entities || list)
+
+if list
+  entity_list = entities["?" + list] || []
+  puts entity_list * "\n"
+  knowledge_base.save_list list_name, entity_list if list_name
+else
+  paths = nil if only_entities && ! only_paths
+  entities = nil if only_paths && ! only_entities
+
+  if entities
+    entities.each do |type,list|
+      puts Log.color(:magenta, type[1..-1] + ": ") + Log.fingerprint(list * ", ")
+    end
+  end
+
+  if paths
+    paths.each do |path_list|
+      path_list.each do |match|
+        puts Log.color :magenta, (match.reverse ? match.invert : match)
+        puts IndiferentHash.setup(match.info).prety_print if match.info && match.info.any?
+      end
+    end
+  end
+end

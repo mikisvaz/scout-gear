@@ -133,6 +133,8 @@ module TSV
 
       tsv.unnamed = unnamed unless unnamed.nil?
 
+      tsv.entity_options = entity_options
+
       tsv
     end
   end

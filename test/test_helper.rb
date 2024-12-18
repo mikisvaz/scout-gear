@@ -72,3 +72,20 @@ class Test::Unit::TestCase
     Test::Unit::TestCase.datafile_test(file)
   end
 end
+
+module Object::Person
+  extend Entity
+
+  annotation :language
+
+  property :salutation do
+    case language
+    when 'es'
+      "Hola #{self}"
+    else
+      "Hi #{self}"
+    end
+  end
+end
+
+Object::Person.add_identifiers Test::Unit::TestCase.datafile_test(:person).identifiers

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'scout'
-require 'scout/association'
+require 'scout/knowledge_base'
 
 $0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
 
@@ -12,6 +12,7 @@ Query a database
 $ #{$0} [<options>] <name> <entity>
 
 -h--help Print this help
+-kb--knowledge_base* Knowlege base name (or :default)
 -l--list Only list matches
 -s--source* Source description
 -t--target* Target description
@@ -32,23 +33,17 @@ name, entity = ARGV
 raise MissingParameterException, :name if name.nil?
 raise MissingParameterException, :entity if entity.nil?
 
-registry = begin
-             Scout.var.databases.registry.yaml
-           rescue
-             {}
-           end
+
+knowledge_base = KnowledgeBase.load options[:knowledge_base] || :default
 
 list = IndiferentHash.process_options options, :list
 
-raise ParameterException "Database #{name} not found Options: #{Log.fingerprint registry.keys}" unless registry.include? name
-
-file, db_options = registry[name]
-options = db_options.merge(options)
+raise ParameterException "Database #{name} not found Options: #{Log.fingerprint knowledge_base.all_databases.keys}" unless knowledge_base.include? name
 
 IndiferentHash.setup(options)
 options.keys_to_sym!
 
-index = Association.index(file, **options)
+index = knowledge_base.get_index(name, options)
 
 if entity.end_with?("~")
   matches = index.match(entity[0..-2])

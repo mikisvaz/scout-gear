@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/knowledge_base'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Configure a knowlege base
+
+$ #{$0} [<options>] <name> [knowledge_base]
+
+-h--help Print this help
+-i--identifier_files* Identifier files separated by ','
+-n--namespace* Namespace
+EOF
+if options.delete :help
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+knowledge_base_name = ARGV.first
+
+knowledge_base = KnowledgeBase.load knowledge_base_name || :default
+
+knowledge_base.namespace = options[:namespace] if options.include? :namespace
+knowledge_base.identifier_files += options[:identifier_files].split(",") if options.include? :identifier_files
+knowledge_base.save
