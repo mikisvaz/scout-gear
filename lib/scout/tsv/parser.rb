@@ -7,7 +7,7 @@ module TSV
       if Proc === cast
         cast.call value
       else
-        if value.nil? || value.empty?
+        if value.nil? || value == ""
           nil
         else
           value.send(cast)
