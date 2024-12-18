@@ -38,38 +38,11 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      orchestrator.rb
     }
    }
-   semaphore.rb
    work_queue.rb
    work_queue=work_queue{
     socket.rb
     worker.rb
    }
-
-   persist=persist{
-    engine.rb
-    engine=engine{
-     tokyocabinet.rb
-     fix_width_table.rb
-     tkrzw.rb
-     packed_index.rb
-     sharder.rb
-    }
-    tsv.rb
-    tsv=tsv{
-     adapter.rb
-     serialize.rb
-     adapter=adapter{
-      base.rb
-
-      fix_width_table.rb
-      packed_index.rb
-      tkrzw.rb
-      tokyocabinet.rb
-      sharder.rb
-     }
-    }
-   }
-
    tsv.rb
    tsv=tsv{
     util.rb
@@ -100,6 +73,30 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     stream.rb
     open.rb
     csv.rb
+   }
+   persist=persist{
+    engine.rb
+    engine=engine{
+     tokyocabinet.rb
+     fix_width_table.rb
+     tkrzw.rb
+     packed_index.rb
+     sharder.rb
+    }
+    tsv.rb
+    tsv=tsv{
+     adapter.rb
+     serialize.rb
+     adapter=adapter{
+      base.rb
+
+      fix_width_table.rb
+      packed_index.rb
+      tkrzw.rb
+      tokyocabinet.rb
+      sharder.rb
+     }
+    }
    }
    entity.rb
    entity=entity{
