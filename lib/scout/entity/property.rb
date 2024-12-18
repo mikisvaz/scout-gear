@@ -1,3 +1,4 @@
+require 'scout/exceptions'
 module Entity
   class << self
     attr_accessor :entity_property_cache
