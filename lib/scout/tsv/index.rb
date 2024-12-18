@@ -66,8 +66,6 @@ module TSV
         index = TSV.setup({}, :type => :single)
       end
 
-      tsv_file = TSV.open(tsv_file, **data_options) if ! TSV === tsv_file
-
       log_msg = "Index #{Log.fingerprint tsv_file} target #{Log.fingerprint target}"
       Log.low log_msg
       bar = log_msg if TrueClass === bar
