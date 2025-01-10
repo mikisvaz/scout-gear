@@ -1,5 +1,5 @@
 module TSV
-  def self.paste_streams(streams, type: nil, sort: nil, sort_memory: nil, sep: nil, preamble: nil, header: nil, same_fields: nil, fix_flat: nil, all_match: nil, one2one: true, field_prefix: nil)
+  def self.paste_streams(streams, type: nil, sort: nil, sort_cmd_args: nil, sort_memory: nil, sep: nil, preamble: nil, header: nil, same_fields: nil, fix_flat: nil, all_match: nil, one2one: true, field_prefix: nil)
     sep = "\t" if sep.nil?
 
     streams = streams.collect do |stream|
@@ -20,7 +20,7 @@ module TSV
     num_streams = streams.length
 
     streams = streams.collect do |stream|
-      Open.sort_stream(stream, memory: sort_memory)
+      Open.sort_stream(stream, memory: sort_memory, cmd_args: sort_cmd_args)
     end if sort
 
     begin
