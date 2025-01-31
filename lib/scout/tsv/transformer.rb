@@ -175,5 +175,17 @@ module TSV
     end
     res
   end
+
+  def head(max=10)
+    res = self.annotate({})
+    transformer = Transformer.new self, res
+    i = 0
+    transformer.traverse do |k,v|
+      i += 1
+      break if i > max
+      [k, v]
+    end
+    res
+  end
 end
 
