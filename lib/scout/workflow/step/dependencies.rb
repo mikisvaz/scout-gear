@@ -1,5 +1,5 @@
 class Step
-  def rec_dependencies(connected = false, seen = [])
+  def rec_dependencies(connected = false, seen = Set.new)
     @rec_dependencies = {}
     @rec_dependencies[connected] ||= begin
                             direct_deps = []
@@ -8,11 +8,8 @@ class Step
                               next if connected && dep.done? && dep.updated?
                               direct_deps << dep
                             end if dependencies
-                            seen.concat direct_deps.collect{|d| d.path }
-                            seen.uniq!
-                            direct_deps.inject(direct_deps){|acc,d| acc.concat(d.rec_dependencies(connected, seen)); acc }
-                            direct_deps.uniq!
-                            direct_deps
+                            seen += direct_deps.collect{|d| d.path }
+                            direct_deps.inject(Set.new(direct_deps)){|acc,d| acc += d.rec_dependencies(connected, seen) }
                           end
   end
 
