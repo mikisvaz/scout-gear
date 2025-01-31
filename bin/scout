@@ -52,6 +52,16 @@ if dev_dir
   end
 end
 
+requires = nil
+if _i = ARGV.index("--require")
+  requires = ARGV[_i+1].split(",")
+  ARGV.delete_at _i + 1
+  ARGV.delete_at _i
+  requires.each do |p|
+    require p
+  end
+end
+
 require 'scout-gear'
 
 require 'scout/simple_opt'
@@ -97,8 +107,11 @@ if config_keys = options.delete(:config_keys)
   end
 end
 
-$scout_command_dir = Scout.bin.scout
-$scout_command_dir.path_maps[:scout_commands] = File.join(File.dirname(__dir__), "{PATH/bin\\/scout/scout_commands}")
+#$scout_command_dir = Scout.bin.scout
+#$scout_command_dir.path_maps[:scout_commands] = File.join(File.dirname(__dir__), "{PATH/bin\\/scout/scout_commands}")
+
+$scout_command_dir = Scout.scout_commands
+#$scout_command_dir.path_maps[:scout_commands] = File.join(File.dirname(__dir__), "{PATH/bin\\/scout/scout_commands}")
 
 SOPT.description =<<EOF
 This command controls many aspects of the Scout framework, from configuration tasks to running applications. 
