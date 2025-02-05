@@ -30,9 +30,9 @@ module TSV
       when type == :flat
         self[key] = new_values
       else
-        if ! values[field_pos].frozen? && ((String === values[field_pos] && String === new_values) ||
+        if ! values[field_pos].frozen? && ! NamedArray === values && ((String === values[field_pos] && String === new_values) ||
           (Array === values[field_pos] && Array === new_values))
-           values[field_pos].replace new_values
+          values[field_pos].replace new_values
         else
           values[field_pos] = new_values
         end
