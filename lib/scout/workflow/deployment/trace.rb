@@ -164,7 +164,7 @@ module Workflow
   def self.trace(seed_jobs, options = {})
     jobs = []
     seed_jobs.each do |step|
-      jobs += step.rec_dependencies + [step]
+      jobs += step.rec_dependencies.to_a + [step]
       step.info[:archived_info].each do |path,ainfo|
         next unless Hash === ainfo
         archived_step = Step.new path

@@ -192,7 +192,7 @@ module Workflow
           when 'true'
             dep.clean
           when 'recursive'
-            (dep.dependencies + dep.rec_dependencies).uniq.each do |d|
+            (dep.dependencies.to_a + dep.rec_dependencies.to_a).uniq.each do |d|
               next if d.overriden
               d.clean unless Scout::Config.get(:remove_dep, "task:#{d.task_signature}", "task:#{d.task_name}", "workflow:#{d.workflow.name}", :default => true).to_s == 'false'
             end
