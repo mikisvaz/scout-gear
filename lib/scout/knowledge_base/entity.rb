@@ -63,7 +63,7 @@ class KnowledgeBase
     entities.collect{|entity| Entity.formats[entity] }.uniq
   end
 
-  def identifier_files(name)
+  def database_identifier_files(name)
     get_database(name).identifier_files.dup + self.identifier_files
   end
 
@@ -73,7 +73,7 @@ class KnowledgeBase
 
   def source_index(name)
     Persist.memory("Source index #{name}: KB directory #{dir}") do
-      identifier_files = identifier_files(name)
+      identifier_files = (@identifier_files || [] + database_identifier_files(name))
       identifier_files.concat Entity.identifier_files(source(name)) if defined? Entity
       identifier_files.uniq!
       identifier_files.collect!{|f| f.annotate(f.gsub(/\bNAMESPACE\b/, namespace))} if namespace
@@ -97,7 +97,12 @@ class KnowledgeBase
 
   def identify_source(name, entity)
     return :all if entity == :all
-    index = begin source_index(name) rescue nil end
+    index = begin 
+              source_index(name) 
+            rescue 
+              Log.exception $!
+              nil
+            end
     return entity if index.nil?
     if Array === entity
       entity.collect{|e| index[e] || e }

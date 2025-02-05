@@ -14,10 +14,10 @@ class TestKnowledgeBaseQuery < Test::Unit::TestCase
       kb.save_list("bro_and_sis", list)
       assert_equal list, kb.load_list("bro_and_sis")
 
-      assert_include kb.list_files["Person"], "bro_and_sis"
+      assert_include kb.lists["Person"], "bro_and_sis"
       kb.delete_list("bro_and_sis")
 
-      refute kb.list_files["simple"]
+      refute kb.lists["simple"]
     end
   end
 
@@ -30,11 +30,11 @@ class TestKnowledgeBaseQuery < Test::Unit::TestCase
 
       assert_equal list, kb.load_list("bro_and_sis")
 
-      assert_include kb.list_files["simple"], "bro_and_sis"
+      assert_include kb.lists["simple"], "bro_and_sis"
 
       kb.delete_list("bro_and_sis")
 
-      refute kb.list_files["simple"]
+      refute kb.lists["simple"].any?
     end
   end
 end
