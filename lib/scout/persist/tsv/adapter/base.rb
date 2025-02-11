@@ -23,6 +23,7 @@ module TSVAdapter
   end
 
   def save_annotation_hash
+    self.close
     self.with_write do
       self.orig_set(ANNOTATION_ATTR_HASH_KEY, ANNOTATION_ATTR_HASH_SERIALIZER.dump(self.annotation_hash))
     end
@@ -165,15 +166,6 @@ module TSVAdapter
     end
   end
 
-  def with_write(*args, &block)
-    if @write
-      yield
-    elsif @closed
-      write_and_close &block
-    else
-      write_and_read &block
-    end
-  end
 
   def close(*args)
     begin
@@ -250,12 +242,11 @@ module TSVAdapter
 
     lock do
       write(true) if closed? || ! write?
-      res = begin
-              yield
-            ensure
-              close
-            end
-      res
+      begin
+        yield
+      ensure
+        close
+      end
     end
   end
 
@@ -272,17 +263,12 @@ module TSVAdapter
       return yield
     else
       if self.read?
-        self.write_and_read do
-          return yield
-        end
+        self.write_and_read(&block)
       else
-        self.write_and_close do
-          return yield
-        end
+        self.write_and_close(&block)
       end
     end
   end
-
 
   def read_and_close
     if read? || write?
