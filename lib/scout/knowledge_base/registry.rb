@@ -43,8 +43,10 @@ class KnowledgeBase
   end
 
   def undirected(name)
-    description(name)[2]
+    description(name).length == 3
   end
+
+  alias undirected? undirected
 
   def get_index(name, options = {})
     name = name.to_s
