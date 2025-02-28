@@ -427,4 +427,19 @@ row2    A    B    Id3
       assert_equal %w(a aa aaa), tsv["row1"]
     end
   end
+
+  def test_number_key
+    content =<<-EOF
+#Id    ValueA    ValueB    OtherID
+1    a|aa|aaa    b    Id1|Id2
+2    A    B    Id3
+    EOF
+
+    TmpFile.with_file(content) do |filename|
+      tsv = TSV.open(filename, :sep => /\s+/, field: "ValueB")
+      assert_equal "b", tsv["1"]
+    end
+
+
+  end
 end
