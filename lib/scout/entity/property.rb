@@ -62,7 +62,6 @@ module Entity
 
       properties.push name
 
-
       entity_class = self
       if type == :multiple
         self.define_method(real_method) do |*args,**kwargs|
@@ -89,7 +88,7 @@ module Entity
 
             new_responses = missing.instance_exec(*args, **kwargs, &block)
 
-            missing.each do |item,i|
+            missing.each do |item|
               responses[item] = Entity::Property.persist(name, item, type, options) do
                 Array === new_responses ? new_responses[item.container_index] : new_responses[item]
               end
