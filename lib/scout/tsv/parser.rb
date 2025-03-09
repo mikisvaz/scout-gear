@@ -1,5 +1,15 @@
 require 'scout/named_array'
 module TSV
+  def self.acceptable_parser_options(func = nil)
+    if func.nil?
+      TSV.method(:parse_line).parameters.collect{|a| a.last } +
+        TSV.method(:parse_stream).parameters.collect{|a| a.last } +
+        TSV.method(:parse).parameters.collect{|a| a.last } - [:line, :block]
+    else
+      TSV.method(func).parameters.collect{|a| a.last }
+    end.uniq
+  end
+
   def self.cast_value(value, cast)
     if Array === value
       value.collect{|e| cast_value(e, cast) }

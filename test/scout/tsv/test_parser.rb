@@ -317,4 +317,8 @@ k4    a|A    b|B
       assert Open.read(tmp_logfile).include?("directly into")
     end
   end
+
+  def test_acceptable_parser_options
+    assert_include TSV.acceptable_parser_options, :namespace
+  end
 end

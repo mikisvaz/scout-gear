@@ -13,8 +13,12 @@ module Workflow
 
   end
 
+  def to_s
+    @name || super
+  end
+
   def name
-    @name ||= self.to_s
+    @name || to_s
   end
 
   def helpers

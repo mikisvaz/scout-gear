@@ -11,7 +11,9 @@ module Association
     target = kwargs.delete :target if kwargs.include?(:target)
 
     if Path.is_filename?(obj)
-      options = TSV.parse_options(obj).merge(kwargs)
+      tsv_header_options = TSV.parse_options(obj)
+      tsv_header_options = tsv_header_options.slice(TSV.acceptable_parser_options)
+      options = tsv_header_options.merge(kwargs)
     else
       options = kwargs.dup
     end
