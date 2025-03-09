@@ -26,12 +26,12 @@ end
 
 module_name = ARGV.first
 if module_name.nil?
-  puts Rbbt.doc.lib.scout.glob("**/*.md").collect{|f| File.basename(f.unset_extension) } * "\n"
+  puts Scout.doc.lib.scout.glob("**/*.md").collect{|f| File.basename(f.unset_extension) } * "\n"
 else
   begin
-    puts Rbbt.doc.lib.scout[module_name].find_with_extension('md', :lib).read
+    puts Scout.doc.lib.scout[module_name].find_with_extension('md', :lib).read
   rescue
-    puts Rbbt.doc.lib.scout.glob("**/*.md").select{|f| File.basename(f.unset_extension) == module_name }.first.read
+    puts Scout.doc.lib.scout.glob("**/*.md").select{|f| File.basename(f.unset_extension) == module_name }.first.read
   end
 end
 

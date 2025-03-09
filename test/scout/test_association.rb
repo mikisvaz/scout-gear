@@ -61,5 +61,20 @@ class TestAssociation < Test::Unit::TestCase
     database = Association.database(datadir_test.person.brothers, source: "Older=~Older (Alias)=>Name", persist: true)
     assert database.respond_to?(:persistence_path)
   end
+
+  def test_extra_options
+    file=<<-EOF
+#: :extra_option=:test
+#Key,Value
+k,v
+    EOF
+
+    TmpFile.with_path(file.gsub(',', "\t")) do |f|
+      assert_nothing_raised do
+        Association.open(f, target: "Value", source: "Key")
+      end
+    end
+
+  end
 end
 

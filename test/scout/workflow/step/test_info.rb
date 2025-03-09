@@ -3,6 +3,17 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 require 'scout/workflow'
 
 class TestStepInfo < Test::Unit::TestCase
+  def test_benchmark
+    i = {a:1, b: [1,2], c: "String"}
+    times = 100000
+    Misc.benchmark(times) do
+      Marshal.dump(i)
+    end
+    Misc.benchmark(times) do
+      i.to_json
+    end
+  end
+
   def test_dependency
     TmpFile.with_file do |tmpdir|
       Path.setup(tmpdir)

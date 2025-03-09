@@ -3,6 +3,7 @@ require 'scout/named_array'
 require_relative 'step'
 require_relative 'task/inputs'
 require_relative 'task/dependencies'
+require_relative 'task/info'
 
 module Task
   extend Annotation

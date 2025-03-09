@@ -19,6 +19,7 @@ $ #{$0} [<options>] <workflow> <task>
 --nostream Disable job streaming
 --update Update jobs with newer dependencies
 --deploy* Deploy mode: serial, local, or SLURM (default 'serial')
+--fork Fork and return path
 -jn--jobname* Name to use as job identifier
 -li--load_inputs* Directory with inputs files to load
 -pf--printpath Print the file path
@@ -39,8 +40,8 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, clean_task, load_inputs, jobname, printpath, deploy, override_deps = IndiferentHash.process_options options, 
-  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :jobname, :printpath, :deploy, :override_deps,
+help, provenance, clean, recursive_clean, clean_task, load_inputs, jobname, printpath, deploy, override_deps, do_fork = IndiferentHash.process_options options, 
+  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :jobname, :printpath, :deploy, :override_deps, :fork,
   :deploy => 'serial'
 
 if help
@@ -92,6 +93,10 @@ end
 
 if provenance
   puts Step.prov_report(job)
+elsif do_fork
+  job.fork
+  puts job.path
+  exit 0
 else
   case deploy
   when "serial"
