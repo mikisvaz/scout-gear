@@ -31,6 +31,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     task=task{
      dependencies.rb
      inputs.rb
+     info.rb
     }
     deployment.rb
     deployment=deployment{
