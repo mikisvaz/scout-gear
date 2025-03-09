@@ -74,6 +74,7 @@ row2    a    a    id3
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
 
+    tsv.close
     assert_nothing_raised do
       tsv = Persist.persist("TEST Persist TSV", :HDB) do 
         raise

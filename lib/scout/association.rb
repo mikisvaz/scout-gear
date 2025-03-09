@@ -118,11 +118,12 @@ module Association
     persist_options = IndiferentHash.pull_keys kwargs, :persist
 
     database_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, 
-      prefix: "Association::Index", serializer: :list,
+      prefix: "Association::Index", serializer: :double,
       other_options: kwargs  
 
     Persist.tsv(file, kwargs, engine: "BDB", persist_options: database_persist_options) do |data|
       tsv = open(file, *args, **kwargs)
+      data.serializer =  TSVAdapter.serializer_module(tsv.type) if data.respond_to?(:serializer)
       if TSV::Transformer === tsv 
         tsv.tsv(merge: true, data: data) 
       elsif data.respond_to?(:persistence_path)
