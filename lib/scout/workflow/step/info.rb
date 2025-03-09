@@ -1,5 +1,6 @@
+require 'scout/config'
 class Step
-  SERIALIZER = :marshal
+  SERIALIZER = Scout::Config.get(:serializer, :step_info, :info, :step, env: "SCOUT_SERIALIZER", default: :json)
   def info_file
     return nil if @path.nil?
     @info_file ||= begin
@@ -13,7 +14,11 @@ class Step
     info = begin
              Persist.load(info_file, SERIALIZER) || {}
            rescue
-             {status: :noinfo}
+             begin
+               Persist.load(info_file, :marshal) || {}
+             rescue
+               {status: :noinfo}
+             end
            end
     IndiferentHash.setup(info)
   end
