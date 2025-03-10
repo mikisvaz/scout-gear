@@ -251,7 +251,7 @@ Gem::Specification.new do |s|
   ]
   s.homepage = "http://github.com/mikisvaz/scout-gear".freeze
   s.licenses = ["MIT".freeze]
-  s.rubygems_version = "3.6.1".freeze
+  s.rubygems_version = "3.6.5".freeze
   s.summary = "basic gear for scouts".freeze
 
   s.specification_version = 4
