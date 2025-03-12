@@ -75,7 +75,7 @@ class Step
   def clean_name
     return @id if @id
     return info[:clean_name] if info.include? :clean_name
-    if m = name.match(/(.*?)(?:_[a-z0-9]{32})?(?:\..*)?/)
+    if m = name.match(/(.+?)(?:_[a-z0-9]{32})?(?:\..*)?$/)
       return m[1] 
     end
     return name.split(".").first
