@@ -151,6 +151,8 @@ module Open
                   res = block.call(line)
                   callback.call res if callback
                 end
+                obj.close
+                obj.join if obj.respond_to? :join
               else
                 Log.low "Traverse stream with parser #{Log.fingerprint obj}"
                 parser = options[:sep].nil? ? TSV::Parser.new(obj) : TSV::Parser.new(obj, sep: options[:sep])
