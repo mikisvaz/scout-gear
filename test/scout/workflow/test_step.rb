@@ -387,7 +387,7 @@ class TestWorkflowStep < Test::Unit::TestCase
       step1.fork(false, sem)
       step2.fork(false, sem)
       sleep 1
-      assert((step1.status == :queue) || (step2.status == :queue))
+      assert((step1.status.to_sym == :queue) || (step2.status.to_sym == :queue))
       step1.join
       step2.join
       assert_equal "done2", step2.run

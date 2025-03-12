@@ -238,7 +238,7 @@ class TestTaskDependencies < Test::Unit::TestCase
       input :input1, :string
       task :step1 => :string do |i| i end
 
-      dep :step1, :input1 => 1  do |id,options|
+      dep :step1, :input1 => "1"  do |id,options|
         {:inputs => options}
       end
       task :step2 => :string do |i| step(:step1).load end
@@ -271,7 +271,7 @@ class TestTaskDependencies < Test::Unit::TestCase
       input :input1, :string
       task :step1 => :string do |i| i end
 
-      dep :step1, :input1 => 1  do |id,options|
+      dep :step1, :input1 => "1"  do |id,options|
         [{:inputs => options}]
       end
       input :input2, :string
@@ -289,7 +289,7 @@ class TestTaskDependencies < Test::Unit::TestCase
       input :input1, :string
       task :step1 => :string do |i| i end
 
-      dep :step1, :input1 => 1
+      dep :step1, :input1 => "1"
       input :input2, :string
       task :step2 => :string do |i| step(:step1).load end
     end
@@ -304,9 +304,9 @@ class TestTaskDependencies < Test::Unit::TestCase
     wf = Workflow.annonymous_workflow "TaskInputs" do
       input :input1, :integer, "", 1
       input :input2, :integer, "", 0
-      task :step1 => :string do |i1,i2| i1 + i2 end
+      task :step1 => :string do |i1,i2| (i1 + i2).to_s end
 
-      dep :step1, :input2 => 1
+      dep :step1, :input2 => "1"
       task :step2 => :string do |i| step(:step1).load end
 
       dep :step2
@@ -334,7 +334,7 @@ class TestTaskDependencies < Test::Unit::TestCase
         if i1 < 0
           raise ScoutException
         else
-          i1
+          i1.to_s
         end
       end
 

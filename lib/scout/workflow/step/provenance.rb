@@ -108,11 +108,10 @@ class Step
     status = info[:status] || :missing
     status = status.to_sym if String === status
     status = :noinfo if status == :missing && Open.exist?(path)
-    status = "remote" if Open.remote?(path) || Open.ssh?(path)
+    status = :remote if Open.remote?(path) || Open.ssh?(path)
     name = info[:name] || File.basename(path)
     status = :unsync if status == :done and not Open.exist?(path)
     status = :notfound if status == :noinfo and not Open.exist?(path)
-
 
     this_step_msg = prov_report_msg(status, name, path, info, input)
 

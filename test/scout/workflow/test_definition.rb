@@ -64,7 +64,7 @@ class TestWorkflowDefinition < Test::Unit::TestCase
     refute Open.exist?(dep_path)
     Scout::Config::CACHE.replace old_cache
     assert_include job.archived_info, dep_path
-    assert_equal :done, job.archived_info[dep_path][:status]
+    assert_equal :done, job.archived_info[dep_path][:status].to_sym
   end
 
   def test_task_alias_remove_dep_partial
@@ -95,7 +95,7 @@ class TestWorkflowDefinition < Test::Unit::TestCase
     assert call_name.done?
     Scout::Config::CACHE.replace old_cache
     assert_include job.archived_info, call_name.path
-    assert_equal :done, job.archived_info[call_name.path][:status]
+    assert_equal :done, job.archived_info[call_name.path][:status].to_sym
   end
 end
 
