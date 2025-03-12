@@ -12,7 +12,7 @@ Juwelier::Tasks.new do |gem|
   gem.homepage = "http://github.com/mikisvaz/scout-gear"
   gem.license = "MIT"
   gem.summary = %Q{basic gear for scouts}
-  gem.description = %Q{Temporary files, logs, path, resources, persistence, workflows, TSV, etc.}
+  gem.description = %Q{Scout gear: workflow, TSVs, persistence, entities, associations, and knowledge_bases.}
   gem.email = "mikisvaz@gmail.com"
   gem.authors = ["Miguel Vazquez"]
 
@@ -26,10 +26,7 @@ Juwelier::Tasks.new do |gem|
   gem.add_runtime_dependency 'RubyInline'
   #gem.add_runtime_dependency 'tokyocabinet'
 
-  gem.add_development_dependency "rdoc", "~> 3.12"
-  gem.add_development_dependency "bundler", "~> 1.0"
   gem.add_development_dependency "juwelier", "~> 2.1.0"
-  gem.add_development_dependency "simplecov", ">= 0"
 end
 Juwelier::RubygemsDotOrgTasks.new
 
