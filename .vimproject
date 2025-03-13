@@ -122,12 +122,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     enrichment.rb
     list.rb
    }
-   offsite.rb
-   offsite=offsite{
-    ssh.rb
-    sync.rb
-    step.rb
-   }
    semaphore.rb
   }
   scout-gear.rb
@@ -144,7 +138,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   doc
   update
   template
-  offsite
   kb=kb{
    config
    entities
@@ -186,7 +179,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   scout=scout{
    test_association.rb
    test_entity.rb
-   test_offsite.rb
    test_semaphore.rb
    test_tsv.rb
    test_workflow.rb
@@ -247,12 +239,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      test_tkrzw.rb
      test_tokyocabinet.rb
     }
-   }
-   offsite=offsite{
-    test_ssh.rb
-    test_step.rb
-    test_sync.rb
-    test_task.rb
    }
   }
  }
