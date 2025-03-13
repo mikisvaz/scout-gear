@@ -74,9 +74,11 @@ class Step
           issued = info[:issued]
           start = info[:start]
           eend = new_info[:end]
+
           start = Time.parse start if String === start
           eend = Time.parse eend if String === eend
           issued = Time.parse issued if String === issued
+
           if start && eend
             time = eend - start
             total_time = eend - issued

@@ -70,7 +70,7 @@ module Workflow
 
   def self.install_workflow(workflow, base_repo_url = nil)
     case
-    when File.exist?(workflow)
+    when Open.exist?(workflow)
       update_workflow_dir(workflow)
     else
       Misc.in_dir(self.workflow_dir) do

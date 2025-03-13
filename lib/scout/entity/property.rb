@@ -148,7 +148,7 @@ module Entity
 
     def persist(name, type = :marshal, options = {})
       options = IndiferentHash.add_defaults options, persist: true,
-        dir: File.join(Entity.entity_property_cache, self.to_s, name.to_s)
+        dir: Entity.entity_property_cache[self.to_s][name.to_s]
       @persisted_methods ||= {}
       @persisted_methods[name] = [type, options]
     end

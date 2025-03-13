@@ -186,7 +186,8 @@ module Task
       seen << name
     end
 
-    Dir.glob(File.join(directory, "*#*")).each do |file|
+    directory = Path.setup(directory) unless Path === directory
+    directory.glob("*#*").each do |file|
       override_dep, _, extension = File.basename(file).partition(".")
 
       inputs[override_dep] = Task.load_input_from_file(file, :file)

@@ -181,7 +181,7 @@ class Step
         log :start
         @exec_result = exec
 
-        if @exec_result.nil? && File.exist?(self.tmp_path) && ! File.exist?(self.path)
+        if @exec_result.nil? && Open.exist?(self.tmp_path) && ! Open.exist?(self.path)
           Open.mv self.tmp_path, self.path
         else
           @exec_result = @exec_result.stream if @exec_result.respond_to?(:stream) && ! (TSV === @exec_result)

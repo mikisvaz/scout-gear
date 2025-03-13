@@ -120,7 +120,7 @@ class TestTaskDependencies < Test::Unit::TestCase
     job = wf.job(:my_sum, :input1 => 2, :input2 => 3)
     assert_equal 5, job.run
 
-    TmpFile.with_file(4) do |file|
+    TmpFile.with_file("4") do |file|
       job = wf.job(:my_sum, :input1 => 2, :input2 => 3, "TaskInputs#step2"=> file)
       assert_equal 6, job.run
       assert_not_equal Task::DEFAULT_NAME, job.name

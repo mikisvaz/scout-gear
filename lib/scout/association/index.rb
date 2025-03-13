@@ -141,7 +141,7 @@ module Association
                        new.extend Index
                        new
                      else
-                       FileUtils.mkdir_p File.dirname(reverse_filename) unless File.exist?(File.dirname(reverse_filename))
+                       Open.mkdir File.dirname(reverse_filename) unless Open.exist?(File.dirname(reverse_filename))
 
                        new = Persist.open_tokyocabinet(reverse_filename, true, serializer, TokyoCabinet::BDB)
 

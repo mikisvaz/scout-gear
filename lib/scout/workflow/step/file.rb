@@ -21,13 +21,13 @@ class Step
   end
 
   def files
-    Dir.glob(File.join(files_dir, '**', '*')).reject{|path| File.directory? path }.collect do |path| 
-      Misc.path_relative_to(files_dir, path) 
+    files_dir.glob("**/*").reject{|path| File.directory? path }.collect do |path|
+      Misc.path_relative_to(files_dir, path)
     end
   end
 
   def bundle_files
-    [path, info_file, Dir.glob(File.join(files_dir,"**/*"))].flatten.select{|f| Open.exist?(f) }
+    [path, info_file, files_dir.glob("**/*")].flatten.select{|f| Open.exist?(f) }
   end
 
   def copy_linked_files_dir
