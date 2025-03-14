@@ -200,8 +200,6 @@ class Step
       if TrueClass === no_load
         consume_all_streams if streaming?
         @result = nil
-      #elsif no_load && ! (IO === @result)
-      #  @result = nil
       end
 
       @result
@@ -263,7 +261,7 @@ class Step
   end
 
   def done?
-    Open.exist?(path)
+    @done ||= Open.exist?(path)
   end
 
   def streaming?

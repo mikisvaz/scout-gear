@@ -42,6 +42,7 @@ class Step
     @result = nil
     @info = nil
     @info_load_time = nil
+    @done = nil
     Open.rm path if Open.exist_or_link?(path)
     Open.rm tmp_path if Open.exist_or_link?(tmp_path)
     Open.rm info_file if Open.exist_or_link?(info_file)
