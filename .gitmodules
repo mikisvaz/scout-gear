@@ -1,4 +1,0 @@
-[submodule "modules/rbbt-util"]
-	path = modules/rbbt-util
-	url = https://github.com/mikisvaz/rbbt-util.git
-	branch = scout
