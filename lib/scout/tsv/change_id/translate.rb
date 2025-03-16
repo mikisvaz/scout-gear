@@ -40,7 +40,7 @@ module TSV
           target_file = target_files.select{|file| fields = file_fields[file]; (fields & middle_fields).any? }.collect{|file,f| file }.first
           [source_file, middle_file, target_file]
         else
-          raise "Could not traverse identifier path from #{Log.fingerprint source} to #{Log.fingerprint target} in #{Log.fingerprint file_fields}"
+          raise "Could not traverse identifier path from #{Log.fingerprint source} to #{Log.fingerprint target}. #{file_fields.empty? ? "No identifier files" : Log.fingerprint(file_fields)}"
         end
       end
     end
@@ -55,7 +55,13 @@ module TSV
     files = [files] unless Array === files
 
     files.each do |file|
-      next if Path === file && ! Open.exist?(file)
+      #next if Path === file && ! Open.exist?(file)
+      begin
+        file = file.produce if Path === file
+      rescue
+        Log.warn $!.message
+        next
+      end
       file = file.find if Path === file
       file_fields[file] = all_fields(file)
     end

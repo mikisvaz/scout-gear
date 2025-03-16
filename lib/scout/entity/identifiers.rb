@@ -64,13 +64,16 @@ module Entity
       Persist.memory("Entity index #{identity_type}: #{format} (from #{source || "All"})", :persist => true, :format => format, :source => source) do
         source ||= self.respond_to?(:format)? self.format : nil
 
+        saved_exception = nil
         begin
           index = TSV.translation_index(identifier_files, source, format, :persist => true)
           raise "No index from #{ Misc.fingerprint source } to #{ Misc.fingerprint format }: #{Misc.fingerprint identifier_files}" if index.nil?
           index.unnamed = true
           index
         rescue
-          raise $! if source.nil?
+          raise saved_exception || $! if source.nil?
+          Log.debug "Retrying identifier index without specifying source"
+          saved_exception = $!
           source = nil
           retry
         end
@@ -93,7 +96,7 @@ module Entity
 
     name = default if name.nil?
 
-    self.send(:include, Entity::Identified) unless Entity::Identified === self
+    self.send(:include, Entity::Identified) unless self.include?(Entity::Identified)
 
     self.format = all_fields
     @formats ||= []
