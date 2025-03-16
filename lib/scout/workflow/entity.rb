@@ -35,7 +35,7 @@ module EntityWorkflow
     end
   end
 
-  def property_job(task_name, property_type=:single, *args, &block)
+  def property_task(task_name, property_type=:single, *args, &block)
     task_name, result_type = task_name.keys.first, task_name.values.first if Hash === task_name
 
     annotation_inputs = self.instance_variable_get("@annotation_inputs")
@@ -65,15 +65,35 @@ module EntityWorkflow
     end
   end
 
-  def entity_job(task_name, *args, &block)
-    property_job(task_name, :single, *args, &block)
+  def entity_task(task_name, *args, &block)
+    property_task(task_name, :single, *args, &block)
   end
 
-  def list_job(task_name, *args, &block)
-    property_job(task_name, :array, *args, &block)
+  def list_task(task_name, *args, &block)
+    property_task(task_name, :array, *args, &block)
   end
 
-  def multiple_job(task_name, *args, &block)
-    property_job(task_name, :multiple, *args, &block)
+  def multiple_task(task_name, *args, &block)
+    property_task(task_name, :multiple, *args, &block)
+  end
+
+  def property_task_alias(task_name, property_type=:single, *args)
+    task_alias task_name, *args
+    property task_name => property_type do |*args|
+      job = job(task_name, *args)
+      Array === job ? job.collect(&:run) : job.run
+    end
+  end
+
+  def entity_task_alias(task_name, *args)
+    property_task_alias(task_name, :single, *args)
+  end
+
+  def list_task_alias(task_name, *args)
+    property_task_alias(task_name, :array, *args)
+  end
+
+  def multiple_task_alias(task_name, *args)
+    property_task_alias(task_name, :multiple, *args)
   end
 end
