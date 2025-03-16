@@ -186,7 +186,7 @@ module Task
       seen << name
     end
 
-    directory = Path.setup(directory) unless Path === directory
+    directory = Path.setup(directory.dup) unless Path === directory
     directory.glob("*#*").each do |file|
       override_dep, _, extension = File.basename(file).partition(".")
 
