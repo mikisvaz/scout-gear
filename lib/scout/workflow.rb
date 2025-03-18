@@ -8,6 +8,7 @@ require_relative 'workflow/deployment'
 require_relative 'workflow/exceptions'
 require_relative 'workflow/path'
 require_relative 'workflow/entity'
+require_relative 'workflow/export'
 
 require 'scout/resource'
 require 'scout/resource/scout'

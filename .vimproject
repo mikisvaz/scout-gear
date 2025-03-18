@@ -7,8 +7,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   scout=scout{
    workflow.rb
    workflow=workflow{
-    entity.rb
     exceptions.rb
+    export.rb
     definition.rb
     documentation.rb
     usage.rb
@@ -39,6 +39,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      trace.rb
      orchestrator.rb
     }
+    entity.rb
    }
    work_queue.rb
    work_queue=work_queue{
