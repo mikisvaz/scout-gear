@@ -51,7 +51,7 @@ module Workflow
 
   end
 
-  attr_accessor :libdir
+  attr_accessor :libdir, :knowledge_base
 
   def self.extended(base)
     self.workflows << base
