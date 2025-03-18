@@ -82,12 +82,14 @@ class Step
   end
 
   def task_name
+    return @task_name if @task_name
     @task_name ||= @task.name if @task.respond_to?(:name)
     @task_name ||= info[:task_name] if Open.exist?(info_file)
     @task_name ||= path.split("/")[-2]
   end
 
   def workflow
+    return @workflow if @workflow
     @workflow ||= @task.workflow if Task === @task
     @workflow ||= info[:workflow] if info_file && Open.exist?(info_file)
     @workflow ||= path.split("/")[-3]
