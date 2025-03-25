@@ -1,3 +1,4 @@
+require 'time'
 require 'scout/config'
 class Step
   SERIALIZER = Scout::Config.get(:serializer, :step_info, :info, :step, env: "SCOUT_SERIALIZER", default: :json)
