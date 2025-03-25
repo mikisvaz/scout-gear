@@ -12,15 +12,15 @@ class TestWorkflowEntity < Test::Unit::TestCase
         "Mi name is #{self}"
       end
 
-      entity_job hi: :string do
+      entity_task hi: :string do
         "Hi. #{entity.introduction}"
       end
 
-      list_job group_hi: :string do
+      list_task group_hi: :string do
         "Here is the group: " + entity_list.hi * "; "
       end
 
-      list_job bye: :array do
+      list_task bye: :array do
         entity_list.collect do |e|
           "Bye from #{e}"
         end
