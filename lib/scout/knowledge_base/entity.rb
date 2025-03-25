@@ -89,7 +89,11 @@ class KnowledgeBase
   
   def target_index(name)
     Persist.memory("Target index #{name}: KB directory #{dir}") do
-      identifier_files = identifier_files(name)
+      if @identifier_files && @identifier_files.any?
+        identifier_files = @identifier_files
+      else
+        identifier_files = database_identifier_files(name)
+      end
       identifier_files.concat Entity.identifier_files(target(name)) if defined? Entity
       identifier_files.uniq!
       identifier_files.collect!{|f| f.annotate(f.gsub(/\bNAMESPACE\b/, namespace))} if self.namespace
