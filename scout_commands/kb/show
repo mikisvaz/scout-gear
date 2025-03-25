@@ -23,7 +23,8 @@ if options[:help]
   exit 0
 end
 
-knowledge_base = KnowledgeBase.load options[:knowledge_base] || :default
+knowledge_base = IndiferentHash.process_options options, :knowledge_base
+knowledge_base = KnowledgeBase.load knowledge_base || :default
 
 name = ARGV.first
 
@@ -31,7 +32,8 @@ if name.nil?
   puts knowledge_base.all_databases * "\n"
 else
 
-  raise ParameterException "Database #{name} not found Options: #{Log.fingerprint knowledge_base.all_databases}" unless knowledge_base.include? name
+  raise ParameterException, "Database #{name} not found Options: #{Log.fingerprint knowledge_base.all_databases}" unless knowledge_base.include? name
 
+  puts knowledge_base.markdown(name)
   Log.tsv knowledge_base.get_database(name, options)
 end

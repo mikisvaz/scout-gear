@@ -1,7 +1,7 @@
 require 'scout/annotation'
 module Association
 
-  def self.index(file, source: nil, target: nil, source_format: nil, target_format: nil, format: nil, **kwargs)
+  def self.index(file, source: nil, target: nil, source_format: nil, target_format: nil, format: nil, database: nil, **kwargs)
     IndiferentHash.setup(kwargs)
     source = kwargs.delete :source if kwargs.include?(:source)
     target = kwargs.delete :target if kwargs.include?(:target)
@@ -14,7 +14,7 @@ module Association
     index = Persist.tsv(file, kwargs, engine: "BDB", persist_options: index_persist_options) do |data|
       recycle, undirected = IndiferentHash.process_options kwargs, :recycle, :undirected
 
-      database = Association.open(file, source: source, target: target, source_format: source_format, target_format: target_format, **kwargs.merge(persist_prefix: "Association::Database"))
+      database ||= Association.open(file, source: source, target: target, source_format: source_format, target_format: target_format, **kwargs.merge(persist_prefix: "Association::Database"))
 
       source_field = database.key_field
       target_field, *fields = database.fields

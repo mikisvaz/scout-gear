@@ -12,6 +12,7 @@ Description of the tool
 $ #{$0} [<options>] <filename> [<other|->]*
 
 -h--help Print this help
+-kb--knowledge_base* Knowlege base name (or :default)
 EOF
 if options[:help]
   if defined? scout_usage

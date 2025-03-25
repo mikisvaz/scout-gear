@@ -19,6 +19,7 @@ $ #{$0} [<options>] <name> <filename>
 -n--namespace* Namespace
 -i--identifiers* Identifiers
 -u--undirected
+-d--description* Database description
 EOF
 if options.delete :help
   if defined? scout_usage
@@ -35,7 +36,8 @@ name, file = ARGV
 raise MissingParameterException, :name if name.nil?
 raise MissingParameterException, :file if file.nil?
 
-knowledge_base = KnowledgeBase.load options[:knowledge_base] || :default
+knowledge_base = IndiferentHash.process_options options, :knowledge_base
+knowledge_base = KnowledgeBase.load knowledge_base || :default
 
 options[:fields] = options[:fields].split(/,\s*/) if options[:fields]
 file = Scout.identify(File.expand_path(file))

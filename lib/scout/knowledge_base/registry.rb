@@ -15,9 +15,18 @@ class KnowledgeBase
     end
   end
 
+  def present_databases
+    dir.glob("*.database").collect{|file| File.basename(file, '.database')}
+  end
+
   def all_databases
     return [] unless @registry
-    @registry.keys 
+    (@registry.keys + present_databases).uniq
+  end
+
+  def registered_options(name)
+    return {} if @registry[name].nil?
+    return @registry[name].last
   end
 
   def include?(name)
@@ -89,11 +98,11 @@ class KnowledgeBase
                     Log.low "Re-opening index #{ name } from #{ Log.fingerprint persist_path }. #{options}"
                     Association.index(file, **options, persist_options: persist_options.dup)
                   else
-                    options = IndiferentHash.add_defaults options, registered_options if registered_options
-                    raise "Repo #{ name } not found and not registered" if file.nil?
-                    Log.medium "Opening index #{ name } from #{ Log.fingerprint file }. #{options}"
+                    database = get_database name if file.nil?
                     file = file.call if Proc === file
-                    Association.index(file, **options, persist_options: persist_options.dup)
+                    Log.medium "Opening index #{ name } from #{ Log.fingerprint database }. #{options}"
+                    options = IndiferentHash.add_defaults options, registered_options if registered_options
+                    Association.index(file, **options, persist_options: persist_options.dup, database: database)
                   end
 
           index.namespace = self.namespace unless self.namespace
@@ -145,7 +154,6 @@ class KnowledgeBase
 
           database = if persist_path.exists? and persist_options[:persist] and not persist_options[:update]
                        Log.low "Re-opening database #{ name } from #{ Log.fingerprint persist_path }. #{options}"
-                       #Association.database(file, **options, persist_options: persist_options)
                        Association.database(file, **options.merge(persist_options: persist_options))
                      else
                        options = IndiferentHash.add_defaults options, registered_options if registered_options
@@ -153,7 +161,6 @@ class KnowledgeBase
                        raise "Repo #{ name } not found and not registered" if file.nil?
                        Log.medium "Opening database #{ name } from #{ Log.fingerprint file }. #{options}"
                        file = file.call if Proc === file
-                       #Association.database(file, **options, persist_options: persist_options)
                        Association.database(file, **options.merge(persist_options: persist_options))
                      end
 

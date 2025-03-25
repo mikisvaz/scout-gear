@@ -34,7 +34,8 @@ raise MissingParameterException, :name if name.nil?
 raise MissingParameterException, :entity if entity.nil?
 
 
-knowledge_base = KnowledgeBase.load options[:knowledge_base] || :default
+knowledge_base = IndiferentHash.process_options options, :knowledge_base
+knowledge_base = KnowledgeBase.load knowledge_base || :default
 
 list = IndiferentHash.process_options options, :list
 
