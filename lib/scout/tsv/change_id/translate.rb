@@ -58,6 +58,7 @@ module TSV
       #next if Path === file && ! Open.exist?(file)
       begin
         file = file.produce if Path === file
+        raise "Could no produce file" if FalseClass === file
       rescue
         Log.warn $!.message
         next
