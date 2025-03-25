@@ -29,21 +29,21 @@ class KnowledgeBase
     @fields[name] ||= get_index(name).fields
   end
 
-  def description(name)
-    @descriptions ||= {}
-    @descriptions[name] ||= get_index(name).key_field.split("~")
+  def pair(name)
+    @pairs ||= {}
+    @pairs[name] ||= get_index(name).key_field.split("~")
   end
 
   def source(name)
-    description(name)[0]
+    pair(name)[0]
   end
 
   def target(name)
-    description(name)[1]
+    pair(name)[1]
   end
 
   def undirected(name)
-    description(name).length == 3
+    pair(name).length == 3
   end
 
   alias undirected? undirected

@@ -123,6 +123,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     traverse.rb
     enrichment.rb
     list.rb
+    description.rb
    }
    semaphore.rb
   }
@@ -172,6 +173,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   test_scout.rb
   data=data filter="*"{
    person=person{
+    README.md
     brothers
     identifiers
     marriages

@@ -5,6 +5,7 @@ require_relative 'knowledge_base/entity'
 require_relative 'knowledge_base/query'
 require_relative 'knowledge_base/traverse'
 require_relative 'knowledge_base/list'
+require_relative 'knowledge_base/description'
 #require 'scout/knowledge_base/query'
 #require 'scout/knowledge_base/syndicate'
 
@@ -23,7 +24,7 @@ class KnowledgeBase
     @entity_options ||= IndiferentHash.setup({})
 
     @format         ||= IndiferentHash.setup({})
-    @descriptions   ||= IndiferentHash.setup({})
+    pairs          ||= IndiferentHash.setup({})
     @indices        ||= IndiferentHash.setup({})
   end
 
