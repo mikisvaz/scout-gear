@@ -153,6 +153,14 @@ module Open
                 end
                 obj.close
                 obj.join if obj.respond_to? :join
+              elsif options[:type] == :matrix
+                Log.low "Traverse stream by lines #{Log.fingerprint obj}"
+                parser = options[:sep].nil? ? TSV::Parser.new(obj) : TSV::Parser.new(obj, sep: options[:sep])
+                parser.traverse **options do |parts|
+                  res = block.call parts
+                  callback.call res if callback
+                  nil
+                end
               else
                 Log.low "Traverse stream with parser #{Log.fingerprint obj}"
                 parser = options[:sep].nil? ? TSV::Parser.new(obj) : TSV::Parser.new(obj, sep: options[:sep])

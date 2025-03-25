@@ -31,6 +31,12 @@ module TSV
 
     return nil if select && ! TSV.select(items[0], items[1..-1], select, fields: field_names, type: type, sep: sep2)
 
+    if String === key
+      raise "Key by name, but no field names" if field_names.nil?
+      key = field_names.index key
+      raise "Key #{key} not found in field names #{Log.fingerprint field_names}" if key.nil?
+    end
+
     if positions.nil? && key == 0
       key = items.shift
     elsif positions.nil?
@@ -65,7 +71,7 @@ module TSV
     [key, items]
   end
 
-  def self.parse_stream(stream, data: nil, source_type: nil, type: :list, merge: true, one2one: false, fix: true, bar: false, first_line: nil, field_names: nil, head: nil, **kwargs, &block)
+  def self.parse_stream(stream, data: nil, source_type: nil, sep: "\t", type: :list, merge: true, one2one: false, fix: true, bar: false, first_line: nil, field_names: nil, head: nil, **kwargs, &block)
     begin
       bar = "Parsing #{Log.fingerprint stream}" if TrueClass === bar
       bar = Log::ProgressBar.get_obj_bar(stream, bar) if bar
@@ -81,7 +87,7 @@ module TSV
           data.serializer.to_s.include?("String") &&
           same_type && 
           ! (head || kwargs[:cast] || kwargs[:positions] || (kwargs[:key] && kwargs[:key] != 0) || Proc === fix ) &&
-          (kwargs[:sep].nil? || kwargs[:sep] == "\t")
+          (sep.nil? || sep == "\t")
 
 
         Log.debug "Loading #{Log.fingerprint stream} directly into #{Log.fingerprint data}"
@@ -114,12 +120,17 @@ module TSV
             line = Misc.fixutf8(line)
           end
           bar.tick if bar
+
           if type == :array || type == :line
             block.call line
             next
+          elsif type == :matrix
+            parts = line.split(sep)
+            block.call parts
+            next
           end
 
-          key, items = parse_line(line, type: source_type, field_names: field_names, **kwargs)
+          key, items = parse_line(line, type: source_type, field_names: field_names, sep: sep, **kwargs)
 
           next if key.nil?
 
