@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/workflow/deployment/queue'
+require 'scout/workflow/deployment/orchestrator'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Process the queue
+
+$ #{$0} [<options>] ([<workflow>] [<task>] [<name>] | <filename>)
+
+-h--help Print this help
+-l--list List queue jobs
+--continuous Process continuously
+--produce_timer* Produce timer for sleeping
+--produce_cpus* Cpus to use concurrently producing jobs
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+list, continuous = IndiferentHash.process_options options, :list, :continuous
+
+queue_dir = Scout.var.queue
+
+class TrayAgain < Exception; end
+
+begin
+  if ARGV.empty?
+    files = queue_dir.glob("*/*/*")
+    if list
+      puts files * "\n"
+      exit
+    end
+  else
+    workflow, task, name = ARGV
+
+    # First deal with fixed files
+    if task.nil?
+      if Open.exists?(workflow)
+        Workflow.unqueue files.first
+        exit
+
+      else
+        files = queue_dir.glob("#{workflow}/*/*")
+      end
+    elsif name.nil?
+      files = queue_dir.glob("#{workflow}/#{task}/*")
+    else
+      files = queue_dir.glob("#{workflow}/#{task}/#{name}*")
+    end
+  end
+
+  jobs = files.collect{|file| Workflow.queue_job(file) }
+  begin
+    options.keys.each do |key|
+      options[key.to_sym] = options.delete(key)
+    end
+    Workflow.produce(jobs, **options)
+  rescue Workflow::Orchestrator::NoWork
+  end
+
+  files.each do |f| Open.rm_rf f end
+
+  Workflow.job_cache.clear
+
+  if continuous
+    Log.debug "Continuous processing"
+    sleep 1
+    raise Workflow::Orchestrator::NoWork
+  end
+rescue Workflow::Orchestrator::NoWork
+  retry
+end
+
