@@ -18,6 +18,12 @@ module Workflow
     @exec_exports ||= []
   end
 
+  def clear_exports
+    asynchronous_exports.clear
+    synchronous_exports.clear
+    exec_exports.clear
+    stream_exports.clear
+  end
 
   def all_exports
     asynchronous_exports + synchronous_exports + exec_exports + stream_exports

@@ -20,8 +20,9 @@ $ #{$0} [<options>] <workflow> <task>
 --update Update jobs with newer dependencies
 --deploy* Deploy mode: serial, local, or SLURM (default 'serial')
 --fork Fork and return path
+--load_inputs* Directory or file with inputs files to load
+--save_inputs* Directory or tar.gz file path to store inputs
 -jn--jobname* Name to use as job identifier
--li--load_inputs* Directory with inputs files to load
 -pf--printpath Print the file path
 -prov--provenance Print the step provenance
 -cl--clean Clean the last step
@@ -40,8 +41,8 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, clean_task, load_inputs, jobname, printpath, deploy, override_deps, do_fork = IndiferentHash.process_options options, 
-  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :jobname, :printpath, :deploy, :override_deps, :fork,
+help, provenance, clean, recursive_clean, clean_task, load_inputs, save_inputs, jobname, printpath, deploy, override_deps, do_fork = IndiferentHash.process_options options, 
+  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :save_inputs, :jobname, :printpath, :deploy, :override_deps, :fork,
   :deploy => 'serial'
 
 if help
@@ -93,12 +94,23 @@ end
 
 if provenance
   puts Step.prov_report(job)
+
 elsif do_fork
   job.fork
   puts job.path
   exit 0
+elsif save_inputs
+  puts job.save_inputs(save_inputs)
+  exit 0
 else
+
   case deploy
+  when "queue"
+    if ! job.done?
+      save_inputs = Scout.var.queue[workflow.to_s][task_name][job.clean_name].find
+      puts job.save_inputs(save_inputs)
+      exit
+    end
   when "serial"
     job.run(true) 
   when "local"

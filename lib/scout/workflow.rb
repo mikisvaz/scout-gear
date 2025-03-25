@@ -15,7 +15,12 @@ require 'scout/resource/scout'
 
 module Workflow
   class << self
-    attr_accessor :workflows, :main, :workflow_dir, :autoinstall, :workflow_repo
+    attr_accessor :workflows, :main, :workflow_dir, :autoinstall, :workflow_repo, :job_cache
+
+    def job_cache
+      @job_cache ||={}
+    end
+
     def workflows
       @workflows ||= []
     end

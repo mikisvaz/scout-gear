@@ -1,6 +1,8 @@
 module Workflow
   class Orchestrator
 
+    class NoWork < Exception; end
+
     def self.job_workload(job)
       workload = {job => []}
       return workload if job.done? && job.updated?
@@ -202,7 +204,7 @@ module Workflow
 
           candidates = resources_used.keys + Orchestrator.candidates(workload, rules)
           candidates.uniq!
-          raise "No candidates and no running jobs" if candidates.empty?
+          raise NoWork, "No candidates and no running jobs" if candidates.empty?
 
           candidates.each do |job|
             case 
@@ -271,5 +273,11 @@ module Workflow
     orchestrator = Orchestrator.new produce_timer, cpus: produce_cpus.to_i
     orchestrator.process({}, produce_list)
     produce_list
+  end
+
+  def self.produce(jobs, produce_cpus: Etc.nprocessors, produce_timer: 5)
+    jobs = [jobs] unless Array === jobs
+    orchestrator = Orchestrator.new produce_timer.to_i, cpus: produce_cpus.to_i
+    orchestrator.process({}, jobs)
   end
 end

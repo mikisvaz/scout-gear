@@ -36,6 +36,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     }
     deployment.rb
     deployment=deployment{
+     queue.rb
      trace.rb
      orchestrator.rb
     }
@@ -158,6 +159,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    install
    trace
    prov
+   queue
+   process
   }
   batch=batch{
    list
