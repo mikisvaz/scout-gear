@@ -12,6 +12,7 @@ Configure a knowlege base
 $ #{$0} [<options>] <name> [knowledge_base]
 
 -h--help Print this help
+-kb--knowledge_base* Knowlege base name (or :default)
 -i--identifier_files* Identifier files separated by ','
 -n--namespace* Namespace
 EOF
@@ -26,8 +27,10 @@ end
 
 knowledge_base_name = ARGV.first
 
+knowledge_base_name ||= options[:knowledge_base] || :default
 knowledge_base = KnowledgeBase.load knowledge_base_name || :default
 
 knowledge_base.namespace = options[:namespace] if options.include? :namespace
 knowledge_base.identifier_files += options[:identifier_files].split(",") if options.include? :identifier_files
+knowledge_base.identifier_files.uniq!
 knowledge_base.save

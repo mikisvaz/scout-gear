@@ -44,7 +44,7 @@ class KnowledgeBase
     file, options = registry[name]
     file = Path.setup(file.dup) unless file.nil? or Path === file
     source_readme = file.dirname['README.md'] if file
-    return source_readme if source_readme.exists?
+    return source_readme if source_readme  && source_readme.exists?
   end
   
   def description(name)
@@ -52,7 +52,7 @@ class KnowledgeBase
     
     return database_description_file(name).read if database_description_file(name).exist? 
 
-    if knowledge_base_description_file(name).exists?
+    if knowledge_base_description_file(name)
       KnowledgeBase.parse_knowledge_base_doc(knowledge_base_description_file(name).read)[:databases][name.to_s.downcase]
     end
   end

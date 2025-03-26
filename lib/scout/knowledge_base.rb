@@ -29,7 +29,7 @@ class KnowledgeBase
   end
 
   def config_file(name)
-    @dir.config[name.to_s]
+    @dir['config'][name.to_s]
   end
 
   def save_variable(name)

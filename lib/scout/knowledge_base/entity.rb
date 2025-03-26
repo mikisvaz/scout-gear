@@ -80,6 +80,7 @@ class KnowledgeBase
       end
       identifier_files.concat Entity.identifier_files(source(name)) if defined? Entity
       identifier_files.uniq!
+      identifier_files.collect!{|f| (Path === f) ? f : Path.setup(f.dup) }
       identifier_files.collect!{|f| f.annotate(f.gsub(/\bNAMESPACE\b/, namespace))} if namespace
       identifier_files.collect!{|f| f.annotate(f.gsub(/\bNAMESPACE\b/, db_namespace(name)))} if not namespace and db_namespace(name)
       identifier_files.reject!{|f| f.match(/\bNAMESPACE\b/)}

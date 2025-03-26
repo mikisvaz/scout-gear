@@ -23,10 +23,21 @@ class KnowledgeBase
     return [] unless @registry
     (@registry.keys + present_databases).uniq
   end
+  
+  def database_file(name)
+    if @registry[name].nil?
+      nil
+    else
+      @registry[name].first
+    end
+  end
 
   def registered_options(name)
-    return {} if @registry[name].nil?
-    return @registry[name].last
+    if @registry[name].nil?
+      IndiferentHash.setup({})
+    else
+      IndiferentHash.setup(@registry[name].last)
+    end
   end
 
   def include?(name)
@@ -78,7 +89,12 @@ class KnowledgeBase
 
           persist_dir = dir
           persist_path = persist_dir[key].find
-          file, registered_options = registry[name]
+
+          file = database_file(name)
+          registered_options = registered_options(name)
+          registered_options =  IndiferentHash.setup(registered_options).except(:description)
+
+          registered_options = IndiferentHash.add_defaults registered_options, identifiers: self.identifier_files if registered_options
 
           options = IndiferentHash.add_defaults options, registered_options if registered_options and registered_options.any?
           options = IndiferentHash.add_defaults options, :persist_path => persist_path, :persist_dir => persist_dir, :persist => true
@@ -137,7 +153,12 @@ class KnowledgeBase
 
           persist_dir = dir
           persist_path = persist_dir[key].find
-          file, registered_options = registry[name]
+
+          file = database_file(name)
+          registered_options = registered_options(name)
+          registered_options =  IndiferentHash.setup(registered_options).except(:description)
+
+          registered_options = IndiferentHash.add_defaults registered_options, identifiers: self.identifier_files if registered_options
 
           options = IndiferentHash.add_defaults options, registered_options if registered_options and registered_options.any?
           options = IndiferentHash.add_defaults options, :persist_path => persist_path, :persist => true
