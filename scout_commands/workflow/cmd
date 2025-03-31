@@ -1,0 +1,116 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Run a workflow command
+
+$ #{$0} <workflow> <command> [<subcommands>] [<options>] [<arg> ...]
+
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+workflow = ARGV.shift
+
+if workflow == '-h'
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+raise ParameterException, "No workflow specified" if workflow.nil?
+
+require 'scout/workflow'
+
+wf = Workflow.require_workflow workflow
+dir = $command_dir = wf.libdir.share.scout_commands.find
+
+def prev_dir(prev)
+    scout_command_dir = $command_dir
+
+    prev.each do |previous_command|
+        scout_command_dir = scout_command_dir[previous_command]
+    end
+
+    scout_command_dir
+end
+
+def commands(prev)
+    scout_command_dir = prev_dir(prev)
+
+    command_file_dirs = scout_command_dir.find_all
+    command_files = command_file_dirs.collect{|d| d.glob('*') }.flatten
+    command_files.collect{|p| File.basename(p) }.uniq.reject{|p| p =~ /\.desc$/}.sort
+end
+
+
+prev = []
+
+$previous_commands << ' cmd'
+$previous_commands << ' '  << workflow
+
+begin
+  while ARGV.any?
+    command = ARGV.shift
+    case
+    when File.directory?(dir[command].find)
+      prev << command
+      $previous_commands << command
+      dir = dir[command]
+    when File.directory?(dir[command].find)
+      prev << command
+      dir = dir[command]
+    when dir[command].exists?
+      load dir[command].find
+      exit 0
+    else
+      if command == 'bootstrap'
+        if wf.libdir["test_workflow.rb"].exists?
+          Log.info "No bootstrap for #{ workflow }, running test_workflow.rb instead"
+          CMD.cmd_log('ruby', wf.libdir["test_workflow.rb"].find)
+        else
+          Log.info "No bootstrap for #{ workflow }, running examples instead"
+          CMD.cmd_log("scout workflow example #{ workflow }")
+          exit 0
+        end
+      end
+
+      raise ParameterException, "Error: Command not understood: #{command}"
+    end
+  end
+end
+
+puts SOPT.doc
+puts
+puts Log.color :magenta, "## COMMANDS"
+puts
+puts Log.color :magenta, "Command:"
+puts 
+puts " scout #{$previous_commands * " "} "
+puts 
+puts Log.color :magenta, "Subcommands:"
+puts 
+
+commands(prev).each do |command|
+  directory = File.directory? dir[command].find
+  if directory
+    puts "  " << Log.color(:blue, command)
+  else
+    puts "  " << command
+  end
+end
+    
