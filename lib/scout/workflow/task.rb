@@ -34,6 +34,7 @@ module Task
   def job(id = nil, provided_inputs = nil)
 
     if Hash === provided_inputs
+      IndiferentHash.setup provided_inputs
       memory_inputs = provided_inputs.values_at *self.recursive_inputs.collect{|t| t.first }.uniq
       memory_inputs += provided_inputs.select{|k,v| k.to_s.include?("#") }.collect{|p| p * "=" }
       memory_inputs << provided_inputs[:load_inputs]
@@ -41,7 +42,7 @@ module Task
       memory_inputs = provided_inputs
     end
 
-    Persist.memory("Task job #{self.name}", repo: Workflow.job_cache, other_options: {task: self, id: id, provided_inputs: memory_inputs}) do 
+    Persist.memory("Task job #{self.name}", repo: Workflow.job_cache, other: {task: self.name, id: id, provided_inputs: memory_inputs}) do
       provided_inputs, id = id, nil if (provided_inputs.nil? || provided_inputs.empty?) && (Hash === id || Array === id)
       provided_inputs = {} if provided_inputs.nil?
       IndiferentHash.setup(provided_inputs)

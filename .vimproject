@@ -10,6 +10,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
     exceptions.rb
     export.rb
     definition.rb
+    persist.rb
     documentation.rb
     usage.rb
     util.rb
@@ -161,6 +162,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    prov
    queue
    process
+   cmd
   }
   batch=batch{
    list
