@@ -75,17 +75,17 @@ module Annotation
     when Annotation.is_annotated?(objs)
       tsv.key_field = "List"
 
-      tsv[objs.annotation_id] = self.list_tsv_values(objs, fields).dup
+      tsv[objs.id] = self.list_tsv_values(objs, fields).dup
     when Array === objs 
       tsv.key_field = "ID"
 
       if Annotation.is_annotated?(objs.compact.first)
         objs.compact.each_with_index do |obj,i|
-          tsv[obj.annotation_id + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
+          tsv[obj.id + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
         end
       elsif (objs.any? && Annotation.is_annotated?(objs.compact.first.compact.first))
         objs.flatten.compact.each_with_index do |obj,i|
-          tsv[obj.annotation_id + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
+          tsv[obj.id + "#" << i.to_s] = self.obj_tsv_values(obj, fields).dup
         end
       end
     else
