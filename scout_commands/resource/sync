@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Sync to resources between path maps or between hosts
+
+$ #{$0} [<options>] <path> [<path_map>]
+
+Path map defaults to :user
+
+-h--help Print this help
+-s--source* Host of source path
+-t--target* Host of target path
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+path, path_map = ARGV
+
+raise MissingParameterException, :path if path.nil?
+
+options.keys_to_sym!
+Resource.sync(Path.setup(path.dup), path_map, **options)

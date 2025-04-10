@@ -170,6 +170,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   }
   resource=resource{
    produce
+   sync
   }
  }
  test=test {
