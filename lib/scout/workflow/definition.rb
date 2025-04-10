@@ -29,7 +29,7 @@ module Workflow
     if block_given?
       helpers[name] = block
     else
-      raise RbbtException, "helper #{name} unkown in #{self} workflow" unless helpers[name]
+      raise ScoutException, "helper #{name} unkown in #{self} workflow" unless helpers[name]
       o = Object.new
       o.extend step_module
       o.send(name, *args, **kwargs)
@@ -164,7 +164,7 @@ module Workflow
       type = task_proc.type 
     end
     task name => type do
-      raise RbbtException, "dep_task does not have any dependencies" if dependencies.empty?
+      raise ScoutException, "dep_task does not have any dependencies" if dependencies.empty?
       Step.wait_for_jobs dependencies.select{|d| d.streaming? }
       dep = dependencies.last
       dep.join
