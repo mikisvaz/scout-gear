@@ -20,6 +20,7 @@ require 'test/unit'
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 #require 'scout/helper/misc/development'
+require 'scout-gear'
 require 'scout/tmpfile'
 require 'scout/log'
 require 'scout/open'
@@ -54,6 +55,7 @@ class Test::Unit::TestCase
   
   teardown do
     Open.rm_rf tmpdir
+    Workflow.job_cache.clear
   end
 
   def self.datadir_test
