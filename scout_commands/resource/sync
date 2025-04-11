@@ -15,6 +15,7 @@ Path map defaults to :user
 -h--help Print this help
 -s--source* Host of source path
 -t--target* Host of target path
+-d--delete Delete source files
 EOF
 if options[:help]
   if defined? scout_usage
