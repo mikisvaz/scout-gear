@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
   s.authors = ["Miguel Vazquez".freeze]
-  s.date = "2025-04-11"
+  s.date = "1980-01-02"
   s.description = "Scout gear: workflow, TSVs, persistence, entities, associations, and knowledge_bases.".freeze
   s.email = "mikisvaz@gmail.com".freeze
   s.executables = ["scout".freeze]
@@ -30,7 +30,6 @@ Gem::Specification.new do |s|
     "bin/scout",
     "doc/lib/scout/path.md",
     "doc/lib/scout/workflow/task.md",
-    "lib/rbbt-scout.rb",
     "lib/scout-gear.rb",
     "lib/scout.rb",
     "lib/scout/association.rb",
@@ -251,7 +250,7 @@ Gem::Specification.new do |s|
   ]
   s.homepage = "http://github.com/mikisvaz/scout-gear".freeze
   s.licenses = ["MIT".freeze]
-  s.rubygems_version = "3.6.5".freeze
+  s.rubygems_version = "3.6.7".freeze
   s.summary = "basic gear for scouts".freeze
 
   s.specification_version = 4
