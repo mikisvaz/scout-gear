@@ -131,7 +131,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   }
   scout-gear.rb
   workflow-scout.rb
-  rbbt-scout.rb
   scout.rb
  }
  scout_commands=scout_commands filter="*"{
