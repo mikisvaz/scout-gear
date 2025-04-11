@@ -62,9 +62,8 @@ if _i = ARGV.index("--require")
   end
 end
 
-require 'scout-gear'
-
 require 'scout/simple_opt'
+require 'scout/log'
 
 options = SOPT.setup <<EOF
 Ruby bioinformatics toolkit
@@ -90,7 +89,10 @@ end
 
 if options[:log]
   Log.severity = options.delete(:log).to_i
+  require 'scout-gear'
 else
+  require 'scout-gear'
+
   global_severity = Log.get_level(Scout.etc.log_severity.read.strip) if Scout.etc.log_severity.exists?
   if ENV["SCOUT_LOG"]
     Log.severity = ENV["SCOUT_LOG"].to_i 
