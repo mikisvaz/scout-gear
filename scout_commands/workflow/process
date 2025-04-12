@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'scout'
+require 'scout/aws/s3'
 require 'scout/workflow/deployment/queue'
 require 'scout/workflow/deployment/orchestrator'
 
@@ -50,6 +51,7 @@ begin
 
       else
         files = queue_dir.glob("#{workflow}/*/*")
+        files = queue_dir.glob_all("#{workflow}/*/*")
       end
     elsif name.nil?
       files = queue_dir.glob("#{workflow}/#{task}/*")

@@ -107,8 +107,9 @@ else
   case deploy
   when "queue"
     if ! job.done?
-      save_inputs = Scout.var.queue[workflow.to_s][task_name][job.clean_name].find
-      puts job.save_inputs(save_inputs)
+      save_inputs = Scout.var.queue[workflow.to_s][task_name][job.name].find
+      job.save_inputs(save_inputs)
+      puts save_inputs
       exit
     end
   when "serial"

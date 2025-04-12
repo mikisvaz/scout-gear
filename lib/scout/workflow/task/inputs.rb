@@ -133,15 +133,18 @@ module Task
   end
 
   def save_inputs(directory, provided_inputs = {})
+    saved = []
     self.recursive_inputs.each_with_index do |p,i|
       name, type, desc, value, options = p
       next unless provided_inputs.include?(name)
-      value = provided_inputs[name]
 
+      saved << name
+
+      value = provided_inputs[name]
       Task.save_input(directory, name, type, value)
     end
+    saved
   end
-
 
   def self.load_input_from_file(filename, type, options = nil)
     if Open.exists?(filename) || filename = Dir.glob(File.join(filename + ".*")).first
