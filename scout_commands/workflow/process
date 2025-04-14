@@ -18,6 +18,7 @@ $ #{$0} [<options>] ([<workflow>] [<task>] [<name>] | <filename>)
 --continuous Process continuously
 --produce_timer* Produce timer for sleeping
 --produce_cpus* Cpus to use concurrently producing jobs
+-r--requires* Require files
 EOF
 if options[:help]
   if defined? scout_usage
@@ -27,7 +28,13 @@ if options[:help]
   end
   exit 0
 end
-list, continuous = IndiferentHash.process_options options, :list, :continuous
+list, continuous, requires = IndiferentHash.process_options options, :list, :continuous, :requires
+
+if requires
+  requires.split(",").each do |file|
+    require file
+  end
+end
 
 queue_dir = Scout.var.queue
 
@@ -35,7 +42,7 @@ class TrayAgain < Exception; end
 
 begin
   if ARGV.empty?
-    files = queue_dir.glob("*/*/*")
+    files = queue_dir.glob_all("*/*/*")
     if list
       puts files * "\n"
       exit
@@ -50,13 +57,12 @@ begin
         exit
 
       else
-        files = queue_dir.glob("#{workflow}/*/*")
         files = queue_dir.glob_all("#{workflow}/*/*")
       end
     elsif name.nil?
-      files = queue_dir.glob("#{workflow}/#{task}/*")
+      files = queue_dir.glob_all("#{workflow}/#{task}/*")
     else
-      files = queue_dir.glob("#{workflow}/#{task}/#{name}*")
+      files = queue_dir.glob_all("#{workflow}/#{task}/#{name}*")
     end
   end
 
@@ -73,7 +79,11 @@ begin
 
   Workflow.job_cache.clear
 
-  if continuous
+  if files.any?
+    Log.debug "Re-checking for new jobs"
+    sleep 1
+    raise Workflow::Orchestrator::NoWork
+  elsif continuous
     Log.debug "Continuous processing"
     sleep 1
     raise Workflow::Orchestrator::NoWork
