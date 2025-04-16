@@ -9,6 +9,7 @@ module Workflow
 
     if Open.directory?(file)
       clean_name = name2clean_name name
+      clean_name = nil if clean_name == Task::DEFAULT_NAME
       inputs = workflow.tasks[task].load_inputs(file)
       workflow.job(task, clean_name, inputs)
     else
