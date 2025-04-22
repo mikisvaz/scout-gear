@@ -12,10 +12,13 @@ class Step
   end
 
   def save_input_bundle(input_bundle)
-    TmpFile.with_file do |dir|
-      save_inputs(dir)
-      Open.mkdir File.dirname(input_bundle) 
-      Misc.tarize dir, input_bundle
+    TmpFile.with_dir do |dir|
+      TmpFile.with_file do |tmp_tar|
+        save_inputs(dir)
+        Open.mkdir File.dirname(input_bundle)
+        Misc.tarize dir, tmp_tar
+        Open.mv tmp_tar, input_bundle
+      end
     end
   end
 end
