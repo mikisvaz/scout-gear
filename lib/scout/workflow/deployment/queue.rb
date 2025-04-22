@@ -7,7 +7,7 @@ module Workflow
     workflow, task, name = file.split("/").values_at(-3, -2, -1) if file
     workflow = Workflow.require_workflow workflow
 
-    if Open.directory?(file)
+    if Open.directory?(file) || File.size(file) > 0
       clean_name = name2clean_name name
       clean_name = nil if clean_name == Task::DEFAULT_NAME
       inputs = workflow.tasks[task].load_inputs(file)

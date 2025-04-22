@@ -10,4 +10,12 @@ class Step
       Open.touch(inputs_dir)
     end
   end
+
+  def save_input_bundle(input_bundle)
+    TmpFile.with_file do |dir|
+      save_inputs(dir)
+      Open.mkdir File.dirname(input_bundle) 
+      Misc.tarize dir, input_bundle
+    end
+  end
 end
