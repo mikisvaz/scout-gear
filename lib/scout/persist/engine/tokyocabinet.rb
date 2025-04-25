@@ -108,43 +108,43 @@ if continue
       end
     end
 
-  def write_and_close
-    begin
-      write
-      yield
-    ensure
-      close
+    def write_and_close
+      begin
+        write
+        yield
+      ensure
+        close
+      end
     end
-  end
 
-  def self.importtsv(database, stream)
-    begin
-      bin = case database
-            when TokyoCabinet::HDB
-              'tchmgr'
-            when TokyoCabinet::BDB
-              'tcbmgr'
-            else
-              raise "Database not HDB or BDB: #{Log.fingerprint database}"
-            end
-      
-      database.close
-      CMD.cmd("#{bin} version", :log => false)
-      FileUtils.mkdir_p File.dirname(database.persistence_path)
-      CMD.cmd("#{bin} importtsv '#{database.persistence_path}'", :in => stream, :log => false, :dont_close_in => true)
-    rescue
-      Log.debug("tchmgr importtsv failed for: #{database.persistence_path}")
+    def self.importtsv(database, stream)
+      begin
+        bin = case database
+              when TokyoCabinet::HDB
+                'tchmgr'
+              when TokyoCabinet::BDB
+                'tcbmgr'
+              else
+                raise "Database not HDB or BDB: #{Log.fingerprint database}"
+              end
+
+        database.close
+        CMD.cmd("#{bin} version", :log => false)
+        FileUtils.mkdir_p File.dirname(database.persistence_path)
+        CMD.cmd("#{bin} importtsv '#{database.persistence_path}'", :in => stream, :log => false, :dont_close_in => true)
+      rescue
+        Log.debug("tchmgr importtsv failed for: #{database.persistence_path}")
+      end
     end
-  end
 
-  class << self
+    class << self
+      alias load_stream importtsv
+    end
+
+    def importtsv(stream)
+      ScoutCabinet.load_stream(self, stream)
+    end
+
     alias load_stream importtsv
-  end
-
-  def importtsv(stream)
-    ScoutCabinet.load_stream(self, stream)
-  end
-
-  alias load_stream importtsv
   end
 end
