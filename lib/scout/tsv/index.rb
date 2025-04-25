@@ -47,7 +47,7 @@ module TSV
              when :all
                "Index[#{target}]"
              else
-               "Index[#{Log.fingerprint(fields)}->#{target}]"
+               "Index[#{Array === fields ? fields * "," : fields}->#{target}]"
              end
 
     prefix += select_prefix_str(kwargs[:select])

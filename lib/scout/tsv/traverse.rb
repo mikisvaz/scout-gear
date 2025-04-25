@@ -43,10 +43,12 @@ module TSV
     Log.debug log_message
     bar = log_message if TrueClass === bar
 
+    invert = select.delete :invert if Hash === select
     type_swap_tag = [type.to_s, @type.to_s] * "_"
     Log::ProgressBar.with_obj_bar(self, bar) do |bar|
       with_unnamed unnamed do
         each do |key,values|
+          next unless TSV.select key, values, select, invert: invert if select
           bar.tick if bar
           values = [values] if @type == :single
           if positions.nil?

@@ -37,6 +37,7 @@ module TSVAdapter
     else
       begin
         TSV.setup(base, base.load_annotation_hash)
+        base.filename = base.persistence_path if base.filename.nil?
       rescue
         TSV.setup(base)
         base.save_annotation_hash

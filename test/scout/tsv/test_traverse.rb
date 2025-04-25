@@ -374,5 +374,47 @@ row3    a
       assert Annotation::AnnotatedObject === data["row1"]
     end
   end
+
+  def test_tsv_traverse_select
+    content =<<-'EOF'
+#: :sep=/\s+/#:type=:double
+#Id    ValueA    ValueB    OtherID
+row1    a|aa|aaa    b    Id1|Id2
+row2    A    B    Id3
+row2    AA    BB    Id33
+    EOF
+
+    tsv = TmpFile.with_file(content) do |filename|
+      TSV.open(filename, :persist => true)
+    end
+
+    all_values = []
+    tsv.traverse "ValueA", :all, select: {ValueA: "A"} do |k,v|
+      all_values.concat(v)
+    end
+    refute all_values.flatten.include? "row1"
+    refute all_values.flatten.include? "a"
+    refute all_values.flatten.include? "aaa"
+
+    assert_include all_values.flatten, "row2"
+
+    tsv.traverse "ValueA", :all, select: {ValueA: "a", invert: true} do |k,v|
+      all_values.concat(v)
+    end
+    refute all_values.flatten.include? "row1"
+    refute all_values.flatten.include? "a"
+    refute all_values.flatten.include? "aaa"
+
+    assert_include all_values.flatten, "row2"
+
+    all_values = []
+    tsv.traverse "Id", :all do |k,v|
+      all_values.concat(v)
+    end
+    assert_include all_values.flatten, "row1"
+    assert_include all_values.flatten, "a"
+    assert_include all_values.flatten, "aaa"
+  end
+
 end
 

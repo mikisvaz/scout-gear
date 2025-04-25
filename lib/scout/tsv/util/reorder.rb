@@ -1,11 +1,11 @@
 require 'matrix'
 
 module TSV
-  def reorder(key_field = nil, fields = nil, merge: true, one2one: true, **kwargs) 
-    res = self.annotate({})
+  def reorder(key_field = nil, fields = nil, merge: true, one2one: true, data: nil, unnamed: true, **kwargs) 
+    res = data || self.annotate({})
     res.type = kwargs[:type] if kwargs.include?(:type)
     kwargs[:one2one] = one2one
-    key_field_name, field_names = with_unnamed do
+    key_field_name, field_names = with_unnamed unnamed do
       traverse key_field, fields, **kwargs do |k,v|
         if res.type == :double && merge && res.include?(k)
           current = res[k]
@@ -23,11 +23,11 @@ module TSV
             res[k] = merged
           end
         elsif res.type == :flat
-          res[k] ||= []
           if merge == :concat
+            res[k] ||= []
             res[k].concat v
           else
-            res[k] += v
+            res[k] = res[k].nil? ? v : res[k] + v
           end
         else
           res[k] = v
