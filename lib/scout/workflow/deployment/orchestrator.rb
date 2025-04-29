@@ -251,7 +251,13 @@ module Workflow
           workload = new_workload
           sleep timer
         end
-        all_jobs.each{|s| s.join }
+        all_jobs.each{|s| 
+          begin
+            s.join
+          rescue
+            Log.warn "Job #{s.short_path} ended with exception #{$!.class.to_s}: #{$!.message}"
+          end
+        }
       rescue TryAgain
         retry
       end

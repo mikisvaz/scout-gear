@@ -40,6 +40,8 @@ queue_dir = Scout.var.queue
 
 class TrayAgain < Exception; end
 
+options.keys_to_sym!
+
 begin
   if ARGV.empty?
     files = queue_dir.glob_all("*/*/*")
@@ -67,10 +69,9 @@ begin
   end
 
   jobs = files.collect{|file| Workflow.queue_job(file) }
+  
+
   begin
-    options.keys.each do |key|
-      options[key.to_sym] = options.delete(key)
-    end
     Workflow.produce(jobs, **options)
   rescue Workflow::Orchestrator::NoWork
   end
