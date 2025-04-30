@@ -34,6 +34,15 @@ class Step
     @mutex.synchronize(&block)
   end
 
+  def provided_inputs
+    @provided_inputs ||= begin
+                  if info_file && Open.exists?(info_file)
+                    info[:provided_inputs]
+                  else
+                    nil
+                  end
+                end
+  end
   def inputs
     @inputs ||= begin
                   if info_file && Open.exists?(info_file)
@@ -174,6 +183,7 @@ class Step
         reset_info :status => :setup, :issued => Time.now,
           :pid => Process.pid, :pid_hostname => Misc.hostname, 
           :task_name => task_name, :workflow => workflow.to_s,
+          :provided_inputs => Annotation.purge(provided_inputs),
           :inputs => Annotation.purge(inputs), :input_names => input_names, :type => type,
           :dependencies => (dependencies || []) .collect{|d| d.path }
 
