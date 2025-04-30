@@ -284,6 +284,9 @@ module Workflow
   def self.produce(jobs, produce_cpus: Etc.nprocessors, produce_timer: 5)
     jobs = [jobs] unless Array === jobs
     orchestrator = Orchestrator.new produce_timer.to_i, cpus: produce_cpus.to_i
-    orchestrator.process({}, jobs)
+    begin
+      orchestrator.process({}, jobs)
+    rescue Orchestrator::NoWork
+    end
   end
 end
