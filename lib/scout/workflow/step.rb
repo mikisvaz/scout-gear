@@ -39,7 +39,7 @@ class Step
                   if info_file && Open.exists?(info_file)
                     info[:provided_inputs]
                   else
-                    nil
+                    {}
                   end
                 end
   end
