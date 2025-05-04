@@ -281,7 +281,7 @@ module Workflow
     produce_list
   end
 
-  def self.produce(jobs, produce_cpus: Etc.nprocessors, produce_timer: 5)
+  def self.produce(jobs, produce_cpus: Etc.nprocessors, produce_timer: 1)
     jobs = [jobs] unless Array === jobs
     orchestrator = Orchestrator.new produce_timer.to_i, cpus: produce_cpus.to_i
     begin
