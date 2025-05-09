@@ -133,10 +133,11 @@ module Workflow
         begin
           workflow_name, *subworkflows = complete_workflow_name.split("::")
           workflow_file = workflow_name
-          workflow_file = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow_file)
-          workflow_file = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file)
-          workflow_file = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file)
-          if Open.exists?(workflow_file)
+          workflow_file = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
+          workflow_file = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
+          workflow_file = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
+
+          if Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
             self.main = nil
             require_workflow_file(workflow_file)
           elsif autoinstall
