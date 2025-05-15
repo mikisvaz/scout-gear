@@ -69,7 +69,7 @@ module Association
         end
       end
 
-      tsv = transformer.tsv **kwargs.merge(data: data, fields: fields)
+      tsv = transformer.tsv **kwargs.merge(data: data, fields: fields).except(:identifiers)
     end
     index.extend Index
     index.parse_key_field

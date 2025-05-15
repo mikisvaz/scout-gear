@@ -106,8 +106,19 @@ module Association
 
     transformer.traverse key_field: original_source_header, fields: all_fields.values_at(*field_pos) do |k,v|
       v = v.dup if TSV === obj
-      k = source_index[k] if source_index
-      v[0] = Array === v[0] ? target_index.values_at(*v[0]) : target_index[v[0]] if target_index
+      if source_index
+        k = source_index[k]
+        next if k.nil? or k.empty?
+      end
+      if target_index
+        if Array === v[0]
+          v[0] = target_index.values_at(*v[0])
+          v = v.reject{|l| l[0].nil? || l[0].empty?}
+        else
+          v[0] = target_index[v[0]]
+          next if v[0].nil? or v[0].empty?
+        end
+      end
       [k, v]
     end
 

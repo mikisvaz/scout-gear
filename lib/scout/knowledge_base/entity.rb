@@ -78,6 +78,13 @@ class KnowledgeBase
       else
         identifier_files = database_identifier_files(name)
       end
+      if registered_identifiers = registered_options(name)[:identifiers]
+        if Array === registered_identifiers
+          identifier_files.concat registered_identifiers
+        else
+          identifier_files.push registered_identifiers
+        end
+      end
       identifier_files.concat Entity.identifier_files(source(name)) if defined? Entity
       identifier_files.uniq!
       identifier_files.collect!{|f| (Path === f) ? f : Path.setup(f.dup) }
@@ -94,6 +101,13 @@ class KnowledgeBase
         identifier_files = @identifier_files
       else
         identifier_files = database_identifier_files(name)
+      end
+      if registered_identifiers = registered_options(name)[:identifiers]
+        if Array === registered_identifiers
+          identifier_files.concat registered_identifiers
+        else
+          identifier_files.push registered_identifiers
+        end
       end
       identifier_files.concat Entity.identifier_files(target(name)) if defined? Entity
       identifier_files.uniq!

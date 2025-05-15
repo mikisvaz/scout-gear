@@ -56,6 +56,7 @@ module TSV
 
     files.each do |file|
       #next if Path === file && ! Open.exist?(file)
+      Path.setup file if String === file and not Path === file
       begin
         file = file.produce if Path === file
         raise "Could no produce file" if FalseClass === file
