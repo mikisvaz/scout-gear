@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'scout-gear'
-require 'scout/offsite'
 
 $0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
 
@@ -80,5 +79,5 @@ if where.nil? || where == 'all' || path.path_maps.include?(where.to_sym)
     puts location
   end
 else
-  puts SSHLine.command(where, $0, ARGV, options.merge("where" => :all))
+  raise ParameterException, "Where '#{where}' not identified. Try scout-camp if looking for a remote file"
 end
