@@ -106,7 +106,7 @@ class KnowledgeBase
         new_paths = _fp(rest, clean_matches, new_assignments)
         next unless new_paths
         paths[match] = new_paths
-      end
+      end if matches
 
       return false if paths.empty?
 
