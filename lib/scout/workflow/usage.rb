@@ -139,14 +139,16 @@ module Workflow
     dep_tree = {}
     task = self.tasks[task_name]
     raise TaskNotFound, "Task #{task_name} in #{self.to_s}" if task.nil?
-    task.deps.each do |workflow, task, options|
-      next if seen.include? dep
-      seen << [workflow, task, options.merge(seen_options)]
-      next if task.nil?
 
-      key = [workflow, task]
+    task.deps.each do |workflow, dep_task, options|
+      dep = [workflow, dep_task, options.merge(seen_options)]
+      #next if seen.include? dep
+      seen << dep
+      next if dep_task.nil?
 
-      dep_tree[key] = workflow.dep_tree(task, seen, options.merge(seen_options))
+      dep_key = [workflow, dep_task]
+
+      dep_tree[dep_key] = workflow.dep_tree(dep_task, seen, options.merge(seen_options))
     end if task.deps
 
     @dep_tree[key] = dep_tree if save
@@ -163,6 +165,7 @@ module Workflow
   def _prov_tasks(tree)
     tasks = [] 
     heap = tree.values
+    heap = [tree]
     while heap.any?
       t = heap.pop
       t.each do |k,v|
@@ -188,10 +191,8 @@ module Workflow
       first = last.nil?
       last = _prov_tasks(workflow.dep_tree(task_name))
 
-      break if child
-
       if child
-        description << "->" << task_name.to_s
+        #·description << "->" << task_name.to_s
       elsif first
         description << "" << task_name.to_s
       else
@@ -204,7 +205,6 @@ module Workflow
   end
 
   def prov_tree(tree, offset = 0, seen = [])
-
     return "" if tree.empty?
 
     lines = []

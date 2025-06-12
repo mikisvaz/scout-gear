@@ -2,10 +2,20 @@ require 'scout/entity'
 require 'scout/workflow'
 
 module EntityWorkflow
+  attr_accessor :entity_name
+
+  def entity_name=(name)
+    @entity_name = name
+    helper name do
+      entity
+    end
+  end
 
   def self.extended(base)
     base.extend Workflow
     base.extend Entity
+
+    base.entity_name ||= 'entity'
 
     base.instance_variable_set(:@annotation_inputs, IndiferentHash.setup({})) unless base.instance_variables.include?(:@annotation_inputs)
     class << base
@@ -20,7 +30,7 @@ module EntityWorkflow
       base.setup(clean_name.dup, inputs.to_hash)
     end
 
-    base.helper :entity_list do 
+    base.helper :entity_list do
       list = inputs.last
       list = list.load if Step === list
       base.setup(list, inputs.to_hash)
@@ -46,12 +56,13 @@ module EntityWorkflow
         input annotation
       end
     end
+
     case property_type
     when :single, :single2array
-      input :entity, :string, "#{self.to_s} identifier", nil, jobname: true
+      input entity_name, :string, "#{self.to_s} identifier", nil, jobname: true
       task(task_name => result_type, &block)
     when :both
-      input :entity, :string, "#{self.to_s} identifier", nil, jobname: true
+      input entity_name, :string, "#{self.to_s} identifier", nil, jobname: true
       input :list, :array, "#{self.to_s} identifier list"
       task(task_name => result_type, &block)
     else
@@ -59,7 +70,8 @@ module EntityWorkflow
       task(task_name => result_type, &block)
     end
 
-    property task_name => property_type do |*args|
+    property_name = task_name.to_s.sub(/^(#{entity_name}_list|#{entity_name}|list)_/, '')
+    property property_name => property_type do |*args|
       job = job(task_name, *args)
       Array === job ? job.collect(&:run) : job.run
     end

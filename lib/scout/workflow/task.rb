@@ -83,11 +83,12 @@ module Task
 
       id = DEFAULT_NAME if id.nil?
 
+      sanitized_id = Path.sanitize_filename(id, 150)
       if non_default_inputs.any? && !(non_default_inputs == [jobname_input] && provided_inputs[jobname_input] == id)
         hash = Misc.digest(:inputs => input_digest_str, :dependencies => dependencies)
-        name = [id, hash] * "_"
+        name = [sanitized_id, hash] * "_"
       else
-        name = id
+        name = sanitized_id
       end
 
       extension = self.extension
