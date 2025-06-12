@@ -115,7 +115,8 @@ else
   when "serial"
     job.run(true) 
   when "local"
-    orchestrator = Workflow::Orchestrator.new 3, "cpus" => Misc.processors
+    refresh = Scout::Config.get :refresh, :deploy, :local, :orchestrator, default: 3
+    orchestrator = Workflow::Orchestrator.new refresh.to_f, "cpus" => Misc.processors
     orchestrator.process({}, job)
   when "slurm"
     require 'rbbt-scout'
