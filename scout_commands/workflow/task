@@ -18,7 +18,7 @@ $ #{$0} [<options>] <workflow> <task>
 -h--help Print this help
 --nostream Disable job streaming
 --update Update jobs with newer dependencies
---deploy* Deploy mode: serial, local, or SLURM (default 'serial')
+--deploy* Deploy mode: serial, local, queue, or SLURM (default 'serial')
 --fork Fork and return path
 --load_inputs* Directory or file with inputs files to load
 --save_inputs* Directory or tar.gz file path to store inputs
