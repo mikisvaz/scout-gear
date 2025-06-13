@@ -191,6 +191,7 @@ module Workflow
     def process(rules, jobs = nil)
       jobs, rules = rules, {} if jobs.nil?
       jobs = [jobs] if Step === jobs
+      failed_jobs = []
       begin
 
         workload = Orchestrator.workload(jobs)
@@ -199,7 +200,6 @@ module Workflow
         all_jobs.each{|job| job.clean unless (job.done? && job.updated?) || (job.error? && ! job.recoverable_error?) }
 
         top_level_jobs = jobs.collect{|job| job.path }
-        failed_jobs = []
         while workload.any? 
 
           candidates = resources_used.keys + Orchestrator.candidates(workload, rules)
