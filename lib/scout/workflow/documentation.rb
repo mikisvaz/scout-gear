@@ -2,7 +2,7 @@ module Workflow
   attr_accessor :title, :description
 
   def self.doc_parse_first_line(str)
-    if str.match(/^([^\n]*)\n\n(.*)/sm)
+    if str.match(/^([^\n]*)\n\n(.*)/smu)
       str.replace $2
       $1
     else
