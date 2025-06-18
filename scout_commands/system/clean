@@ -1,0 +1,146 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/monitor'
+
+$0 = "scout #{$previous_commands*""} #{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Clean orphaned files
+
+$ rbbt system clean <workflow> <task>
+
+Specify workflow '.' and no task to examine the jobs of the current directory (usefull for web-server cache).
+
+-a--all Apply to all jobs, not only uncompleted
+-o--older* Clean jobs not access in some time
+-f--force Remove locks and files regardless of been active
+-q--quick Quick check
+-d--dirty Clean dirty jobs
+-h--help Print this help
+EOF
+
+scout_usage and exit 0 if options[:help]
+
+workflow, task = ARGV
+
+workflow = workflow.split "," if workflow
+task = task.split "," if task
+
+all = options.delete :all
+force = options.delete :force
+dirty = options.delete :dirty
+time = options.delete :older
+
+ENV["SCOUT_DEBUG_CLEAN"] = 'false'
+ENV["SCOUT_UPDATE"] = 'true' if dirty
+
+time = Misc.timespan time, 'd' if time
+
+puts Log.color(:magenta, "# System clean")
+
+locks = Scout.lock_info
+if locks.any?
+  puts
+  puts Log.color(:magenta, "Locks:")
+  locks.each do |file,info|
+    if force or (info[:pid] && ! Misc.pid_alive?(info[:pid]))
+      puts "  Removing #{ file }"
+      File.unlink file 
+    end
+  end
+end
+
+persists = Scout.persist_info
+if persists.any?
+  puts
+  puts Log.color(:magenta, "Persist:")
+  persists.each do |file,info|
+    if force or (info[:pid] and Misc.pid_alive? info[:pid])
+      puts "  Removing #{ file }"
+      File.unlink file 
+    end
+  end
+end
+
+sensiblewrites = Scout.sensiblewrite_info
+if sensiblewrites.any?
+  puts
+  puts Log.color(:magenta, "Writes:")
+  sensiblewrites.each do |file,info|
+    if force or (info[:pid] and Misc.pid_alive? info[:pid])
+      puts "  Removing #{ file }"
+      File.unlink file 
+    end
+  end
+end
+
+exit 0 if workflow.nil?
+workflow = nil if workflow == ["all"]
+
+puts
+puts Log.color(:magenta, "# Workflow clean")
+puts
+
+if workflow === ['.']
+  jobs = Scout.job_info ["all"], task, ['.']
+else
+  jobs = Scout.job_info workflow, task
+end
+
+workflows = {}
+
+TSV.traverse jobs do |file,i|
+  if options[:quick] and i[:done]
+    status = 'done'
+  else
+    info = begin
+             Open.open(i[:info_file]) do |f|
+               Step.load_info(f)
+             end
+           rescue
+             {:status => :noinfo}
+           end
+
+    done = Open.exists?(file) && ! Open.broken_link?(file)
+    pid = info[:pid] || (Open.exists?(file + '.pid') && Open.read(file + '.pid')) unless done
+
+    status = info[:status].to_s
+    if status != "noinfo"
+      status = :missing if status == "done" and not done
+      status = :nopid if status != "done" and pid.nil?
+      status = :dead if status != "done" and pid and not Misc.pid_alive?(pid)
+      status = :sync if status != "done" and done
+    end
+
+    status = :dirty if info[:status].to_s == "done" and dirty and Workflow.load_step(file).dirty?
+    if info[:status] == :error
+      begin
+        exception = info[:exception][:class]
+        Kernel.const_get exception
+        status = :non_recoverable if exception.superclass === ScoutException
+      rescue
+      end
+    end
+
+    status = status.to_s
+  end
+
+  if time and Open.exists?(file)
+    old = Time.now - Open.atime(file)
+    if old > time
+      status = 'old'
+    end
+  end
+
+  if (force && status !~ /done/) or 
+      status =~ /\b(old|dirty|nopid|error|missing|aborted|dead|sync|waiting)$/ or
+      (status == "noinfo" and not done) or
+      status == "" 
+
+    puts "  Removing #{ file } - #{status}" 
+    Step.clean(file) 
+  end
+end
+

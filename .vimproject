@@ -5,6 +5,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  }
  lib=lib {
   scout=scout{
+   monitor.rb
    workflow.rb
    workflow=workflow{
     exceptions.rb
@@ -170,6 +171,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   resource=resource{
    produce
    sync
+  }
+  system=system{
+   clean
   }
  }
  test=test {
