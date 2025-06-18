@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
   s.authors = ["Miguel Vazquez".freeze]
-  s.date = "2025-06-13"
+  s.date = "2025-06-18"
   s.description = "Scout gear: workflow, TSVs, persistence, entities, associations, and knowledge_bases.".freeze
   s.email = "mikisvaz@gmail.com".freeze
   s.executables = ["scout".freeze]
@@ -51,6 +51,7 @@ Gem::Specification.new do |s|
     "lib/scout/knowledge_base/query.rb",
     "lib/scout/knowledge_base/registry.rb",
     "lib/scout/knowledge_base/traverse.rb",
+    "lib/scout/monitor.rb",
     "lib/scout/persist/engine.rb",
     "lib/scout/persist/engine/fix_width_table.rb",
     "lib/scout/persist/engine/packed_index.rb",
@@ -143,6 +144,7 @@ Gem::Specification.new do |s|
     "scout_commands/rbbt",
     "scout_commands/resource/produce",
     "scout_commands/resource/sync",
+    "scout_commands/system/clean",
     "scout_commands/template",
     "scout_commands/update",
     "scout_commands/workflow/cmd",
@@ -250,7 +252,7 @@ Gem::Specification.new do |s|
   ]
   s.homepage = "http://github.com/mikisvaz/scout-gear".freeze
   s.licenses = ["MIT".freeze]
-  s.rubygems_version = "3.6.6".freeze
+  s.rubygems_version = "3.6.7".freeze
   s.summary = "basic gear for scouts".freeze
 
   s.specification_version = 4
@@ -259,6 +261,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency(%q<net-ssh>.freeze, [">= 0".freeze])
   s.add_runtime_dependency(%q<matrix>.freeze, [">= 0".freeze])
   s.add_runtime_dependency(%q<RubyInline>.freeze, [">= 0".freeze])
+  s.add_runtime_dependency(%q<csv>.freeze, [">= 0".freeze])
   s.add_development_dependency(%q<juwelier>.freeze, ["~> 2.1.0".freeze])
 end
 
