@@ -1,0 +1,238 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'scout/monitor'
+
+$0 = "rbbt #{$previous_commands*""} #{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Report the status of the system
+
+$ rbbt system status <workflow> <task>
+
+Specify workflow '.' and no task to examine the jobs of the current directory (usefull for web-server cache).
+
+-h--help Print this help
+-q--quick Quick check
+-a--all Print all jobs, not only uncompleted
+-i--inputs* List of inputs to print
+-if--info_fields* List of info fields to print
+EOF
+rbbt_usage and exit 0 if options[:help]
+
+workflow, task = ARGV
+
+
+workflow = workflow.split "," if workflow
+task = task.split "," if task
+
+all = options.delete :all
+
+inputs = (options[:inputs] || "").split(",")
+info_fields = (options[:info_fields] || "").split(",")
+
+def pid_msg(pid)
+  color = if pid and Misc.pid_alive? pid
+            :green
+          else
+            :red
+          end
+  if pid.nil?
+    ""
+  else
+    Log.color(color, pid)
+  end
+end
+
+
+#def status_msg(status)
+#  color = case status.to_sym
+#          when :error, :aborted, :missing, :dead, :broken
+#            :red
+#          when :streaming, :started
+#            :cyan
+#          when :done
+#            :green
+#          when :noinfo, :notfound
+#            :blue
+#          when :dependencies, :waiting, :setup
+#            :yellow
+#          else
+#            if status.to_s.index ">"
+#              :cyan
+#            else
+#              :cyan
+#            end
+#          end
+#  Log.color(color, status.to_s)
+#end
+
+def input_msg(file, inputs)
+
+  str = ""
+  job_inputs = Step.new(file).recursive_inputs.to_hash
+  IndiferentHash.setup(job_inputs)
+
+  inputs.each do |input|
+    value = job_inputs[input]
+    next if  value.nil?
+    value_str = Misc.fingerprint(value)
+    str << "\t#{Log.color :magenta, input}=#{value_str}"
+  end
+  str
+end
+
+def info_msg(info, info_fields)
+
+  str = ""
+  info_fields.each do |field|
+    value = info[field]
+    next if  value.nil?
+    value_str = Misc.fingerprint(value)
+    str << "\t#{Log.color :magenta, field}=#{value_str}"
+  end
+  str
+end
+
+
+puts Log.color(:magenta, "# System report")
+puts
+sort_files = Proc.new do |a,b|
+  fa,ia = a
+  fb,ib = b
+
+  dira = fa.split(/[:_][^\/>]*$/).first
+  dirb = fb.split(/[:_][^\/>]*$/).first
+
+  case dira <=> dirb
+  when -1
+    -1
+  when 1
+    1
+  else
+    ia[:ctime] <=> ib[:ctime]
+  end
+end
+
+
+persists = Scout.persist_info
+if persists.any?
+  puts Log.color(:magenta, "Persist:")
+  persists.sort_by{|f,i| i[:ctime] }.each do |file,info|
+    elapsed = info[:elapsed]
+    puts "  " << file + Log.color(:blue, " -- time: #{Misc.format_seconds elapsed}")
+  end
+  puts
+end
+
+sensiblewrites = Scout.sensiblewrite_info
+if sensiblewrites.any?
+  puts Log.color(:magenta, "Writing:")
+  sensiblewrites.sort_by{|f,i| i[:ctime] }.each do |file,info|
+    elapsed = info[:elapsed]
+    puts "  " << file + Log.color(:blue, " -- time: #{Misc.format_seconds elapsed}")
+  end
+  puts
+end
+
+locks = Scout.lock_info
+if locks.any?
+  puts Log.color(:magenta, "Locks:")
+  locks.sort(&sort_files).each do |file,info|
+    elapsed, pid, ppid = info.values_at :elapsed, :pid, :ppid
+    puts "  " << file + Log.color(:blue, " -- time: #{Misc.format_seconds elapsed}; ppid: #{ppid}; pid: #{pid_msg pid}")
+  end
+  puts
+end
+
+exit 0 if workflow.nil?
+workflow = nil if workflow == ["all"]
+
+puts Log.color(:magenta, "# Workflows")
+
+if workflow === ['.']
+  jobs = Scout.job_info ["all"], task, ['.']
+else
+  jobs = Scout.job_info workflow, task
+end
+
+workflows = {}
+
+TSV.traverse jobs, :_bar => "Checking job status" do |file,info|
+  next unless all || ! info[:done] || ! File.exist?(file)
+  workflow = info[:workflow]
+  task = info[:task]
+  workflows[workflow] ||= {}
+  workflows[workflow][task] ||= {}
+  workflows[workflow][task][file] ||= info
+end
+
+workflows.sort.each do |workflow,tasks|
+  tasks.sort.each do |task,jobs|
+    puts "* " << Log.color(:magenta, workflow) << "#" << Log.color(:yellow, task) << ": " <<  Log.color(:blue, jobs.length.to_s)
+
+    files_txt = jobs.collect do |file, i|
+      str = file.dup
+      if options[:quick] and i[:done]
+        status = 'done'
+        str << " #{ Step.prov_status_msg status }"
+        if inputs and inputs.any? 
+          str << input_msg(file, inputs)
+        end
+
+        if info_fields and info_fields.any?
+          info = begin
+                   Open.open(i[:info_file]) do |f|
+                     Step.load_info(f)
+                   end
+                 rescue
+                   Log.exception $!
+                   {:status => :noinfo}
+                 end
+          IndiferentHash.setup(info)
+          str << info_msg(info, info_fields)
+        end
+      else
+        info = begin
+                 Open.open(i[:info_file]) do |f|
+                   Step.load_info(f)
+                 end
+               rescue
+                 {:status => :noinfo}
+               end
+        IndiferentHash.setup(info)
+
+        pid = info[:pid]
+        status = info[:status]
+        status = :missing if status == :done and not (Open.exist?(file) && ! Open.broken_link?(file))
+        status = :broken if Open.broken_link?(file)
+        status = status.to_s
+        if status != "done" and pid and not Misc.pid_alive?(pid)
+          if File.exist? file
+            status << Log.color(:red, " (out of sync)") 
+          else
+            status << Log.color(:red, " (dead)") 
+          end
+        end
+        str << " #{ Step.prov_status_msg status }"
+        str << " (dirty)" if status == 'done' && Step.new(file).dirty?
+
+        if inputs and inputs.any? 
+          str << input_msg(file, inputs)
+        end
+
+        if info_fields and info_fields.any?
+          str << info_msg(info, info_fields)
+        end
+      end
+      str << "; #{pid_msg pid}" unless status == "done"
+      str
+    end
+
+    files_txt.each do |f|
+      next if f.nil?
+      puts "  " << f
+    end
+  end
+end

@@ -68,7 +68,7 @@ module Scout
           lock_info[f][:ppid] = info[:ppid]
         end
       rescue Exception
-        Log.exception $!
+        Log.warn $!.message
       end
     end
     lock_info
