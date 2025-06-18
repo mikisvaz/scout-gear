@@ -24,6 +24,7 @@ Juwelier::Tasks.new do |gem|
   gem.add_runtime_dependency 'net-ssh'
   gem.add_runtime_dependency 'matrix'
   gem.add_runtime_dependency 'RubyInline'
+  gem.add_runtime_dependency 'csv'
   #gem.add_runtime_dependency 'tokyocabinet'
 
   gem.add_development_dependency "juwelier", "~> 2.1.0"
