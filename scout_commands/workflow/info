@@ -11,6 +11,7 @@ Show info from job
 $ #{$0} [<options>] <step_path>
 
 -h--help Print this help
+-i--inputs Pretty print the inputs
 EOF
 if options[:help]
   if defined? scout_usage
@@ -25,17 +26,24 @@ path = ARGV.first
 raise MissingParameterException.new :step_path if path.nil?
 step = Step.load(path.dup)
 
-step.info.each do |k,v|
-  case v
-  when nil
-    next
-  when Exception
-    puts Log.color(:title, "Exception")
-    Log.exception v
-  else
-    puts [Log.color(:title, k), Log.fingerprint(v)] * " = "
+if options[:inputs]
+  names, values = step.info.values_at :input_names, :inputs
+  names.zip(values).each do |name,value|
+    puts [Log.color(:title, name), Log.fingerprint(value)] * " = "
   end
-rescue
-  next
+else
+  step.info.each do |k,v|
+    case v
+    when nil
+      next
+    when Exception
+      puts Log.color(:title, "Exception")
+      Log.exception v
+    else
+      puts [Log.color(:title, k), Log.fingerprint(v)] * " = "
+    end
+  rescue
+    next
+  end
 end
 
