@@ -6,7 +6,7 @@ module Scout
 
   LOCK_DIRS = Path.setup('tmp/tsv_open_locks').find_all +
     Path.setup('tmp/persist_locks').find_all +
-    Path.setup('tmp/sensiblewrite_locks').find_all +
+    Path.setup('tmp/sensible_write_locks').find_all +
     Path.setup('tmp/produce_locks').find_all +
     Path.setup('tmp/step_info_locks').find_all
 
