@@ -19,7 +19,7 @@ Specify workflow '.' and no task to examine the jobs of the current directory (u
 -i--inputs* List of inputs to print
 -if--info_fields* List of info fields to print
 EOF
-rbbt_usage and exit 0 if options[:help]
+scout_usage and exit 0 if options[:help]
 
 workflow, task = ARGV
 
