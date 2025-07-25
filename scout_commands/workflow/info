@@ -12,6 +12,7 @@ $ #{$0} [<options>] <step_path>
 
 -h--help Print this help
 -i--inputs Pretty print the inputs
+-ri--recursive_inputs Pretty print the inputs (recursively)
 EOF
 if options[:help]
   if defined? scout_usage
@@ -29,6 +30,10 @@ step = Step.load(path.dup)
 if options[:inputs]
   names, values = step.info.values_at :input_names, :inputs
   names.zip(values).each do |name,value|
+    puts [Log.color(:title, name), Log.fingerprint(value)] * " = "
+  end
+elsif options[:recursive_inputs]
+  step.recursive_inputs.each do |name,value|
     puts [Log.color(:title, name), Log.fingerprint(value)] * " = "
   end
 else
