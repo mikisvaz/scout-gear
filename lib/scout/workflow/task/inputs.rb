@@ -169,7 +169,7 @@ module Task
   end
 
   def load_inputs(directory)
-    if Open.exists?(directory) && ! Open.directory?(directory)
+    if Open.exists?(directory) && ! Open.directory?(directory) && ! Open.size(directory) == 0
       TmpFile.with_file do |tmp_directory|
         Misc.in_dir tmp_directory do
           CMD.cmd("tar xvfz '#{directory}'")
