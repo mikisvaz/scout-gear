@@ -2,14 +2,17 @@ require 'scout'
 
 module Scout
 
-  LOCK_DIRS = Scout.tmp.tsv_open_locks.find_all + Scout.tmp.persist_locks.find_all + Scout.tmp.sensiblewrite_locks.find_all +
-    Scout.tmp.produce_locks.find_all + Scout.tmp.step_info_locks.find_all
-
   SENSIBLE_WRITE_DIRS = Open.sensible_write_dir.find_all
 
-  PERSIST_DIRS    = Scout.share.find_all  + Scout.var.cache.persistence.find_all
+  LOCK_DIRS = Path.setup('tmp/tsv_open_locks').find_all +
+    Path.setup('tmp/persist_locks').find_all +
+    Path.setup('tmp/sensiblewrite_locks').find_all +
+    Path.setup('tmp/produce_locks').find_all +
+    Path.setup('tmp/step_info_locks').find_all
 
-  JOB_DIRS = Scout.var.jobs.find_all
+  PERSIST_DIRS    = Path.setup('share').find_all  + Path.setup('var/cache/persistence').find_all
+
+  JOB_DIRS = Path.setup('var/jobs').find_all
 
   MUTEX_FOR_THREAD_EXCLUSIVE = Mutex.new
 
