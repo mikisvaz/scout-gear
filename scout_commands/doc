@@ -26,7 +26,9 @@ end
 
 module_name = ARGV.first
 if module_name.nil?
-  puts Scout.doc.lib.scout.glob("**/*.md").collect{|f| File.basename(f.unset_extension) } * "\n"
+  puts Scout.doc.lib.scout.glob("**/*.md").collect{|f| 
+    f.find.unset_extension.sub(Scout.doc.lib.scout.find + "/", '')
+  } * "\n"
 else
   begin
     puts Scout.doc.lib.scout[module_name].find_with_extension('md', :lib).read

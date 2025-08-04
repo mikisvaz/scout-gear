@@ -1,5 +1,13 @@
 scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
+ chats=chats{
+  doc=doc{
+   system
+   documenter
+   documenter.rb
+   tsv
+  }
+ }
  bin=bin filter="*"{
   scout
  }
