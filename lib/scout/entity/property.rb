@@ -138,7 +138,7 @@ module Entity
               res = (self.container._ary_property_cache[cache_code] ||= self.container.send(real_method, *args, **kwargs))
               Array === res ? res[self.container_index] : res[self]
             else
-              res = self.make_array.send(real_method)
+              res = self.make_array.send(real_method, *args, **kwargs)
               Array === res ? res[0] : res[self]
             end
           end
