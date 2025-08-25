@@ -75,7 +75,7 @@ module Entity
           responses = {}
           self.each do |item|
             begin
-              responses[item] = Entity::Property.persist(name, item, type, options) do
+              responses[item] = Entity::Property.persist(name, item, type, options.merge(other: {args: args, kwargs: kwargs})) do
                 raise MultipleEntityProperty 
               end
             rescue MultipleEntityProperty
@@ -89,7 +89,7 @@ module Entity
             new_responses = missing.instance_exec(*args, **kwargs, &block)
 
             missing.each do |item|
-              responses[item] = Entity::Property.persist(name, item, type, options) do
+              responses[item] = Entity::Property.persist(name, item, type, options.merge(other: {args: args, kwargs: kwargs})) do
                 Array === new_responses ? new_responses[item.container_index] : new_responses[item]
               end
             end
@@ -105,7 +105,7 @@ module Entity
             type, options = nil, {persist: false}
           end
 
-          Entity::Property.persist(name, self, type, options) do
+          Entity::Property.persist(name, self, type, options.merge(other: {args: args, kwargs: kwargs})) do
             self.instance_exec(*args, **kwargs, &block)
           end
         end
