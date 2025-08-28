@@ -447,7 +447,7 @@ module TSV
     end
 
     def fingerprint
-      "Parser:{"<< Log.fingerprint(self.all_fields|| []) << "}"
+      "Parser:{" + Log.fingerprint(self.all_fields|| []) << "}"
     end
 
     def digest_str

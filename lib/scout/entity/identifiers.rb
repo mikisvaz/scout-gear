@@ -50,7 +50,7 @@ module Entity
       return [] if files.nil?
       files.collect!{|f| f.annotate f.gsub(/\b#{NAMESPACE_TAG}\b/, namespace.to_s) } if annotation_hash.include? :namespace and self.namespace
       if files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ }.any?
-        Log.warn "Rejecting some identifier files for lack of 'namespace': " << files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ } * ", "
+        Log.warn "Rejecting some identifier files for lack of 'namespace': " + files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ } * ", "
       end
       files.reject!{|f| f =~ /\b#{NAMESPACE_TAG}\b/ } 
       files

@@ -84,7 +84,7 @@ class KnowledgeBase
           key = name.to_s + "_" + fp
         end
 
-        Persist.memory("Index:" << [key, dir] * "@") do
+        Persist.memory("Index:" + [key, dir] * "@") do
           options = options.dup
 
           persist_dir = dir
@@ -148,7 +148,7 @@ class KnowledgeBase
         options[:namespace] ||= self.namespace unless self.namespace.nil?
 
         key += '.database'
-        Persist.memory("Database:" << [key, dir] * "@") do
+        Persist.memory("Database:" + [key, dir] * "@") do
           options = options.dup
 
           persist_dir = dir

@@ -165,11 +165,11 @@ Example:
   end
 
   def fingerprint
-    "TSV:{"<< Log.fingerprint(self.all_fields|| []) << ";" << Log.fingerprint(self.keys) << "}"
+    "TSV:{" + Log.fingerprint(self.all_fields|| []) << ";" << Log.fingerprint(self.keys) << "}"
   end
 
   def digest_str
-    "TSV:{"<< Log.fingerprint(self.all_fields|| []) << ";" << Log.fingerprint(self.keys) << ";" << Log.fingerprint(self.values) << "}"
+    "TSV:{" + Log.fingerprint(self.all_fields|| []) << ";" << Log.fingerprint(self.keys) << ";" << Log.fingerprint(self.values) << "}"
   end
 
   def inspect

@@ -16,7 +16,7 @@ module TSV
       if String === preamble
         preamble_str = preamble
       elsif preamble && options.values.compact.any?
-        preamble_str = "#: " << IndiferentHash.hash2string(options.merge(serializer: nil))
+        preamble_str = "#: " + IndiferentHash.hash2string(options.merge(serializer: nil))
       else
         preamble_str = nil
       end
@@ -134,7 +134,7 @@ module TSV
     end
 
     def fingerprint
-      "Dumper:{"<< Log.fingerprint(self.all_fields|| []) << "}"
+      "Dumper:{" + Log.fingerprint(self.all_fields|| []) << "}"
     end
 
     def digest_str

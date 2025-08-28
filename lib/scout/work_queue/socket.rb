@@ -9,7 +9,7 @@ class WorkQueue
 
       @serializer = serializer || Marshal
 
-      @key = "/" << rand(1000000000).to_s << '.' << Process.pid.to_s;
+      @key = "/" + rand(1000000000).to_s << '.' << Process.pid.to_s;
       @write_sem = @key + '.in'
       @read_sem = @key + '.out'
       Log.debug "Creating socket semaphores: #{@key}"

@@ -64,7 +64,7 @@ class KnowledgeBase
 
     full_description = []
     empty_line = ''
-    full_description << ("# " << Misc.humanize(name))
+    full_description << ("# " + Misc.humanize(name))
     full_description << empty_line
 
     source_formats = begin
