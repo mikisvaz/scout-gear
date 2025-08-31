@@ -75,7 +75,7 @@ if continue
 
     def self.with_semaphore(size, file = nil)
       if file.nil?
-        file = "/scout-" << Misc.digest(rand(100000000000).to_s)[0..10] if file.nil?
+        file = "/scout-" + Misc.digest(rand(100000000000).to_s)[0..10] if file.nil?
       else
         file = file.gsub('/', '_') if file
       end

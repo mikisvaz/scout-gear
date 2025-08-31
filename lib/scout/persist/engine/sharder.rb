@@ -37,7 +37,7 @@ class Sharder
       databases[shard]
     else
       database = databases[shard] ||= begin
-                                        path = File.join(persistence_path, 'shard-' << shard.to_s)
+                                        path = File.join(persistence_path, 'shard-' + shard.to_s)
                                         (writable or File.exist?(path)) ? Persist.open_database(path, (File.exist?(path) ? false : writable), :clean, db_type, @persist_options) : nil
                                       end
       Log.warn "Database #{ path } missing" if database.nil?

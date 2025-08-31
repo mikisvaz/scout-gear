@@ -194,9 +194,9 @@ module Workflow
       if child
         #·description << "->" << task_name.to_s
       elsif first
-        description << "" << task_name.to_s
+        description += "" + task_name.to_s
       else
-        description << ";" << task_name.to_s
+        description += ";" + task_name.to_s
       end
       
       seen << [workflow, task_name]

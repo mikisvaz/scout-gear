@@ -81,7 +81,7 @@ module TSV
       header = Dumper.header(@options.merge(type: @type, sep: @sep, preamble: preamble))
       @mutex.synchronize do
         @initialized = true
-        @sin << header << "\n" if header and ! header.empty?
+        @sin << header + "\n" if header and ! header.empty?
       end
     end
 

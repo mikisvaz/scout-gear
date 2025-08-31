@@ -9,11 +9,11 @@ class PackedIndex
   }
 
   def self.process_mask(mask)
-    str = ""
+    str = "".dup
     size = 0
     mask.each do |e|
       if ELEMS.include? e
-        str << ELEMS[e][0]
+        str + ELEMS[e][0]
         size += ELEMS[e][1]
       elsif e =~ /^(\d+)s$/
         num = $1.to_i
@@ -50,7 +50,7 @@ class PackedIndex
       @mask = @stream.read(mask_length)
       @offset = @mask.length + 8
     end
-    @nil_string = "NIL" << ("-" * (@item_size - 3))
+    @nil_string = "NIL" + ("-" * (@item_size - 3))
   end
 
   def file
