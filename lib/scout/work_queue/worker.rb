@@ -27,9 +27,9 @@ class WorkQueue
       run do
         begin
           if output
-            Open.purge_pipes(output.swrite)
+            Open.purge_pipes(input.sread, output.swrite)
           else
-            Open.purge_pipes
+            Open.purge_pipes(input.sread)
           end
 
           while obj = input.read
@@ -43,9 +43,11 @@ class WorkQueue
         rescue DoneProcessing
         rescue Interrupt
         rescue Exception
-          output.write WorkerException.new($!, Process.pid)
-          exit -1
-        ensure
+          begin
+            output.write WorkerException.new($!, Process.pid)
+          ensure
+            exit -1
+          end
         end
         exit 0
       end

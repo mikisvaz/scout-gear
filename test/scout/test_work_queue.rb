@@ -142,7 +142,7 @@ class TestWorkQueue < Test::Unit::TestCase
 
       res = []
       q.process do |out|
-        raise ScoutException 
+        raise ScoutException
         res << out
       end
 

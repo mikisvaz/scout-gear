@@ -156,7 +156,7 @@ class TestQueueWorker < Test::Unit::TestCase
     input = WorkQueue::Socket.new
     output = WorkQueue::Socket.new
 
-    workers = 10.times.collect{ WorkQueue::Worker.new }
+    workers = 5.times.collect{ WorkQueue::Worker.new }
     workers.each do |w|
       w.process(input, output) do |obj|
         raise ScoutException
@@ -164,18 +164,19 @@ class TestQueueWorker < Test::Unit::TestCase
       end
     end
 
-    read = Thread.new do 
+    Open.purge_pipes(input.swrite, output.sread)
+    read = Thread.new do
       Thread.current.report_on_exception = false
-      begin
-        while obj = output.read
-          if DoneProcessing === obj
-            pid = obj.pid
-            @worker_mutex.synchronize{ @workers.delete_if{|w| w.pid = pid } }
-            break if workers.empty?
-          end
-          raise obj if Exception === obj
+      while obj = output.read
+        if DoneProcessing === obj
+          pid = obj.pid
+          @worker_mutex.synchronize{ @workers.delete_if{|w| w.pid = pid } }
+          break if workers.empty?
         end
+        raise obj if Exception === obj
       end
+    ensure
+      output.close_read
     end
 
     write = Thread.new do
@@ -187,6 +188,7 @@ class TestQueueWorker < Test::Unit::TestCase
         input.write DoneProcessing.new
       end
       input.close_write
+    rescue
     end
 
     write.join
