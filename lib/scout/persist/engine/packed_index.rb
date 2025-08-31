@@ -13,7 +13,7 @@ class PackedIndex
     size = 0
     mask.each do |e|
       if ELEMS.include? e
-        str += ELEMS[e][0]
+        str << ELEMS[e][0]
         size += ELEMS[e][1]
       elsif e =~ /^(\d+)s$/
         num = $1.to_i
