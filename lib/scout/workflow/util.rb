@@ -16,5 +16,9 @@ module Workflow
     name = name.to_sym
     dependencies.select{|dep| dep.task_name.to_sym == name }
   end
+
+  def all_tasks
+    tasks.keys
+  end
 end
 
