@@ -16,7 +16,7 @@ require_relative 'step/archive'
 class Step 
 
   attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :provided_inputs, :compute, :overriden_task, :overriden_workflow, :workflow, :exec_context, :overriden
-  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, exec_context = nil, &task)
+  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, exec_context: nil, &task)
     @path = path
     @inputs = inputs
     @dependencies = dependencies
@@ -112,17 +112,22 @@ class Step
 
   def exec
 
-    if inputs 
+    if inputs
       if Task === task
         types = task.inputs.collect{|name,type| type }
-        new_inputs = inputs.zip(types).collect{|input,info|  
+        new_inputs = inputs.zip(types).collect{|input,info|
           type, desc, default, options = info
           next input unless Step === input
           input.join if input.streaming?
           Task.format_input(input.join.path, type, options)
         }
       else
-        new_inputs = inputs.collect{|input|  
+        if Hash === inputs
+          new_inputs = inputs.values
+        else
+          new_inputs = inputs
+        end
+        new_inputs = new_inputs.collect{|input|
           Step === input ? input.load : input
         }
       end
