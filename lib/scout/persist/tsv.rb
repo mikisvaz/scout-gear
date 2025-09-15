@@ -63,6 +63,7 @@ module Persist
 
         yield(data)
         data.save_annotation_hash if Annotation.is_annotated?(data)
+        data.read if data.respond_to?(:read)
         data
       end
     end
