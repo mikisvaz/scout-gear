@@ -20,5 +20,9 @@ module Workflow
   def all_tasks
     tasks.keys
   end
+
+  def self.list
+    Path.setup('workflows').glob('*').collect{|p| p.basename }
+  end
 end
 
