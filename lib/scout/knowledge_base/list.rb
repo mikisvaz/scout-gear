@@ -12,7 +12,7 @@ class KnowledgeBase
       if entity_type.to_s == "simple"
         path = dir.lists[entity_type.to_s][id]
       else
-        path = dir.lists[entity_type.to_s][id + ".tsv"]
+        path = dir.lists[entity_type.to_s][id].find_with_extension("tsv")
       end
     else
       path = dir.lists.glob("*/#{id}").first
@@ -60,7 +60,10 @@ class KnowledgeBase
         list.extend AnnotatedArray
         list
       else
-        path.list
+        list = path.list
+        if entity_type
+          Entity.prepare_entity(list, entity_type)
+        end
       end
     rescue
       Log.exception $!

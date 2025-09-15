@@ -59,8 +59,25 @@ class KnowledgeBase
   end
 
   def self.load(dir)
-    dir = Path.setup("var").knowledge_base[dir.to_s] if Symbol === dir
-    kb = KnowledgeBase.new dir
+    kb = case dir
+         when Path
+           KnowledgeBase.new dir
+         when Symbol
+           dir = Path.setup("var").knowledge_base[dir.to_s] if Symbol === dir
+           kb = KnowledgeBase.new dir
+         when Workflow
+           raise if dir.knowledge_base.nil?
+           kb = dir.knowledge_base
+         when String
+           if Workflow.list.include? dir
+             workflow = Workflow.require_workflow dir
+             kb = workflow.knowledge_base
+           else
+             dir = Path.setup("var").knowledge_base[dir.to_s] if Symbol === dir
+             kb = KnowledgeBase.new dir
+           end
+         end
+
     kb.load
     kb
   end
