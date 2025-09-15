@@ -5,6 +5,7 @@ module Scout
   SENSIBLE_WRITE_DIRS = Open.sensible_write_dir.find_all
 
   LOCK_DIRS = Path.setup('tmp/tsv_open_locks').find_all +
+    Path.setup('tmp/tsv_locks').find_all +
     Path.setup('tmp/persist_locks').find_all +
     Path.setup('tmp/sensible_write_locks').find_all +
     Path.setup('tmp/produce_locks').find_all +
