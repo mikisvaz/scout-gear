@@ -24,5 +24,15 @@ module Workflow
   def self.list
     Path.setup('workflows').glob('*').collect{|p| p.basename }
   end
+
+  def task_jobs_files(task_name)
+    self.directory[task_name].glob("**").
+      collect{|f| %w(info files).include?(f.get_extension) ? f.unset_extension : f }.
+      uniq
+  end
+
+  def task_jobs(task_name)
+    task_jobs_files(task_name).collect{|f| Step.load f }
+  end
 end
 
