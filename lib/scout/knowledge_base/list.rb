@@ -33,6 +33,7 @@ class KnowledgeBase
     Open.lock path do
       begin
         if AnnotatedArray === list
+          path = path.set_extension('tsv')
           Open.write(path, Annotation.tsv(list, :all).to_s)
         else
           Open.write(path, list * "\n")
@@ -64,6 +65,7 @@ class KnowledgeBase
         if entity_type
           Entity.prepare_entity(list, entity_type)
         end
+        list
       end
     rescue
       Log.exception $!
