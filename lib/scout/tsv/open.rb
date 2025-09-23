@@ -61,6 +61,7 @@ module Open
       end
 
       if into.respond_to?(:close)
+        obj = obj.find if Path === obj
         into_thread = Thread.new do 
           Thread.current.report_on_exception = false
           Thread.current["name"] = "Traverse into"

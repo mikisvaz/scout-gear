@@ -3,6 +3,7 @@ module TSV
     attr_accessor :unnamed, :parser, :dumper, :namespace
 
     def initialize(parser, dumper = nil, unnamed: nil, namespace: nil)
+
       if TSV::Parser === parser
         @parser = parser
       elsif TSV === parser
