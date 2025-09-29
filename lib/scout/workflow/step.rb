@@ -223,7 +223,7 @@ class Step
 
       @result
     rescue Exception => e
-      merge_info :status => :error, :exception => e, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
+      merge_info :status => :error, :exception => Base64.encode64(Marshal.dump(e)), :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
       begin
         abort_dependencies
       ensure
