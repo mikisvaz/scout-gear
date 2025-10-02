@@ -14,7 +14,7 @@ module Entity
     end
 
     def all_properties
-      entity_classes.inject([]){|acc,e| acc.concat(e.properties) }
+      entity_classes.inject([]){|acc,e| acc.concat(e.properties.keys) }
     end
   end
 end

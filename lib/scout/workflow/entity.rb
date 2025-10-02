@@ -71,10 +71,31 @@ module EntityWorkflow
     end
 
     property_name = task_name.to_s.sub(/^(#{entity_name}_list|#{entity_name}|list)_/, '')
+    property_job_name = property_name + '_job'
+
+    property property_job_name => property_type do |*args|
+      job(task_name, *args)
+    end
+
     property property_name => property_type do |*args|
-      job = job(task_name, *args)
+      job = self.send(property_job_name)
+
+      job.join if job.running?
+
+      if job.error?
+        if job.recoverable_error?
+          job.clean
+        else
+          raise job.exception
+        end
+      end
+
+      job.run unless job.done?
+
+      job.load
       Array === job ? job.collect(&:run) : job.run
     end
+
   end
 
   def entity_task(task_name, *args, &block)

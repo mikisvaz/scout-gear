@@ -60,7 +60,7 @@ module Entity
                       raise "Type of property unknown #{type}"
                     end
 
-      properties.push name
+      properties[name] = block.parameters
 
       entity_class = self
       if type == :multiple
