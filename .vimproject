@@ -147,6 +147,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  scout_commands=scout_commands filter="*"{
   rbbt
   alias
+  entity
   find
   glob
   log

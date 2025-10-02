@@ -1,0 +1,151 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Execute an entity property
+
+$ #{$0} [<options>] <entity_type> <property> <entity> [<entity_options>] [<property_parameters>]*
+
+Property options are an array of strings that get passed to the property, the
+remaining ARGV elements; property parameters may be optional
+
+-h--help Print this help
+-W--workflows* Workflows to load
+EOF
+
+type, property, entity = ARGV
+
+if options[:help] and type.nil?
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+raise MissingParameterException, :type if type.nil?
+
+workflows = IndiferentHash.process_options options, :workflows, workflows: 'local'
+
+workflows = workflows.split(",")
+
+workflows.each do |workflow|
+  workflow = workflow.strip
+  wf = case workflow
+       when 'local'
+         [:lib, :current].each do |location|
+           Workflow.require_workflow Scout.root['workflow.rb'].find(location) if Scout.root['workflow.rb'].find(location).exists?
+         end
+       when 'lib'
+         Workflow.require_workflow Scout.root['workflow.rb'].find(:lib) if Scout.root['workflow.rb'].find(:lib).exists?
+       when 'current'
+         Workflow.require_workflow Scout.root['workflow.rb'].find(:current) if Scout.root['workflow.rb'].find(:current).exists?
+       else
+         Workflow.require_workflow workflow
+       end
+
+  begin
+    require "#{wf.to_s}/entity/#{Misc.snake_case(type)}"
+  rescue Exception
+  end
+
+end
+
+begin
+  require "entity/#{Misc.snake_case(type)}"
+rescue Exception
+end
+entity_module = Kernel.const_get type
+
+entity_module.annotations.uniq.each do |attr|
+  SOPT.register attr.slice(0,1).to_s, attr, true, "Entity attribute" 
+end
+
+if options[:help] and property.nil?
+  if defined? scout_usage
+    scout_usage 
+  else
+    puts SOPT.doc
+  end
+  properties = entity_module.properties
+
+  puts Log.color :title, 'Properties: '
+  puts properties.keys * "\n"
+
+  exit 0
+end
+
+SOPT.synopsys[' [<entity_options>]'] = ""
+
+raise MissingParameterException, :property if property.nil?
+
+
+raise ParameterException, "Property no available" unless entity_module.instance_methods.include? property.to_sym
+
+if options[:help]
+  properties = entity_module.properties[property.to_sym]
+
+  property_str = properties.collect do |type, name|
+    if type != :opt
+      "[<#{name} (#{type})>]"
+    else
+      "[<#{name}>]"
+    end
+  end * " "
+
+  SOPT.synopsys['[<property_parameters>]*'] = property_str
+  
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+
+  exit 0
+end
+
+raise MissingParameterException, :entity if entity.nil?
+
+entity = Entity.prepare_entity(entity, type, options)
+
+entity_params = ARGV[3..-1]
+
+entity_params = entity_params.collect do |param|
+  if Path.located?(param) && Path.can_read?(param)
+    Open.read(param)
+  else
+    case param
+    when 'true'
+      true
+    when 'false'
+      true
+    when /^-?\d+$/
+      param.to_i
+    when /^-?\d+\.\d+$/
+      param.to_f
+    else
+      param
+    end
+  end
+end
+
+res = entity.send(property, *entity_params)
+
+case res
+when nil
+when Array
+  puts res * "\n"
+when String
+  puts res unless res.empty?
+when Symbol, Numeric
+  puts res.to_s
+when Step
+  puts res.path
+else
+  puts res.to_s
+end
