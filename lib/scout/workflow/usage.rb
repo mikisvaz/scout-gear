@@ -35,6 +35,7 @@ module Task
       str.puts SOPT.input_array_doc(inputs)
 
       inputs.select{|name,type, _| type == :select }.each do |name,_,_,_,options|
+        next unless options
         selects << [name, options[:select_options]] if options[:select_options]
       end
     end
