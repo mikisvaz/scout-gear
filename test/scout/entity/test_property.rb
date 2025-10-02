@@ -335,7 +335,7 @@ class TestEntityProperty < Test::Unit::TestCase
 
   def test_all_properties
     assert ReversableString.setup("TEST").all_properties.include?(:reverse_text_ary)
-    assert_equal ReversableString.setup("TEST").all_properties, ReversableString.properties
+    assert_equal ReversableString.setup("TEST").all_properties.sort, ReversableString.properties.keys.sort
   end
 
   def test_times
