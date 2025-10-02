@@ -34,5 +34,9 @@ module Workflow
   def task_jobs(task_name)
     task_jobs_files(task_name).collect{|f| Step.load f }
   end
+
+  def load_job(task_name, name)
+    Step.new self.directory[task_name][name]
+  end
 end
 
