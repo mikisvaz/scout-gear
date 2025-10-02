@@ -13,6 +13,10 @@ class Step
                    end
   end
 
+  def files_dir=(dir)
+    @files_dir = dir
+  end
+
   def file(file = nil)
     dir = files_dir
     Path.setup(dir) unless Path === dir
