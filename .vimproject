@@ -149,6 +149,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   alias
   entity
   find
+  cat
   glob
   log
   doc
