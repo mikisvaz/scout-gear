@@ -202,7 +202,12 @@ class Step
 
   def exception
     return nil unless info[:exception]
-    Marshal.load(Base64.decode64(info[:exception]))
+    begin
+      Marshal.load(Base64.decode64(info[:exception]))
+    rescue
+      Log.exception $!
+      nil
+    end
   end
 
   # Marshal Step
