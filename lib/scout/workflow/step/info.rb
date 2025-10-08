@@ -120,7 +120,7 @@ class Step
       if info.include?(key)
         case info[key]
         when Array
-          info[key].concat Array === value ? value : [value]
+          info[key].concat(Array === value ? value : [value])
         when Hash
           info[key].merge! value
         else
