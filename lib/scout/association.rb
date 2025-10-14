@@ -113,7 +113,9 @@ module Association
       if target_index
         if Array === v[0]
           v[0] = target_index.values_at(*v[0])
-          v = v.reject{|l| l[0].nil? || l[0].empty?}
+          non_nil_pos = []
+          v[0].each_with_index{|e,i| non_nil_pos << i unless e.nil? || (String === e) && e.empty? }
+          v = v.collect{|l| l.values_at *non_nil_pos}
         else
           v[0] = target_index[v[0]]
           next if v[0].nil? or v[0].empty?
