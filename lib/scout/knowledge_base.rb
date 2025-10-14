@@ -72,8 +72,9 @@ class KnowledgeBase
            if Workflow.list.include? dir
              workflow = Workflow.require_workflow dir
              kb = workflow.knowledge_base
+           elsif dir =~ /^\w+$/
+             load(dir.to_sym)
            else
-             dir = Path.setup("var").knowledge_base[dir.to_s] if Symbol === dir
              kb = KnowledgeBase.new dir
            end
          end
