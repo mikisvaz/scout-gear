@@ -20,6 +20,7 @@ $ #{$0} [<options>] <workflow> <task>
 --update Update jobs with newer dependencies
 --deploy* Deploy mode: serial, local, queue, or SLURM (default 'serial')
 --fork Fork and return path
+--exec Exec and return output
 --load_inputs* Directory or file with inputs files to load
 --save_inputs* Directory or tar.gz file path to store inputs
 -jn--jobname* Name to use as job identifier
@@ -41,13 +42,13 @@ task = workflow.tasks[task_name.to_sym] if task_name
 
 options[:help] = true if task.nil?
 
-help, provenance, clean, recursive_clean, clean_task, load_inputs, save_inputs, jobname, printpath, deploy, override_deps, do_fork = IndiferentHash.process_options options, 
-  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :save_inputs, :jobname, :printpath, :deploy, :override_deps, :fork,
+help, provenance, clean, recursive_clean, clean_task, load_inputs, save_inputs, jobname, printpath, deploy, override_deps, do_fork, do_exec = IndiferentHash.process_options options,
+  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :save_inputs, :jobname, :printpath, :deploy, :override_deps, :fork, :exec,
   :deploy => 'serial'
 
 if help
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -99,6 +100,9 @@ elsif do_fork
   job.fork
   puts job.path
   exit 0
+elsif do_exec
+  puts job.exec
+  exit 0
 elsif save_inputs
   puts job.save_inputs(save_inputs)
   exit 0
@@ -125,7 +129,7 @@ else
     HPC::BATCH_MODULE = HPC.batch_system "SLURM"
     HPC::BATCH_MODULE.orchestrate_job(job, slurm_options)
     job.grace
-  else 
+  else
     if deploy.end_with?('-slurm')
       server = deploy.sub('-slurm','')
       OffsiteStep.setup(job, server: server, slurm: true)
