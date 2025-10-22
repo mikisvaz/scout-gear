@@ -12,20 +12,12 @@ $ #{$0} <workflow> <command> [<subcommands>] [<options>] [<arg> ...]
 
 -h--help Print this help
 EOF
-if options[:help]
-  if defined? scout_usage
-    scout_usage 
-  else
-    puts SOPT.doc
-  end
-  exit 0
-end
 
 workflow = ARGV.shift
 
 if workflow == '-h'
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -99,11 +91,11 @@ puts
 puts Log.color :magenta, "## COMMANDS"
 puts
 puts Log.color :magenta, "Command:"
-puts 
+puts
 puts " scout #{$previous_commands * " "} "
-puts 
+puts
 puts Log.color :magenta, "Subcommands:"
-puts 
+puts
 
 commands(prev).each do |command|
   directory = File.directory? dir[command].find
@@ -113,4 +105,4 @@ commands(prev).each do |command|
     puts "  " << command
   end
 end
-    
+
