@@ -131,7 +131,7 @@ module Association
     persist_options = IndiferentHash.pull_keys kwargs, :persist
 
     database_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, 
-      prefix: "Association::Index", serializer: :double,
+      prefix: "Association::Index", serializer: :double, update: true,
       other_options: kwargs  
 
     Persist.tsv(file, kwargs, engine: "BDB", persist_options: database_persist_options) do |data|

@@ -31,5 +31,24 @@ Isa,IV
       end
     end
   end
+
+  def test_registry_identifiers_target
+    identifier =<<-EOF
+#Alias,Initials
+Clei,CC
+Miki,MV
+Guille,GC
+Isa,IV
+    EOF
+    TmpFile.with_dir do |dir|
+      TmpFile.with_file(identifier) do |identifier_file|
+        identifiers = TSV.open(identifier_file, sep: ",", type: :single)
+        brothers = datafile_test(:person).brothers
+        kb = KnowledgeBase.new dir
+        kb.register :brothers, brothers, identifiers: identifiers
+        assert_include kb.get_index(:brothers, source: "=>Initials", target: "=>Initials"), "CC~GC"
+      end
+    end
+  end
 end
 
