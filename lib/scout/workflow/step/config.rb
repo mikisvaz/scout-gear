@@ -12,6 +12,9 @@ class Step
       new_tokens << ("task:" + workflow_name << "#" << task_name.to_s)
     end
     new_tokens << ("task:" + task_name.to_s)
+    new_tokens << (task_name.to_s)
+    new_tokens << (workflow_name)
+    new_tokens << ("task")
 
     Scout::Config.get(key, tokens + new_tokens, options)
   end
