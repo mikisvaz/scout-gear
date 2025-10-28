@@ -227,4 +227,15 @@ module Workflow
   alias export_asynchronous export
   alias export_exec export
   alias export_stream export
+
+  def include_workflow(workflow)
+    workflow.documentation
+    self.asynchronous_exports += workflow.asynchronous_exports
+    self.synchronous_exports += workflow.synchronous_exports
+    self.exec_exports += workflow.exec_exports
+    self.stream_exports += workflow.stream_exports
+    self.tasks.merge! workflow.tasks
+    self.tasks.each{|_,t| t.workflow = workflow }
+    self.helpers.merge! workflow.helpers
+  end
 end
