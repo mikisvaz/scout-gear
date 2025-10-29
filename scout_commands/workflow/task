@@ -125,12 +125,11 @@ else
     orchestrator = Workflow::Orchestrator.new refresh.to_f, "cpus" => Misc.processors
     orchestrator.process({}, job)
   when "slurm"
-    require 'rbbt-scout'
-    require_relative '../../modules/rbbt-util/lib/rbbt/hpc'
+    require 'rbbt/hpc'
     slurm_options = {}
     HPC::BATCH_MODULE = HPC.batch_system "SLURM"
     HPC::BATCH_MODULE.orchestrate_job(job, slurm_options)
-    job.grace
+    #job.grace
   else
     if deploy.end_with?('-slurm')
       server = deploy.sub('-slurm','')
@@ -153,5 +152,3 @@ else
     end
   end
 end
-
-
