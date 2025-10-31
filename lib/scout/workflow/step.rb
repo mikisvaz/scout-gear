@@ -224,13 +224,14 @@ class Step
       @result
     rescue Exception => e
       begin
-        exception_encoded = Base64.encode64(Marshal.dump(e))
-        merge_info :status => :error, :exception => exception_encoded, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
-      rescue
-        exception_encoded = Base64.encode64(Marshal.dump(ScoutException.new(e.message)))
-        merge_info :status => :error, :exception => exception_encoded, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
-      end
-      begin
+        begin
+          exception_encoded = Base64.encode64(Marshal.dump(e))
+          merge_info :status => :error, :exception => exception_encoded, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
+        rescue Exception
+          exception_encoded = Base64.encode64(Marshal.dump(ScoutException.new(e.message)))
+          merge_info :status => :error, :exception => exception_encoded, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
+        end
+
         abort_dependencies
       ensure
         raise e
