@@ -126,10 +126,9 @@ else
     orchestrator.process({}, job)
   when "slurm"
     require 'rbbt/hpc'
-    slurm_options = {}
+    slurm_options = Scout.etc.batch.default.yaml
     HPC::BATCH_MODULE = HPC.batch_system "SLURM"
     HPC::BATCH_MODULE.orchestrate_job(job, slurm_options)
-    #job.grace
   else
     if deploy.end_with?('-slurm')
       server = deploy.sub('-slurm','')
