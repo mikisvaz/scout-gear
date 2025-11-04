@@ -90,7 +90,7 @@ end
 if options[:log]
   Log.severity = options.delete(:log).to_i
   require 'scout-gear'
-else
+elsif Log.severity.nil?
   require 'scout-gear'
 
   global_severity = Log.get_level(Scout.etc.log_severity.read.strip) if Scout.etc.log_severity.exists?
@@ -100,7 +100,10 @@ else
     global_severity = Log.get_level(Scout.etc.log_severity.read.strip) if Scout.etc.log_severity.exists?
     Log.severity = global_severity.to_i if global_severity
   end
+else
+  require 'scout-gear'
 end
+
 
 if config_keys = options.delete(:config_keys)
   config_keys.split(",").each do |config|
