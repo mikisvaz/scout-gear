@@ -4,7 +4,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 require 'scout/tsv'
 
 class TestWorkflowTrace < Test::Unit::TestCase
-  def test_true
+  def test_trace
     m = Module.new do
       extend Workflow
       self.name = "TestWF"
