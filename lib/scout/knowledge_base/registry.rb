@@ -175,14 +175,13 @@ class KnowledgeBase
 
           database = if persist_path.exists? and persist_options[:persist] and not persist_options[:update]
                        Log.low "Re-opening database #{ name } from #{ Log.fingerprint persist_path }. #{options}"
-                       Association.database(file, **options.merge(persist_options: persist_options))
+                       Association.database(file, **options.merge(persist_options: persist_options).except(:undirected))
                      else
                        options = IndiferentHash.add_defaults options, registered_options if registered_options
-                       undirected = IndiferentHash.process_options options, :undirected
                        raise "Repo #{ name } not found and not registered" if file.nil?
                        Log.medium "Opening database #{ name } from #{ Log.fingerprint file }. #{options}"
                        file = file.call if Proc === file
-                       Association.database(file, **options.merge(persist_options: persist_options))
+                       Association.database(file, **options.merge(persist_options: persist_options).except(:undirected))
                      end
 
           database.namespace = self.namespace if self.namespace
