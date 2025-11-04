@@ -126,7 +126,7 @@ else
     orchestrator.process({}, job)
   when "slurm"
     require 'rbbt/hpc'
-    slurm_options = Scout.etc.batch.default.yaml
+    slurm_options = Scout.etc.batch.default.yaml rescue {}
     HPC::BATCH_MODULE = HPC.batch_system "SLURM"
     HPC::BATCH_MODULE.orchestrate_job(job, slurm_options)
   else
