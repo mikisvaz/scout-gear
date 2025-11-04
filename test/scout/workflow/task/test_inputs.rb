@@ -18,6 +18,7 @@ class TestTaskInput < Test::Unit::TestCase
       input :boolean_array, :boolean_array, "", [true, false, true]
       input :path_array, :path_array, "", %w(dir/subdir/file1 dir/subdir/file2)
       input :file_array, :file_array
+      input :select, :select, '', :foo, select_options: %(foo bar)
       task :task => :array do
         inputs
       end
@@ -116,6 +117,22 @@ class TestTaskInput < Test::Unit::TestCase
       original_digest =  task.process_inputs(inputs).last
 
       TmpFile.with_file do |save_directory|
+        task.save_inputs(save_directory, inputs)
+        new_inputs = task.load_inputs(save_directory)
+        new_digest =  task.process_inputs(new_inputs).last
+        assert_equal original_digest, new_digest
+      end
+    end
+  end
+
+  def test_save_and_load_select
+    task = self.example_task
+
+    TmpFile.with_file("2\n3") do |integer_array_file|
+      inputs = {:select => 'bar'}
+      original_digest =  task.process_inputs(inputs).last
+
+      TmpFile.with_path do |save_directory|
         task.save_inputs(save_directory, inputs)
         new_inputs = task.load_inputs(save_directory)
         new_digest =  task.process_inputs(new_inputs).last
