@@ -19,10 +19,10 @@ class Step
   def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, exec_context: nil, &task)
     @path = path
     @inputs = inputs
-    @dependencies = dependencies || []
+    @dependencies = dependencies
     @id = id
-    @non_default_inputs = non_default_inputs || []
-    @provided_inputs = provided_inputs || {}
+    @non_default_inputs = non_default_inputs
+    @provided_inputs = provided_inputs
     @compute = compute 
     @task = task
     @mutex = Mutex.new
@@ -43,6 +43,18 @@ class Step
                   end
                 end
   end
+
+  def non_default_inputs
+    @non_default_inputs ||= begin
+                  if info_file && Open.exists?(info_file)
+                    info[:non_default_inputs]
+                  else
+                    []
+                  end
+                end
+  end
+
+
   def inputs
     @inputs ||= begin
                   if info_file && Open.exists?(info_file)
@@ -191,6 +203,7 @@ class Step
           :pid => Process.pid, :pid_hostname => Misc.hostname, 
           :task_name => task_name, :workflow => workflow.to_s,
           :provided_inputs => Annotation.purge(provided_inputs),
+          :non_default_inputs => non_default_inputs,
           :inputs => Annotation.purge(inputs), :input_names => input_names, :type => type,
           :dependencies => (dependencies || []) .collect{|d| d.path }
 
