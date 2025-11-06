@@ -180,7 +180,7 @@ class Workflow::Orchestrator
     r = IndiferentHash.setup r
 
     r = IndiferentHash.add_defaults r, 
-      cpus: rules_block[:cpus] || rules_block[:task_cpus],
+      cpus: rules_block[:cpus] || rules_block[:task_cpus] || 1,
       time: rules_block[:time]
 
     r.delete_if{|k,v| v.nil?}
