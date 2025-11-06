@@ -42,6 +42,8 @@ module Task
       memory_inputs = provided_inputs
     end
 
+    memory_inputs = nil if Array === memory_inputs && memory_inputs.compact.empty?
+    memory_inputs = nil if Hash === memory_inputs && memory_inputs.empty?
     Persist.memory("Task job #{self.name}", repo: Workflow.job_cache, other: {task: self.name, id: id, provided_inputs: memory_inputs}) do
       provided_inputs, id = id, nil if (provided_inputs.nil? || provided_inputs.empty?) && (Hash === id || Array === id)
       provided_inputs = {} if provided_inputs.nil?
