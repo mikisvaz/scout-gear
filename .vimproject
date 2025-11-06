@@ -2,6 +2,10 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
  README.md
  chats=chats filter="*"{
+
+  deploy
+
+
   debug
   document.rb
   pipes
@@ -46,10 +50,30 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      inputs.rb
      info.rb
     }
+
     deployment.rb
     deployment=deployment{
+     orchestrator=orchestrator{
+      rules.rb
+      workload.rb
+      chains.rb
+      batches.rb
+     }
+
+     local.rb
+
+     scheduler.rb
+
+     scheduler=scheduler{
+      job.rb
+      lfs.rb
+      slurm.rb
+      pbs.rb
+     }
+
      queue.rb
      trace.rb
+
      orchestrator.rb
     }
     entity.rb

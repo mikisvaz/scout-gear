@@ -121,14 +121,15 @@ else
   when "serial"
     job.run(true) 
   when "local"
+    require 'scout/workflow/deployment'
+    require 'scout/workflow/deployment/local'
     refresh = Scout::Config.get :refresh, :deploy, :local, :orchestrator, default: 0.5
-    orchestrator = Workflow::Orchestrator.new refresh.to_f, "cpus" => Misc.processors
-    orchestrator.process({}, job)
+    Workflow::LocalExecutor.produce job, produce_timer: refresh
   when "slurm"
-    require 'rbbt/hpc'
-    slurm_options = Scout.etc.batch.default.yaml rescue {}
-    HPC::BATCH_MODULE = HPC.batch_system "SLURM"
-    HPC::BATCH_MODULE.orchestrate_job(job, slurm_options)
+    require 'scout/workflow/deployment'
+    require 'scout/workflow/deployment/scheduler'
+    batch_rules = Open.yaml(Scout.etc.batch.default) rescue {}
+    Workflow::Scheduler.produce(job, batch_rules)
   else
     if deploy.end_with?('-slurm')
       server = deploy.sub('-slurm','')
