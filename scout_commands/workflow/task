@@ -123,8 +123,8 @@ else
   when "local"
     require 'scout/workflow/deployment'
     require 'scout/workflow/deployment/local'
-    refresh = Scout::Config.get :refresh, :deploy, :local, :orchestrator, default: 0.5
-    Workflow::LocalExecutor.produce job, produce_timer: refresh
+    timer = Scout::Config.get :timer, :produce, :batch, :deploy, :local, :orchestrator, default: 0.2
+    Workflow::LocalExecutor.produce job, produce_timer: timer
   when "slurm"
     require 'scout/workflow/deployment'
     require 'scout/workflow/deployment/scheduler'

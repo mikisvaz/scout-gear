@@ -8,7 +8,7 @@ class Workflow::LocalExecutor
 
   def self.produce(jobs, rules = {}, produce_cpus: Etc.nprocessors, produce_timer: 1)
     jobs = [jobs] unless Array === jobs
-    orchestrator = self.new produce_timer.to_i, cpus: produce_cpus.to_i
+    orchestrator = self.new produce_timer.to_f, cpus: produce_cpus.to_i
     begin
       orchestrator.process(rules, jobs)
     rescue self::NoWork
