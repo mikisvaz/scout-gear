@@ -16,6 +16,7 @@ Run a workflow job
 $ #{$0} [<options>] <workflow> <task>
 
 -h--help Print this help
+--workflows* Other workflows to load
 --nostream Disable job streaming
 --update Update jobs with newer dependencies
 --deploy* Deploy mode: serial, local, queue, or SLURM (default 'serial')
@@ -34,17 +35,22 @@ EOF
 
 workflow_name, task_name = ARGV
 
+
+help, workflows, provenance, clean, recursive_clean, clean_task, load_inputs, save_inputs, jobname, printpath, deploy, override_deps, do_fork, do_exec = IndiferentHash.process_options options,
+  :help, :workflows, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :save_inputs, :jobname, :printpath, :deploy, :override_deps, :fork, :exec,
+  :deploy => 'serial'
+
 raise MissingParameterException.new :workflow if workflow_name.nil?
 
 workflow = Workflow.require_workflow workflow_name
+
+workflows = workflows.split(/,\s*/) if workflows
+workflows.each{|wf| Workflow.require_workflow wf } if workflows
+
 task_name = task_name.to_sym if task_name
 task = workflow.tasks[task_name.to_sym] if task_name
 
-options[:help] = true if task.nil?
-
-help, provenance, clean, recursive_clean, clean_task, load_inputs, save_inputs, jobname, printpath, deploy, override_deps, do_fork, do_exec = IndiferentHash.process_options options,
-  :help, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :save_inputs, :jobname, :printpath, :deploy, :override_deps, :fork, :exec,
-  :deploy => 'serial'
+help = true if task.nil?
 
 if help
   if defined? scout_usage
@@ -54,7 +60,12 @@ if help
   end
 
   puts workflow.usage(task) if workflow
-  exit 0
+
+  if task_name && task.nil?
+    exit -1
+  else
+    exit 0
+  end
 end
 
 task = workflow.tasks[task_name]
