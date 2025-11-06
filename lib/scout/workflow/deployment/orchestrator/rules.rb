@@ -3,6 +3,8 @@ class Workflow::Orchestrator
   # Merge config_keys strings preserving order and de-duplicating tokens
   def self.add_config_keys(current, new_val)
     return new_val if current.nil?
+    current = current * ',' if Array === current
+    new_val = new_val * ',' if Array === new_val
     (new_val.to_s + ',' + current.to_s).gsub(/,\s*/, ',').split(',').reverse.uniq.reverse * ","
   end
 
@@ -25,6 +27,8 @@ class Workflow::Orchestrator
       case k.to_s
       when "config_keys"
         current[k] = add_config_keys current["config_keys"], value
+      when 'defaults'
+        current[k] = merge_rules current[k], value
       else
         next if current.include?(k)
         current[k] = value
@@ -186,5 +190,50 @@ class Workflow::Orchestrator
     r.delete_if{|k,v| v.nil?}
 
     IndiferentHash.setup(r)
+  end
+
+  def self.merge_rule_file(current, new)
+    current = IndiferentHash.setup(current)
+    new.each do |key,value|
+      if current[key].nil?
+        current[key] = value
+      elsif Hash === value
+        current[key] = merge_rules(current[key], value)
+      else
+        current[key] = value
+      end
+    end
+
+    current
+  end
+
+  def self.load_rules(rule_files = nil)
+    rule_files = [:default] if rule_files.nil?
+    rule_files = [rule_files] unless Array === rule_files
+
+    rule_files = rule_files.inject({}) do |acc,file|
+      if Path.is_filename?(file) && Open.exists?(file) and Path.can_read?(file)
+        file_rules = Open.yaml(file)
+        raise "Unknown rule file #{file}" unless Hash === file_rules
+      else
+        orig = file
+        file = Scout.etc.batch[file].find_with_extension(:yaml)
+
+        if file.exists?
+          file_rules = Open.yaml(file)
+        else
+          raise "Unknown rule file #{orig}"
+        end
+      end
+
+      file_rules = IndiferentHash.setup(file_rules)
+
+      if file_rules[:import]
+        imports = file_rules.delete(:import)
+        merge_rule_file(file_rules, load_rules(imports))
+      end
+
+      merge_rule_file(acc, file_rules)
+    end
   end
 end

@@ -248,7 +248,7 @@ class Workflow::LocalExecutor
   def self.sort_candidates(batches)
     seen = Set.new
     batches.sort_by do |batch|
-      - batch[:resources].values.compact.inject(0){|acc,e| acc += e}
+      - batch[:resources].values.compact.select{|e| Numeric === e }.inject(0.0){|acc,e| acc += e}
     end
   end
 
