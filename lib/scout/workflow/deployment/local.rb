@@ -45,6 +45,8 @@ class Workflow::LocalExecutor
   end
 
   def process_batches(batches)
+    failed_jobs = []
+
     while batches.reject{|b| Workflow::Orchestrator.done_batch?(b) }.any?
 
       candidates = Workflow::LocalExecutor.candidates(batches)
@@ -53,40 +55,42 @@ class Workflow::LocalExecutor
       raise NoWork, "No candidates and no running jobs #{Log.fingerprint batches}" if resources_used.empty? && top_level_jobs.empty?
 
       candidates.each do |batch|
+        begin
 
-        job = batch[:top_level]
+          job = batch[:top_level]
 
-        case
-        when (job.error? || job.aborted?)
-          begin
-            if job.recoverable_error?
-              if failed_jobs.include?(job)
-                Log.warn "Failed twice #{job.path} with recoverable error"
-                next
+          case
+          when (job.error? || job.aborted?)
+            begin
+              if job.recoverable_error?
+                if failed_jobs.include?(job)
+                  Log.warn "Failed twice #{job.path} with recoverable error"
+                  next
+                else
+                  failed_jobs << job
+                  job.clean
+                  raise TryAgain
+                end
               else
-                failed_jobs << job
-                job.clean
-                raise TryAgain
+                Log.warn "Non-recoverable error in #{job.path}"
+                next
               end
-            else
-              Log.warn "Non-recoverable error in #{job.path}"
-              next
+            ensure
+              Log.warn "Releases resources from failed job: #{job.path}"
+              release_resources(job)
             end
-          ensure
-            Log.warn "Releases resources from failed job: #{job.path}"
+          when job.done?
+            Log.debug "Orchestrator done #{job.path}"
             release_resources(job)
-          end
-        when job.done?
-          Log.debug "Orchestrator done #{job.path}"
-          release_resources(job)
-          clear_batch(batches, batch)
-          erase_job_dependencies(job, batches)
-        when job.running?
-          next
+            clear_batch(batches, batch)
+            erase_job_dependencies(job, batches)
+          when job.running?
+            next
 
-        else
-          check_resources(batch) do
-            run_batch(batch)
+          else
+            check_resources(batch) do
+              run_batch(batch)
+            end
           end
         end
       end
@@ -120,6 +124,9 @@ class Workflow::LocalExecutor
   end
 
   def process(rules, jobs = nil)
+    jobs, rules = rules, {} if jobs.nil?
+    jobs = [jobs] if Step === jobs
+
     batches = Workflow::Orchestrator.job_batches(rules, jobs)
     batches.each do |batch|
       rules = IndiferentHash.setup batch[:rules]
