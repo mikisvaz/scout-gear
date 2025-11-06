@@ -26,7 +26,7 @@ class Workflow::LocalExecutor
     end
   end
 
-  def self.candidates(batches, rules)
+  def self.candidates(batches)
 
     leaf_nodes = batches.select{|b| b[:deps].empty? }
 
@@ -59,14 +59,14 @@ class Workflow::LocalExecutor
     end
   end
 
-  def check_resources(rules, batch)
+  def check_resources(batch)
     resources = batch[:resources]
     job = batch[:top_level]
 
-    limit_resources = resources.select do |resource,value| 
-      value && available_resources[resource] && ((resources_requested[resource] || 0) + value) > available_resources[resource]  
-    end.collect do |resource,v| 
-      resource 
+    limit_resources = resources.select do |resource,value|
+      value && available_resources[resource] && ((resources_requested[resource] || 0) + value) > available_resources[resource]
+    end.collect do |resource,v|
+      resource
     end
 
     if limit_resources.any?
@@ -74,7 +74,7 @@ class Workflow::LocalExecutor
     else
 
       resources_used[job] = resources
-      resources.each do |resource,value| 
+      resources.each do |resource,value|
         resources_requested[resource] ||= 0
         resources_requested[resource] += value.to_i
       end
@@ -87,12 +87,12 @@ class Workflow::LocalExecutor
   def run_batch(batch)
     job, job_rules = batch.values_at :top_level, :rules
 
-    Scout::Config.with_config do 
+    Scout::Config.with_config do
       job_rules[:config_keys].each do |config|
         Scout::Config.process_config config
       end if job_rules && job_rules[:config_keys]
 
-      log = job_rules[:log] if job_rules 
+      log = job_rules[:log] if job_rules
       log = Log.severity if log.nil?
       Log.with_severity log do
         job.fork
@@ -111,7 +111,7 @@ class Workflow::LocalExecutor
       next unless rules[:erase].to_s == 'true'
 
       dep_path = dep.path
-      parents = all_jobs.select do |parent| 
+      parents = all_jobs.select do |parent|
         parent.rec_dependencies.include?(dep)
       end
 
@@ -136,121 +136,123 @@ class Workflow::LocalExecutor
     end
 
     parents.each{|b| b[:deps].delete batch }
+  end
 
-    erase_job_dependencies(job, batches)
+  def process_batches(batches)
+    while batches.reject{|b| Workflow::Orchestrator.done_batch?(b) }.any?
+
+      candidates = Workflow::LocalExecutor.candidates(batches)
+      top_level_jobs = candidates.collect{|batch| batch[:top_level] }
+
+      raise NoWork, "No candidates and no running jobs #{Log.fingerprint batches}" if resources_used.empty? && top_level_jobs.empty?
+
+      candidates.each do |batch|
+
+        job = batch[:top_level]
+
+        case
+        when (job.error? || job.aborted?)
+          begin
+            if job.recoverable_error?
+              if failed_jobs.include?(job)
+                Log.warn "Failed twice #{job.path} with recoverable error"
+                next
+              else
+                failed_jobs << job
+                job.clean
+                raise TryAgain
+              end
+            else
+              Log.warn "Non-recoverable error in #{job.path}"
+              next
+            end
+          ensure
+            Log.warn "Releases resources from failed job: #{job.path}"
+            release_resources(job)
+          end
+        when job.done?
+          Log.debug "Orchestrator done #{job.path}"
+          release_resources(job)
+          clear_batch(batches, batch)
+          erase_job_dependencies(job, batches)
+        when job.running?
+          next
+
+        else
+          check_resources(batch) do
+            run_batch(batch)
+          end
+        end
+      end
+
+      batches.each do |batch|
+        job = batch[:top_level]
+        if job.done? || job.aborted? || job.error?
+          job.join if job.done?
+          clear_batch(batches, batch)
+          release_resources(job)
+          erase_job_dependencies(job, batches)
+        end
+      end
+
+      sleep timer
+    end
+
+    batches.each{|batch|
+      job = batch[:top_level]
+      begin
+        job.join
+      rescue
+        Log.warn "Job #{job.short_path} ended with exception #{$!.class.to_s}: #{$!.message}"
+      end
+    }
+
+    batches.each{|batch|
+      job = batch[:top_level]
+      erase_job_dependencies(job, batches) if job.done?
+    }
   end
 
   def process(rules, jobs = nil)
-    jobs, rules = rules, {} if jobs.nil?
-    jobs = [jobs] if Step === jobs
-    failed_jobs = []
+    batches = Workflow::Orchestrator.job_batches(rules, jobs)
+    batches.each do |batch|
+      rules = IndiferentHash.setup batch[:rules]
+      rules.delete :erase if jobs.include?(batch[:top_level])
+      resources = Workflow::Orchestrator.normalize_resources_from_rules(rules)
+      resources = IndiferentHash.add_defaults resources, rules[:default_resources] if rules[:default_resources]
+      batch[:resources] = resources
+      batch[:rules] = rules
+    end
+
+    process_batches(batches)
+  end
+
+  def self.produce(jobs, rules = {}, produce_cpus: Etc.nprocessors, produce_timer: 1)
+    jobs = [jobs] unless Array === jobs
+    orchestrator = self.new produce_timer.to_i, cpus: produce_cpus.to_i
     begin
-
-      batches = Workflow::Orchestrator.job_batches(rules, jobs)
-      batches.each do |batch|
-        rules = IndiferentHash.setup batch[:rules]
-        rules.delete :erase if jobs.include?(batch[:top_level])
-        resources = Workflow::Orchestrator.normalize_resources_from_rules(rules)
-        resources = IndiferentHash.add_defaults resources, rules[:default_resources] if rules[:default_resources]
-        batch[:resources] = resources
-        batch[:rules] = rules
-      end
-
-      while batches.reject{|b| Workflow::Orchestrator.done_batch?(b) }.any? 
-
-        candidates = Workflow::LocalExecutor.candidates(batches, rules)
-        top_level_jobs = candidates.collect{|batch| batch[:top_level] }
-
-        raise NoWork, "No candidates and no running jobs #{Log.fingerprint batches}" if resources_used.empty? && top_level_jobs.empty?
-
-        candidates.each do |batch|
-
-          job = batch[:top_level]
-
-          case 
-          when (job.error? || job.aborted?)
-            begin
-              if job.recoverable_error? 
-                if failed_jobs.include?(job)
-                  Log.warn "Failed twice #{job.path} with recoverable error"
-                  next
-                else
-                  failed_jobs << job
-                  job.clean
-                  raise TryAgain
-                end
-              else
-                Log.warn "Non-recoverable error in #{job.path}"
-                next
-              end
-            ensure
-              Log.warn "Releases resources from failed job: #{job.path}"
-              release_resources(job)
-            end
-          when job.done?
-            Log.debug "Orchestrator done #{job.path}"
-            release_resources(job)
-            clear_batch(batches, batch)
-          when job.running?
-            next
-
-          else
-            check_resources(rules, batch) do
-              run_batch(batch)
-            end
-          end
-        end
-
-        batches.each do |batch|
-          job = batch[:top_level]
-          if job.done? || job.aborted? || job.error?
-            clear_batch(batches, batch)
-            release_resources(job)
-            true
-          else
-            false
-          end
-        end
-
-        sleep timer
-      end
-
-      batches.each{|batch| 
-        job = batch[:top_level]
-        begin
-          job.join
-        rescue
-          Log.warn "Job #{job.short_path} ended with exception #{$!.class.to_s}: #{$!.message}"
-        end
-      }
-    rescue TryAgain
-      retry
+      orchestrator.process(rules, jobs)
+    rescue self::NoWork
     end
   end
 
-  def self.produce_dependencies(jobs, tasks, produce_cpus = Etc.nprocessors, produce_timer = 5)
+  def self.produce_dependencies(jobs, tasks, rules = {}, produce_cpus: Etc.nprocessors, produce_timer: 1)
     jobs = [jobs] unless Array === jobs
+    tasks = tasks.collect{|task| (String === task) ? task.to_sym : task }
+
     produce_list = []
     jobs.each do |job|
+      task_name = job.task_name.to_sym
+      task_name = task_name.to_sym if String === task_name
+
       next if job.done? || job.running?
       job.rec_dependencies.each do |job|
-        produce_list << job if tasks.include?(job.task_name) ||
+        produce_list << job if tasks.include?(task_name) ||
           tasks.include?(job.task_name.to_s) ||
           tasks.include?(job.full_task_name)
       end
     end
 
-    orchestrator = self.new produce_timer, cpus: produce_cpus.to_i
-    orchestrator.process({}, produce_list)
-    produce_list
-  end
-
-  def self.produce(jobs, produce_cpus: Etc.nprocessors, produce_timer: 1)
-    jobs = [jobs] unless Array === jobs
-    orchestrator = self.new produce_timer.to_i, cpus: produce_cpus.to_i
-    begin
-      orchestrator.process({}, jobs)
-    rescue self::NoWork
-    end
+    produce(produce_list, rules, produce_cpus: produce_cpus, produce_timer: produce_timer)
   end
 end

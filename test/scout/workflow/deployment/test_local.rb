@@ -91,7 +91,50 @@ TestWF:
 
     jobs =[]
 
-    num = 10
+    num = 1
+    num.times do |i|
+      jobs.concat %w(TEST1 TEST2).collect{|name| TestWF.job(:d, name + " #{i}") }
+    end
+    jobs.each do |j| j.recursive_clean end
+
+    rules = YAML.load <<-EOF
+defaults:
+  log: 4
+default_resources:
+  IO: 1
+TestWF:
+  a:
+    erase: true
+    resources:
+      cpus: 7
+  b:
+    erase: true
+    resources:
+      cpus: 2
+  c:
+    resources:
+      cpus: 10
+  d:
+    resources:
+      cpus: 15
+    EOF
+
+    orchestrator = Workflow::LocalExecutor.new(TestWF::MULT, "cpus" => 30, "IO" => 4, "size" => 10 )
+    orchestrator.process(rules, jobs)
+
+    jobs.each do |job|
+      assert job.step(:c).dependencies.empty?
+      assert job.step(:c).info[:archived_info].keys.select{|k| k.include?("TestWF/a/")}.any?
+      assert job.step(:c).info[:archived_info].keys.select{|k| k.include?("TestWF/b/")}.any?
+    end
+
+  end
+
+  def test_orchestrate_erase_long
+
+    jobs =[]
+
+    num = 3
     num.times do |i|
       jobs.concat %w(TEST1 TEST2).collect{|name| TestWF.job(:d, name + " #{i}") }
     end
@@ -207,7 +250,6 @@ TestWF:
       cpus: 15
     EOF
 
-    sss 3
     orchestrator = Workflow::LocalExecutor.new(TestWF::MULT, "cpus" => 30, "IO" => 4, "size" => 10 )
     orchestrator.process(rules, jobs)
 
@@ -262,5 +304,49 @@ TestWF:
     end
 
   end
+
+  def test_orchestrate_deps
+
+    jobs =[]
+
+    num = 1
+    num.times do |i|
+      jobs.concat %w(TEST1 TEST2).collect{|name| TestWF.job(:d, name + " #{i}") }
+      jobs.concat %w(TEST1 TEST2).collect{|name| TestWF.job(:c, name + " #{i}") }
+    end
+    jobs.each do |j| j.recursive_clean end
+
+    rules = YAML.load <<-EOF
+defaults:
+  erase: true
+  log: 4
+default_resources:
+  IO: 1
+TestWF:
+  a:
+    resources:
+      cpus: 7
+  b:
+    resources:
+      cpus: 2
+  c:
+    resources:
+      cpus: 10
+  d:
+    resources:
+      cpus: 15
+    EOF
+
+    Workflow::LocalExecutor.produce(jobs, rules, produce_timer: 0.1)
+
+    jobs.each do |job|
+      next unless job.task_name.to_s == 'd'
+      assert job.step(:c).dependencies.empty?
+      assert job.step(:c).info[:archived_info].keys.select{|k| k.include?("TestWF/a/")}.any?
+      assert job.step(:c).info[:archived_info].keys.select{|k| k.include?("TestWF/b/")}.any?
+    end
+
+  end
+
 end
 
