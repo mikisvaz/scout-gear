@@ -52,18 +52,19 @@ module Workflow::Scheduler
       job_options.merge!(:manifest => batch[:jobs].collect{|d| d.task_signature })
 
       begin
-        case batch_system
-        when 'SLURM'
-          SLURM.run_job(batch[:top_level], job_options)
-        when 'LSF'
-          LSF.run_job(batch[:top_level], job_options)
-        when 'PBS'
-          PBS.run_job(batch[:top_level], job_options)
-        when nil
-          raise "No batch system specified"
-        else
-          raise "Unknown batch system #{batch_system}"
-        end
+        id, dir = case batch_system
+             when 'SLURM'
+               SLURM.run_job(batch[:top_level], job_options)
+             when 'LSF'
+               LSF.run_job(batch[:top_level], job_options)
+             when 'PBS'
+               PBS.run_job(batch[:top_level], job_options)
+             when nil
+               raise "No batch system specified"
+             else
+               raise "Unknown batch system #{batch_system}"
+             end
+        batch_ids[batch[:top_level]] = id
       rescue DryRun
         $!.message
       end
