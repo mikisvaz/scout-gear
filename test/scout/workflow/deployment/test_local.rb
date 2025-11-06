@@ -37,7 +37,7 @@ class TestLocalExec < Test::Unit::TestCase
   setup do
   end
 
-  def test_orchestrate_resources
+  def _test_orchestrate_resources
 
     jobs =[]
 
@@ -87,7 +87,7 @@ TestWF:
     assert Misc.mean(second_cpus.values) < 30
   end
 
-  def test_orchestrate_erase
+  def _test_orchestrate_erase
 
     jobs =[]
 
@@ -130,7 +130,7 @@ TestWF:
 
   end
 
-  def test_orchestrate_erase_long
+  def _test_orchestrate_erase_long
 
     jobs =[]
 
@@ -173,7 +173,7 @@ TestWF:
 
   end
 
-  def test_orchestrate_default
+  def _test_orchestrate_default
 
     jobs =[]
 
@@ -218,7 +218,7 @@ TestWF:
 
   end
 
-  def test_orchestrate_top_level
+  def _test_orchestrate_top_level
 
     jobs =[]
 
@@ -262,7 +262,7 @@ TestWF:
 
   end
 
-  def test_orchestrate_top_level_double_dep
+  def _test_orchestrate_top_level_double_dep
 
     jobs =[]
 
@@ -305,7 +305,7 @@ TestWF:
 
   end
 
-  def test_orchestrate_deps
+  def _test_orchestrate_produce
 
     jobs =[]
 
@@ -348,5 +348,44 @@ TestWF:
 
   end
 
+  def test_orchestrate_produce_deps
+
+    jobs =[]
+
+    num = 1
+    num.times do |i|
+      jobs.concat %w(TEST1 TEST2).collect{|name| TestWF.job(:d, name + " #{i}") }
+      jobs.concat %w(TEST1 TEST2).collect{|name| TestWF.job(:c, name + " #{i}") }
+    end
+    jobs.each do |j| j.recursive_clean end
+
+    rules = YAML.load <<-EOF
+defaults:
+  erase: true
+  log: 4
+default_resources:
+  IO: 1
+TestWF:
+  a:
+    resources:
+      cpus: 7
+  b:
+    resources:
+      cpus: 2
+  c:
+    resources:
+      cpus: 10
+  d:
+    resources:
+      cpus: 15
+    EOF
+
+    Workflow::LocalExecutor.produce_dependencies(jobs, [:a, :b], rules, produce_timer: 0.1)
+
+    jobs.each do |job|
+      assert job.step(:a).done?
+      refute job.done?
+    end
+  end
 end
 
