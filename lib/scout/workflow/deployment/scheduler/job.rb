@@ -1,4 +1,6 @@
 module SchedulerJob
+  @batch_base_dir = File.expand_path(File.join('~/scout-batch')) 
+  self.singleton_class.attr_accessor :batch_base_dir
 
   module_function
 
@@ -555,7 +557,7 @@ env > #{batch_options[:fenv]}
 
     batch_base_dir, clean_batch_job, remove_batch_dir, procpath, tail, batch_dependencies, dry_run, orchestration_rules_file = IndiferentHash.process_options options, 
       :batch_base_dir, :clean_batch_job, :remove_batch_dir, :batch_procpath, :tail, :batch_dependencies, :dry_run, :orchestration_rules,
-      :batch_base_dir => File.expand_path(File.join('~/scout-batch')) 
+      :batch_base_dir => SchedulerJob.batch_base_dir
 
     if (batch_job = job.info[:batch_job]) && job_queued(batch_job)
       Log.info "Job #{job.short_path} already queued in #{batch_job}"

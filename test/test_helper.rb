@@ -52,11 +52,11 @@ class Test::Unit::TestCase
     Workflow.workflows.each{|wf| wf.directory = Workflow.directory[wf.name] }
     Entity.entity_property_cache = tmpdir.entity_properties if defined?(Entity)
     Workflow.job_cache.clear
+    SchedulerJob.batch_base_dir = tmpdir.batch
   end
   
   teardown do
     Open.rm_rf tmpdir
-    Workflow.job_cache.clear
   end
 
   def self.datadir_test
