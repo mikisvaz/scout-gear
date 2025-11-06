@@ -151,10 +151,15 @@ else
     batches = Workflow::Orchestrator.job_batches rules, job
     batches.each do |batch|
       top = batch[:top_level]
+      jobs = batch[:jobs]
       puts Log.color :title, Log.fingerprint(top)
       puts batch[:rules].to_yaml
       deps = batch[:deps].collect{|dep| dep[:top_level] }
-      other = batch[:jobs] - [top]
+      provided_inputs = jobs.inject({}){|acc,j| acc = IndiferentHash.add_defaults acc, j.provided_inputs }
+      provided_inputs.each do |i,v|
+        puts Log.color :green, "#{i}: " + Log.color(:blue, Log.fingerprint(v))
+      end
+      other = jobs - [top]
       puts Log.color :subtitle, 'Other jobs: ' + Log.color(:blue, other.collect{|d| d.short_path}.uniq * ', ' ) if other.any?
       puts Log.color :subtitle, 'Dependencies: ' + Log.color(:blue, deps.collect{|d| d.short_path}.uniq * ', ' ) if deps.any?
     end
