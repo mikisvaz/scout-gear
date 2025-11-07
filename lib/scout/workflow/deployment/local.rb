@@ -92,6 +92,8 @@ class Workflow::LocalExecutor
               run_batch(batch)
             end
           end
+        rescue TryAgain
+          retry
         end
       end
 
@@ -180,7 +182,7 @@ class Workflow::LocalExecutor
     job, job_rules = batch.values_at :top_level, :rules
 
     Scout::Config.with_config do
-      job_rules[:config_keys].each do |config|
+      job_rules[:config_keys].split(/,\s*/).each do |config|
         Scout::Config.process_config config
       end if job_rules && job_rules[:config_keys]
 
