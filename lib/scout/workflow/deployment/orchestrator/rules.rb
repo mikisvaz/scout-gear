@@ -222,7 +222,8 @@ class Workflow::Orchestrator
         if file.exists?
           file_rules = Open.yaml(file)
         else
-          raise "Unknown rule file #{orig}" unless orig.to_s == 'default'
+          Log.debug "Rule file #{orig} not found"
+          next acc
         end
       end
 
@@ -246,7 +247,7 @@ class Workflow::Orchestrator
 
     deploy_files += jobs.collect do |job|
       job.rec_dependencies.collect{|d| d.workflow }.compact.collect(&:to_s).uniq
-    end.compact
+    end.compact.flatten
 
     deploy_files << :default
 
