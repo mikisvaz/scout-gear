@@ -10,6 +10,7 @@ class Workflow::Orchestrator
     batches = []
     jobs = workload.keys
     while job = jobs.pop
+      next if job.done?
       matches = chains.select{|name,info| info[:jobs].include? job }
       if matches.any?
         name, info = matches.sort_by do |n, info|
