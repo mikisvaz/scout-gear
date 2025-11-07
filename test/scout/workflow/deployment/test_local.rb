@@ -37,7 +37,7 @@ class TestLocalExec < Test::Unit::TestCase
   setup do
   end
 
-  def _test_orchestrate_resources
+  def test_orchestrate_resources
 
     jobs =[]
 
@@ -87,7 +87,7 @@ TestWF:
     assert Misc.mean(second_cpus.values) < 30
   end
 
-  def _test_orchestrate_erase
+  def test_orchestrate_erase
 
     jobs =[]
 
@@ -130,7 +130,7 @@ TestWF:
 
   end
 
-  def _test_orchestrate_erase_long
+  def test_orchestrate_erase_long
 
     jobs =[]
 
@@ -173,7 +173,7 @@ TestWF:
 
   end
 
-  def _test_orchestrate_default
+  def test_orchestrate_default
 
     jobs =[]
 
@@ -218,7 +218,7 @@ TestWF:
 
   end
 
-  def _test_orchestrate_top_level
+  def test_orchestrate_top_level
 
     jobs =[]
 
@@ -262,7 +262,7 @@ TestWF:
 
   end
 
-  def _test_orchestrate_top_level_double_dep
+  def test_orchestrate_top_level_double_dep
 
     jobs =[]
 
@@ -305,7 +305,7 @@ TestWF:
 
   end
 
-  def _test_orchestrate_produce
+  def test_orchestrate_produce
 
     jobs =[]
 
