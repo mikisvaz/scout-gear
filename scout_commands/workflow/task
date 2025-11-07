@@ -169,13 +169,13 @@ else
   when "local"
     rules = Workflow::Orchestrator.load_rules deploy_files
     Workflow::LocalExecutor.produce job, rules
-  when "slurm"
+  when 'batch', 'sched', 'cluster', "slurm", 'pbs', 'lsf'
     rules = Workflow::Orchestrator.load_rules deploy_files
     Workflow::Scheduler.produce job, rules
   else
-    if deploy.end_with?('-slurm')
-      server = deploy.sub('-slurm','')
-      OffsiteStep.setup(job, server: server, slurm: true)
+    if deploy.end_with?('-batch')
+      server = deploy.sub('-batch','')
+      OffsiteStep.setup(job, server: server, batch: true)
     else
       OffsiteStep.setup(job, server: deploy)
     end
