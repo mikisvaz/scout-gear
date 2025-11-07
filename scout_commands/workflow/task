@@ -172,6 +172,7 @@ else
   when "slurm"
     rules = Workflow::Orchestrator.load_rules deploy_files
     Workflow::Scheduler.produce job, rules
+    exit 0
   else
     if deploy.end_with?('-slurm')
       server = deploy.sub('-slurm','')
