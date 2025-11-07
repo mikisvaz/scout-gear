@@ -171,7 +171,7 @@ else
       OffsiteStep.setup(job, server: deploy)
     end
 
-    job.run
+    job.run(true)
   end unless job.done?
 
   if printpath
