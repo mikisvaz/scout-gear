@@ -222,7 +222,7 @@ class Workflow::Orchestrator
         if file.exists?
           file_rules = Open.yaml(file)
         else
-          raise "Unknown rule file #{orig}"
+          raise "Unknown rule file #{orig}" unless orig.to_s == 'default'
         end
       end
 
@@ -235,5 +235,21 @@ class Workflow::Orchestrator
 
       merge_rule_file(acc, file_rules)
     end
+  end
+  
+  def self.load_rules_for_job(jobs)
+    jobs = [jobs] unless Array === jobs
+
+    deploy_files = jobs.collect do |job|
+      job.workflow.to_s
+    end.compact
+
+    deploy_files += jobs.collect do |job|
+      job.rec_dependencies.collect{|d| d.workflow }.compact.collect(&:to_s).uniq
+    end.compact
+
+    deploy_files << :default
+
+    load_rules(deploy_files)
   end
 end

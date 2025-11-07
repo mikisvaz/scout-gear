@@ -181,16 +181,36 @@ class Workflow::LocalExecutor
   def run_batch(batch)
     job, job_rules = batch.values_at :top_level, :rules
 
-    Scout::Config.with_config do
-      job_rules[:config_keys].split(/,\s*/).each do |config|
-        Scout::Config.process_config config
-      end if job_rules && job_rules[:config_keys]
+    rules = batch[:rules] 
+    deploy = rules[:deploy] if rules
+    case deploy
+    when nil, 'local', :local, :serial, 'serial'
+      Scout::Config.with_config do
+        job_rules[:config_keys].split(/,\s*/).each do |config|
+          Scout::Config.process_config config
+        end if job_rules && job_rules[:config_keys]
 
-      log = job_rules[:log] if job_rules
-      log = Log.severity if log.nil?
-      Log.with_severity log do
-        job.fork
+        log = job_rules[:log] if job_rules
+        log = Log.severity if log.nil?
+        Log.with_severity log do
+          job.fork
+        end
       end
+    when 'batch', 'sched', 'slurm', 'pbs', 'lsf'
+      job.init_info
+      Workflow::Scheduler.process_batches([batch])
+      job.join
+    else
+      require 'scout/offsite'
+      if deploy.end_with?('-batch')
+        server = deploy.sub('-batch','')
+        OffsiteStep.setup(job, server: server, batch: true)
+      else
+        OffsiteStep.setup(job, server: deploy)
+      end
+
+      job.produce
+      job.join
     end
   end
 

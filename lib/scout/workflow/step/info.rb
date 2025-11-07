@@ -38,8 +38,8 @@ class Step
     save_info(@info = info)
   end
 
-  def init_info
-    log :waiting unless info_file.nil? || Open.exists?(info_file)
+  def init_info(status=:waiting)
+    log status unless info_file.nil? || Open.exists?(info_file)
   end
 
   def info

@@ -124,18 +124,10 @@ else
   require 'scout/workflow/deployment'
 
   if deploy_rules.nil?
-
-    deploy_files  = [workflow.to_s]
-    deploy_files += workflows if workflows
-
-    dep_workflows = job.rec_dependencies.collect{|d| d.workflow }.compact.collect(&:to_s).uniq
-    deploy_files += dep_workflows
-
-    deploy_files = deploy_files.uniq
-
-    deploy_files << :default
+    rules = Workflow::Orchestrator.load_rules_for_job(job)
   else
     deploy_files = deploy_rules.split(/,\s*/)
+    rules = Workflow::Orchestrator.load_rules deploy_files
   end
 
   case deploy
@@ -147,7 +139,6 @@ else
       exit
     end
   when 'dry', 'dryrun', 'debug'
-    rules = Workflow::Orchestrator.load_rules deploy_files
     batches = Workflow::Orchestrator.job_batches rules, job
     batches.each do |batch|
       top = batch[:top_level]
@@ -167,13 +158,12 @@ else
   when "serial"
     job.run(true) 
   when "local"
-    rules = Workflow::Orchestrator.load_rules deploy_files
     Workflow::LocalExecutor.produce job, rules
   when 'batch', 'sched', 'cluster', "slurm", 'pbs', 'lsf'
-    rules = Workflow::Orchestrator.load_rules deploy_files
     Workflow::Scheduler.produce job, rules
     exit 0
   else
+    raise 'Use scout-camp instead of scout' unless defined? OffsiteStep
     if deploy.end_with?('-batch')
       server = deploy.sub('-batch','')
       OffsiteStep.setup(job, server: server, batch: true)
