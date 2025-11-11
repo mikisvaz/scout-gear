@@ -31,7 +31,7 @@ if options[:inputs]
   names, values = step.info.values_at :input_names, :inputs
   names.zip(values).each do |name,value|
     puts [Log.color(:title, name), Log.fingerprint(value)] * " = "
-  end
+  end if names
 elsif options[:recursive_inputs]
   step.recursive_inputs.each do |name,value|
     puts [Log.color(:title, name), Log.fingerprint(value)] * " = "
