@@ -337,7 +337,7 @@ TestWF:
       cpus: 15
     EOF
 
-    Workflow::LocalExecutor.produce(jobs, rules, produce_timer: 0.1)
+    Workflow::LocalExecutor.produce(jobs, rules, produce_timer: 0.1, produce_cpus: 20)
 
     jobs.each do |job|
       next unless job.task_name.to_s == 'd'
