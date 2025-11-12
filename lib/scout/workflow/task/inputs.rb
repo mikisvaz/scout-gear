@@ -91,7 +91,7 @@ module Task
     basename = File.basename(orig_file)
     digest = Misc.digest(orig_file)
     if basename.include? '.'
-      basename.sub!(/(.*)\.(.*)/, '\1-' + digest + '.\2')
+      basename = basename.sub(/(\.[^.]+(?:\.[^.]+)*)?$/, "-#{digest}\\1")
     else
       basename += "-#{digest}"
     end
@@ -158,7 +158,7 @@ module Task
       elsif filename.end_with?('.as_path')
         value = Open.read(filename).strip
         Path.setup value
-      elsif (options &&  (options[:noload] || options[:stream] || options[:nofile] || options[:asfile]))
+      elsif type.to_s == 'file' || (options &&  (options[:noload] || options[:stream] || options[:nofile] || options[:asfile]))
         filename
       else
         Persist.load(filename, type)
