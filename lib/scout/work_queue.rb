@@ -71,13 +71,15 @@ class WorkQueue
         Thread.current.report_on_exception = false
         Thread.current["name"] = "Output reader #{queue_id}"
         @done_workers ||= []
-        while true
-          obj = @output.read
+        #while true
+        #  obj = @output.read
+        while obj = @output.read
           if DoneProcessing === obj
 
             done = @worker_mutex.synchronize do
               Log.low "Worker #{obj.pid} from #{queue_id} done"
               @done_workers << obj.pid
+              #@closed && (@workers.empty? || @workers.length == @removed_workers.length + @done_workers.length)
               @closed && @done_workers.length == @removed_workers.length + @workers.length
             end
 
@@ -113,14 +115,29 @@ class WorkQueue
         break if @worker_mutex.synchronize{ @workers.empty? }
         threads = @workers.collect do |w|
           t = Thread.new do
+            Thread.report_on_exception = false
             Thread.current["name"] = "Worker waiter #{queue_id} worker #{w.pid}"
             pid, status = Process.wait2 w.pid
             remove_worker(pid) if pid
+            #@output.write WorkerException.new(Exception.new("Worker ended with status #{status.exitstatus}"), pid) unless status.success?
+            raise Exception.new("Worker #{pid} ended with status #{status.exitstatus}") unless (status.success? || status.exitstatus == WorkQueue::Worker::EXIT_STATUS)
           end
           Thread.pass until t["name"]
           t
         end
-        threads.each do |t| t.join end
+        exceptions = []
+        threads.each do |t| 
+          begin
+            t.join 
+          rescue
+            exceptions << $!
+          end
+        end
+
+        raise exceptions.first if exceptions.any?
+        if @workers.empty? && ! @closed
+          @output.write DoneProcessing.new
+        end
       end
     end
 

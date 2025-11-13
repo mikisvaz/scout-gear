@@ -172,5 +172,46 @@ class TestWorkQueue < Test::Unit::TestCase
       end
     end
   end
+
+  def test_processed_killed
+    num = 10
+    reps = 3000
+
+    q = WorkQueue.new num do |obj|
+      sleep 0.01
+      [Process.pid.to_s, obj.to_s] * " "
+    end
+
+    res = []
+    q.process do |out|
+      res << out
+    end
+
+    t = Thread.new do
+      Thread.current.report_on_exception = false
+      Thread.current["name"] = "queue writer"
+      reps.times do |i|
+        q.write i
+      end
+      q.close
+    end
+    Thread.pass until t["name"]
+
+    sleep 1
+
+    assert_raise Exception do
+      Process.kill 'INT', q.workers.first.pid
+      begin
+        t.join
+        q.join(false)
+      rescue Exception
+        t.raise($!)
+        raise $!
+      ensure
+        t.join
+        q.clean
+      end
+    end
+  end
 end
 

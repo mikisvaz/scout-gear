@@ -1,5 +1,8 @@
 class WorkQueue
   class Worker
+    EXIT_STATUS=246
+    SIGNAL='ABRT'
+
     attr_accessor :pid, :ignore_ouput, :queue_id
     def initialize(ignore_ouput = false)
       @ignore_output = ignore_ouput
@@ -15,7 +18,10 @@ class WorkQueue
 
     def run
       @pid = Process.fork do
-        Signal.trap("INT") do
+        Signal.trap(SIGNAL) do
+          Kernel.exit! EXIT_STATUS
+        end
+        Signal.trap('INT') do
           Kernel.exit! -1
         end
         Log.low "Worker start #{worker_id}"
@@ -46,7 +52,7 @@ class WorkQueue
           begin
             output.write WorkerException.new($!, Process.pid)
           ensure
-            exit -1
+            exit EXIT_STATUS
           end
         end
         exit 0
@@ -56,7 +62,7 @@ class WorkQueue
     def abort
       begin
         Log.medium "Aborting worker #{worker_id}"
-        Process.kill "INT", @pid
+        Process.kill SIGNAL, @pid
       rescue Errno::ECHILD 
       rescue Errno::ESRCH
       end
