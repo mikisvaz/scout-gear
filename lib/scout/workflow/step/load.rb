@@ -17,4 +17,8 @@ class Step
     #raise "Could not load #{path}" unless Open.exists?(path)
     s = Step.new path
   end
+
+  def to_json(...)
+    self.path
+  end
 end
