@@ -19,6 +19,6 @@ class Step
   end
 
   def to_json(...)
-    self.path
+    self.path.to_json
   end
 end
