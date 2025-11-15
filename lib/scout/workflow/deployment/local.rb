@@ -45,6 +45,7 @@ class Workflow::LocalExecutor
   end
 
   def process_batches(batches)
+    retry_jobs = []
     failed_jobs = []
 
     while batches.reject{|b| Workflow::Orchestrator.done_batch?(b) }.any?
@@ -53,6 +54,16 @@ class Workflow::LocalExecutor
       top_level_jobs = candidates.collect{|batch| batch[:top_level] }
 
       raise NoWork, "No candidates and no running jobs #{Log.fingerprint batches}" if resources_used.empty? && top_level_jobs.empty?
+
+      if candidates.reject{|batch| failed_jobs.include? batch[:top_level] }.empty? && resources_used.empty? && top_level_jobs.empty?
+        exception = failed_jobs.collect(&:get_exception).compact.first
+        if exception
+          Log.warn 'Some work failed'
+          raise exception 
+        else
+          raise 'Some work failed'
+        end
+      end
 
       candidates.each do |batch|
         begin
@@ -63,15 +74,18 @@ class Workflow::LocalExecutor
           when (job.error? || job.aborted?)
             begin
               if job.recoverable_error?
-                if failed_jobs.include?(job)
+                if retry_jobs.include?(job)
                   Log.warn "Failed twice #{job.path} with recoverable error"
+                  retry_jobs.delete job
+                  failed_jobs << job
                   next
                 else
-                  failed_jobs << job
+                  retry_jobs << job
                   job.clean
                   raise TryAgain
                 end
               else
+                failed_jobs << job
                 Log.warn "Non-recoverable error in #{job.path}"
                 next
               end
