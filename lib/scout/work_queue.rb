@@ -90,6 +90,7 @@ class WorkQueue
             callback.call obj if callback
           end
         end
+        @waiter.join if @workers.any?
       rescue DoneProcessing
       rescue Aborted
       rescue WorkerException
@@ -135,9 +136,6 @@ class WorkQueue
         end
 
         raise exceptions.first if exceptions.any?
-        if @workers.empty? && ! @closed
-          @output.write DoneProcessing.new
-        end
       end
     end
 
