@@ -71,9 +71,8 @@ class WorkQueue
         Thread.current.report_on_exception = false
         Thread.current["name"] = "Output reader #{queue_id}"
         @done_workers ||= []
-        #while true
-        #  obj = @output.read
-        while obj = @output.read
+        while true
+          obj = @output.read
           if DoneProcessing === obj
 
             done = @worker_mutex.synchronize do
