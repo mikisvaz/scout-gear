@@ -695,8 +695,17 @@ env > #{batch_options[:fenv]}
         out = CMD.cmd("tail -f '#{fout}'", :pipe => true) if File.exist?(fout) and not tail == :STDERR
         err = CMD.cmd("tail -f '#{ferr}'", :pipe => true) if File.exist?(ferr)
 
-        terr = Misc.consume_stream(err, true, STDERR) if err
-        tout = Misc.consume_stream(out, true, STDOUT) if out
+        tout = Thread.new do
+          while c = out.getc
+            STDOUT << c
+          end
+        end
+
+        terr = Thread.new do
+          while c = err.getc
+            STDERR << c
+          end
+        end
 
         sleep 3 while job_queued(job)
       rescue Aborted
