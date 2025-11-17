@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+#$0 = "rbbt #{$previous_commands*""} #{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+Queue a job in Marenostrum
+
+$ rbbt slurm tail <directory|jobid> [options] 
+
+-h--help Print this help
+EOF
+
+if options[:help]
+ if defined? rbbt_usage
+  rbbt_usage 
+ else
+  puts SOPT.doc
+ end
+ exit 0
+end
+
+batch_system = options.delete :batch_system
+batch_system ||= 'auto'
+
+directory = ARGV.shift
+
+raise ParameterException if directory.nil?
+
+if directory =~ /^[0-9]*$/
+  workdir = File.expand_path('~/scout-batch')
+  Path.setup(workdir)
+
+  workdir.glob("**/job.id").each do |file|
+    next unless directory == Open.read(file).strip
+    directory = File.dirname(file)
+    break
+  end
+end
+
+raise ParameterException, "Could not identify job #{directory}" unless File.exist?(directory)
+
+require 'rbbt/hpc/slurm'
+
+command_txt = Open.read(File.join(directory, 'command.batch'))
+if m = command_txt.match(/#STEP_PATH: (.*)/)
+  step_path = m[1]
+else
+  step_path = nil
+end
+
+puts Log.color(:magenta, "Directory: ") + directory if directory
+puts Log.color(:magenta, "Step path: ") + step_path if step_path
+
+SLURM.follow_job directory, true
