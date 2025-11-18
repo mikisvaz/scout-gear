@@ -189,7 +189,7 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
 
   count += 1
 
-  if options[:compressed] 
+  if options[:compressed] && tail.nil?
     status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) :  Log.color(:green, id)  
     if different_system
       status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) + " (#{ id })" :  Log.color(:green, id)  
