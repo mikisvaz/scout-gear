@@ -3,6 +3,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  README.md
  chats=chats filter="*"{
 
+  semaphore
+
   deploy
 
 
