@@ -38,6 +38,7 @@ elsif options[:recursive_inputs]
   end
 else
   step.info.each do |k,v|
+    next if k.to_s == 'exception'
     case v
     when nil
       next
@@ -49,6 +50,14 @@ else
     end
   rescue
     next
+  end
+  if step.error?
+    if exception = step.exception
+      begin
+        Log.exception exception
+      rescue
+      end
+    end
   end
 end
 
