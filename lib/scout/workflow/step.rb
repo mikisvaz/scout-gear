@@ -202,9 +202,9 @@ class Step
         reset_info :status => :setup, :issued => Time.now,
           :pid => Process.pid, :pid_hostname => Misc.hostname, 
           :task_name => task_name, :workflow => workflow.to_s,
-          :provided_inputs => Annotation.purge(provided_inputs),
+          :provided_inputs => IndiferentHash.serializable(provided_inputs),
           :non_default_inputs => non_default_inputs,
-          :inputs => Annotation.purge(inputs), :input_names => input_names, :type => type,
+          :inputs => IndiferentHash.serializable(inputs), :input_names => input_names, :type => type,
           :dependencies => (dependencies || []) .collect{|d| d.path }
 
         run_dependencies
