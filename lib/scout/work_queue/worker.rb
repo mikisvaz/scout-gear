@@ -51,8 +51,9 @@ class WorkQueue
         rescue Exception
           begin
             output.write WorkerException.new($!, Process.pid)
-          ensure
             exit EXIT_STATUS
+          rescue
+            exit -1
           end
         end
         exit 0

@@ -213,7 +213,10 @@ if continue
           ScoutSemaphore.safe_post_semaphore(sem)
         rescue SystemCallError => e
           # Log but don't raise from ensure
-          Log.warn "post_semaphore(#{sem}) failed in ensure: #{e.message}"
+          # Log.warn "post_semaphore(#{sem}) failed in ensure: #{e.message}"
+
+          # Actually, do raise
+          raise e
         end
       end
     end

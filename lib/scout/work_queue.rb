@@ -115,7 +115,7 @@ class WorkQueue
         break if @worker_mutex.synchronize{ @workers.empty? }
         threads = @workers.collect do |w|
           t = Thread.new do
-            Thread.report_on_exception = false
+            Thread.current.report_on_exception = false
             Thread.current["name"] = "Worker waiter #{queue_id} worker #{w.pid}"
             pid, status = Process.wait2 w.pid
             remove_worker(pid) if pid
@@ -169,7 +169,7 @@ class WorkQueue
     @worker_mutex.synchronize{ @workers.length }.times do
       begin
         @input.write DoneProcessing.new() unless @input.closed_write?
-      rescue IOError
+      rescue IOError,Errno::ENOENT
       end
     end
   end
