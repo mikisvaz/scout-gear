@@ -23,70 +23,226 @@ if continue
   #include <fcntl.h>
       EOF
 
+      # Create a named semaphore. Return 0 on success, -errno on error.
       builder.c_singleton <<-EOF
-  void create_semaphore(char* name, int value){
-    sem_open(name, O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO, value);
-  }
-      EOF
-      builder.c_singleton <<-EOF
-  void delete_semaphore(char* name){
-    sem_unlink(name);
+  int create_semaphore(char* name, int value){
+    sem_t* sem;
+    sem = sem_open(name, O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO, value);
+    if (sem == SEM_FAILED){
+      return -errno;
+    }
+    /* close our handle; the semaphore lives on until unlinked and all handles closed */
+    sem_close(sem);
+    return 0;
   }
       EOF
 
+      # Unlink (remove) a named semaphore. Return 0 on success, -errno on error.
+      builder.c_singleton <<-EOF
+  int delete_semaphore(char* name){
+    int ret = sem_unlink(name);
+    if (ret == -1) {
+      return -errno;
+    }
+    return 0;
+  }
+      EOF
+
+      # Wait (sem_wait) on a named semaphore. Return 0 on success, -errno on error.
       builder.c_singleton <<-EOF
   int wait_semaphore(char* name){
-    int ret;
     sem_t* sem;
     sem = sem_open(name, 0);
     if (sem == SEM_FAILED){
-      return(errno);
+      return -errno;
     }
-    ret = sem_wait(sem);
+
+    int ret;
+    /* retry if interrupted by signal; stop on success or other error */
+    do {
+      ret = sem_wait(sem);
+    } while (ret == -1 && errno == EINTR);
+
     if (ret == -1){
-      return(errno);
+      int e = errno;
+      sem_close(sem);
+      return -e;
     }
+
     sem_close(sem);
-    return(ret);
+    return 0;
   }
       EOF
 
+      # Post (sem_post) on a named semaphore. Return 0 on success, -errno on error.
       builder.c_singleton <<-EOF
-  void post_semaphore(char* name){
+  int post_semaphore(char* name){
     sem_t* sem;
     sem = sem_open(name, 0);
-    sem_post(sem);
+    if (sem == SEM_FAILED){
+      return -errno;
+    }
+
+    int ret;
+    /* retry post if interrupted */
+    do {
+      ret = sem_post(sem);
+    } while (ret == -1 && errno == EINTR);
+
+    if (ret == -1) {
+      int e = errno;
+      sem_close(sem);
+      return -e;
+    }
+
     sem_close(sem);
+    return 0;
   }
       EOF
 
     end
 
     SEM_MUTEX = Mutex.new
+
+    def self.ensure_semaphore_name(file)
+      # Ensure a valid POSIX named semaphore name: must start with '/'
+      s = file.to_s.dup
+      # strip leading slashes and replace other slashes with underscores, then prepend single '/'
+      s.gsub!(%r{^/+}, '')
+      s = '/' + s.gsub('/', '_')
+      s
+    end
+
+    # Errno numeric lists
+    RETRIABLE_ERRNOS = [
+      Errno::ENOENT,
+      Errno::EIDRM,
+      Errno::EAGAIN,
+      Errno::EMFILE,
+      Errno::ENFILE,
+      Errno::EINTR
+    ].map { |c| c.new.errno }
+
+    FATAL_ERRNOS = [
+      Errno::EINVAL,
+      Errno::EACCES
+    ].map { |c| c.new.errno }
+
+    # Generic retry wrapper with exponential backoff + jitter
+    def self.with_retry(max_attempts: 6, base_delay: 0.01, max_delay: 1.0, jitter: 0.5, retriable: RETRIABLE_ERRNOS)
+      attempts = 0
+      while true
+        attempts += 1
+        ret = yield
+        # caller expects 0 on success, negative errno on failure
+        return ret if ret >= 0
+
+        err = -ret
+        # don't retry if it's clearly fatal or not in retriable list
+        if FATAL_ERRNOS.include?(err) || attempts >= max_attempts || !retriable.include?(err)
+          return ret
+        end
+
+        # exponential backoff with jitter
+        base = base_delay * (2 ** (attempts - 1))
+        sleep_time = [base, max_delay].min
+        # add jitter in range [0, jitter * sleep_time)
+        sleep_time += rand * jitter * sleep_time
+
+        Log.warn "Semaphore operation failed (errno=#{err}), retrying in #{'%.3f' % sleep_time}s (attempt #{attempts}/#{max_attempts})"
+        sleep(sleep_time)
+      end
+    end
+
+    # Safe wrappers that raise SystemCallError on final failure
+    def self.safe_create_semaphore(name, value, **opts)
+      ret = with_retry(**opts) { ScoutSemaphore.create_semaphore(name, value) }
+      if ret < 0
+        raise SystemCallError.new("create_semaphore(#{name}) failed", -ret)
+      end
+      ret
+    end
+
+    def self.safe_delete_semaphore(name, **opts)
+      ret = with_retry(**opts) { ScoutSemaphore.delete_semaphore(name) }
+      if ret < 0
+        raise SystemCallError.new("delete_semaphore(#{name}) failed", -ret)
+      end
+      ret
+    end
+
+    def self.safe_wait_semaphore(name, **opts)
+      ret = with_retry(**opts) { ScoutSemaphore.wait_semaphore(name) }
+      if ret < 0
+        err = -ret
+        if err == Errno::EINTR.new.errno
+          raise SemaphoreInterrupted
+        else
+          raise SystemCallError.new("wait_semaphore(#{name}) failed", err)
+        end
+      end
+      ret
+    end
+
+    def self.safe_post_semaphore(name, **opts)
+      ret = with_retry(**opts) { ScoutSemaphore.post_semaphore(name) }
+      if ret < 0
+        raise SystemCallError.new("post_semaphore(#{name}) failed", -ret)
+      end
+      ret
+    end
+
     def self.synchronize(sem)
-      ret = ScoutSemaphore.wait_semaphore(sem)
-      raise SemaphoreInterrupted if ret == -1
+      # Ensure name is normalized (caller should pass normalized name, but be safe)
+      sem = ensure_semaphore_name(sem)
+
+      # wait_semaphore returns 0 on success or -errno on error
+      begin
+        ScoutSemaphore.safe_wait_semaphore(sem)
+      rescue SemaphoreInterrupted
+        raise
+      rescue SystemCallError => e
+        # bubble up for callers to handle
+        raise
+      end
+
       begin
         yield
       ensure
-        ScoutSemaphore.post_semaphore(sem)
+        begin
+          ScoutSemaphore.safe_post_semaphore(sem)
+        rescue SystemCallError => e
+          # Log but don't raise from ensure
+          Log.warn "post_semaphore(#{sem}) failed in ensure: #{e.message}"
+        end
       end
     end
 
     def self.with_semaphore(size, file = nil)
       if file.nil?
-        file = "/scout-" + Misc.digest(rand(100000000000).to_s)[0..10] if file.nil?
+        file = "/scout-" + Misc.digest(rand(100000000000).to_s)[0..10]
       else
-        file = file.gsub('/', '_') if file
+        # ensure valid POSIX name
+        file = ensure_semaphore_name(file)
       end
 
       begin
         Log.debug "Creating semaphore (#{ size }): #{file}"
-        ScoutSemaphore.create_semaphore(file, size)
+        begin
+          ScoutSemaphore.safe_create_semaphore(file, size)
+        rescue SystemCallError => e
+          Log.error "Failed to create semaphore #{file}: #{e.message}"
+          raise
+        end
+
         yield file
       ensure
         Log.debug "Removing semaphore #{ file }"
-        ScoutSemaphore.delete_semaphore(file)
+        begin
+          ScoutSemaphore.safe_delete_semaphore(file)
+        rescue SystemCallError => e
+          Log.warn "delete_semaphore(#{file}) failed: #{e.message}"
+        end
       end
     end
 
@@ -114,16 +270,17 @@ if continue
 
         threads = []
         wait_mutex.synchronize do
-          threads = elems.collect do |elem| 
+          threads = elems.collect do |elem|
             Thread.new(elem) do |elem|
 
               continue = false
               mutex.synchronize do
                 while not continue do
-                  if count < size 
+                  if count < size
                     continue = true
                     count += 1
                   end
+                  # wait briefly to avoid busy loop; ConditionVariable could be used here properly
                   mutex.sleep 1 unless continue
                 end
               end
@@ -143,8 +300,8 @@ if continue
           end
         end
 
-        threads.each do |thread| 
-          thread.join 
+        threads.each do |thread|
+          thread.join
         end
       rescue Exception
         Log.exception $!
@@ -152,6 +309,5 @@ if continue
         threads.each do |thread| thread.kill end
       end
     end
-  end 
+  end
 end
-
