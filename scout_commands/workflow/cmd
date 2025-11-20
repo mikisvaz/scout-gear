@@ -2,6 +2,7 @@
 
 require 'scout'
 
+exec = $0
 $0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
 
 options = SOPT.setup <<EOF
@@ -76,7 +77,7 @@ begin
           CMD.cmd_log('ruby', wf.libdir["test_workflow.rb"].find)
         else
           Log.info "No bootstrap for #{ workflow }, running examples instead"
-          CMD.cmd_log("scout workflow example #{ workflow }")
+          CMD.cmd_log("#{exec} workflow example #{ workflow }")
           exit 0
         end
       end

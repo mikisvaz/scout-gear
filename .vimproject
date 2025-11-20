@@ -193,6 +193,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   }
   workflow=workflow{
    task
+   example
    list
    info
    write_info
