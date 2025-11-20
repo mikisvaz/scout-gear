@@ -206,7 +206,7 @@ class Step
       Marshal.load(Base64.decode64(info[:exception]))
     rescue
       Log.exception $!
-      nil
+      return Exception.new messages.last
     end
   end
 
