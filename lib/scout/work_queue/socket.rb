@@ -22,6 +22,7 @@ class WorkQueue
     end
 
     def clean
+      return if @cleaned
       @cleaned = true
       @sread.close unless @sread.closed?
       @swrite.close unless @swrite.closed?

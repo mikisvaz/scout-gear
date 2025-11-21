@@ -129,7 +129,7 @@ class WorkQueue
         threads.each do |t| 
           begin
             t.join 
-          rescue
+          rescue Exception
             exceptions << $!
           end
         end
@@ -175,7 +175,7 @@ class WorkQueue
   end
 
   def clean
-    @waiter.join if @waiter 
+    @waiter.join if @waiter && Thread.current != @waiter
     @input.clean
     @output.clean
   end
