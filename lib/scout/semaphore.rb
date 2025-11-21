@@ -154,9 +154,7 @@ if continue
         # add jitter in range [0, jitter * sleep_time)
         sleep_time += rand * jitter * sleep_time
 
-        file = File.join('/dev/shm', 'sem.' + name)
-        found = self.exists?(name)
-        Log.warn "Semaphore operation failed (errno=#{err}), retrying in #{'%.3f' % sleep_time}s (attempt #{attempts}/#{max_attempts}) #{found}"
+        Log.warn "Semaphore operation failed (errno=#{err}), retrying in #{'%.3f' % sleep_time}s (attempt #{attempts}/#{max_attempts})"
         sleep(sleep_time)
       end
     end
