@@ -25,7 +25,7 @@ if continue
 
       # Create a named semaphore. Return 0 on success, -errno on error.
       builder.c_singleton <<-EOF
-  int create_semaphore(char* name, int value){
+  int create_semaphore_c(char* name, int value){
     sem_t* sem;
     sem = sem_open(name, O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO, value);
     if (sem == SEM_FAILED){
@@ -39,7 +39,7 @@ if continue
 
       # Unlink (remove) a named semaphore. Return 0 on success, -errno on error.
       builder.c_singleton <<-EOF
-  int delete_semaphore(char* name){
+  int delete_semaphore_c(char* name){
     int ret = sem_unlink(name);
     if (ret == -1) {
       return -errno;
@@ -50,7 +50,7 @@ if continue
 
       # Wait (sem_wait) on a named semaphore. Return 0 on success, -errno on error.
       builder.c_singleton <<-EOF
-  int wait_semaphore(char* name){
+  int wait_semaphore_c(char* name){
     sem_t* sem;
     sem = sem_open(name, 0);
     if (sem == SEM_FAILED){
@@ -76,7 +76,7 @@ if continue
 
       # Post (sem_post) on a named semaphore. Return 0 on success, -errno on error.
       builder.c_singleton <<-EOF
-  int post_semaphore(char* name){
+  int post_semaphore_c(char* name){
     sem_t* sem;
     sem = sem_open(name, 0);
     if (sem == SEM_FAILED){
@@ -111,6 +111,11 @@ if continue
       s.gsub!(%r{^/+}, '')
       s = '/' + s.gsub('/', '_')
       s
+    end
+
+    def self.exists?(name)
+      file = File.join('/dev/shm', 'sem.' + name[1..-1])
+      Open.exists? file
     end
 
     # Errno numeric lists
@@ -155,24 +160,26 @@ if continue
     end
 
     # Safe wrappers that raise SystemCallError on final failure
-    def self.safe_create_semaphore(name, value, **opts)
-      ret = with_retry(**opts) { ScoutSemaphore.create_semaphore(name, value) }
+    def self.create_semaphore(name, value, **opts)
+      ret = with_retry(**opts) { ScoutSemaphore.create_semaphore_c(name, value) }
+      raise SystemCallError.new("Semaphore missing (#{name})") unless self.exists?(name)
       if ret < 0
         raise SystemCallError.new("create_semaphore(#{name}) failed", -ret)
       end
       ret
     end
 
-    def self.safe_delete_semaphore(name, **opts)
-      ret = with_retry(**opts) { ScoutSemaphore.delete_semaphore(name) }
+    def self.delete_semaphore(name, **opts)
+      ret = with_retry(**opts) { ScoutSemaphore.delete_semaphore_c(name) }
       if ret < 0
         raise SystemCallError.new("delete_semaphore(#{name}) failed", -ret)
       end
       ret
     end
 
-    def self.safe_wait_semaphore(name, **opts)
-      ret = with_retry(**opts) { ScoutSemaphore.wait_semaphore(name) }
+    def self.wait_semaphore(name, **opts)
+      raise SystemCallError.new("Semaphore missing (#{name})") unless self.exists?(name)
+      ret = with_retry(**opts) { ScoutSemaphore.wait_semaphore_c(name) }
       if ret < 0
         err = -ret
         if err == Errno::EINTR.new.errno
@@ -184,8 +191,9 @@ if continue
       ret
     end
 
-    def self.safe_post_semaphore(name, **opts)
-      ret = with_retry(**opts) { ScoutSemaphore.post_semaphore(name) }
+    def self.post_semaphore(name, **opts)
+      raise SystemCallError.new("Semaphore missing (#{name})") unless self.exists?(name)
+      ret = with_retry(**opts) { ScoutSemaphore.post_semaphore_c(name) }
       if ret < 0
         raise SystemCallError.new("post_semaphore(#{name}) failed", -ret)
       end
@@ -198,7 +206,7 @@ if continue
 
       # wait_semaphore returns 0 on success or -errno on error
       begin
-        ScoutSemaphore.safe_wait_semaphore(sem)
+        ScoutSemaphore.wait_semaphore(sem)
       rescue SemaphoreInterrupted
         raise
       rescue SystemCallError => e
@@ -210,7 +218,7 @@ if continue
         yield
       ensure
         begin
-          ScoutSemaphore.safe_post_semaphore(sem)
+          ScoutSemaphore.post_semaphore(sem)
         rescue SystemCallError => e
           # Log but don't raise from ensure
           # Log.warn "post_semaphore(#{sem}) failed in ensure: #{e.message}"
@@ -232,7 +240,7 @@ if continue
       begin
         Log.debug "Creating semaphore (#{ size }): #{file}"
         begin
-          ScoutSemaphore.safe_create_semaphore(file, size)
+          ScoutSemaphore.create_semaphore(file, size)
         rescue SystemCallError => e
           Log.error "Failed to create semaphore #{file}: #{e.message}"
           raise
@@ -242,7 +250,7 @@ if continue
       ensure
         Log.debug "Removing semaphore #{ file }"
         begin
-          ScoutSemaphore.safe_delete_semaphore(file)
+          ScoutSemaphore.delete_semaphore(file)
         rescue SystemCallError => e
           Log.warn "delete_semaphore(#{file}) failed: #{e.message}"
         end
