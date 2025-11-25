@@ -1,5 +1,6 @@
 begin
   require 'inline'
+  require 'fileutils'
   continue = true
 rescue Exception
   Log.warn "The RubyInline gem could not be loaded: semaphore synchronization will not work"
@@ -159,9 +160,55 @@ if continue
       end
     end
 
+    # Try to create the semaphore while holding a per-semaphore lock to avoid races
+    def self.ensure_or_create(name, size = 1)
+      # Normalize and make a safe lock path under Scout.tmp.semaphore_locks
+      lock_dir = if defined?(Scout) && Scout.respond_to?(:tmp) && Scout.tmp.respond_to?(:semaphore_locks)
+                   Scout.tmp.semaphore_locks
+                 else
+                   File.join('/tmp', 'scout', 'semaphore_locks')
+                 end
+
+      FileUtils.mkdir_p(lock_dir) unless File.exist?(lock_dir)
+
+      lock_base = File.join(lock_dir, name.gsub(%r{^/+}, '').gsub('/', '_'))
+
+      begin
+        Open.lock(lock_base) do |_lf|
+          # If someone else created it while waiting for the lock, we're done
+          return true if self.exists?(name)
+
+          Log.info "Semaphore #{name} missing; creating under lock #{lock_base}"
+          begin
+            # call the lower-level C create and let create_semaphore perform checks/retries
+            ret = ScoutSemaphore.create_semaphore_c(name, size)
+            if ret < 0
+              Log.warn "create_semaphore_c failed for #{name}: errno=#{-ret}"
+              return false
+            end
+
+            # best-effort: ensure the file shows up
+            unless self.exists?(name)
+              Log.warn "Semaphore #{name} created but /dev/shm entry not visible"
+            end
+
+            Log.info "Semaphore #{name} created"
+            return true
+          rescue Exception => e
+            Log.warn "Exception while creating semaphore #{name}: #{e.message}"
+            return false
+          end
+        end
+      rescue Exception => e
+        Log.warn "Failed to acquire creation lock for #{name}: #{e.message}"
+        return false
+      end
+    end
+
     # Safe wrappers that raise SystemCallError on final failure
     def self.create_semaphore(name, value, **opts)
       ret = with_retry(**opts) { ScoutSemaphore.create_semaphore_c(name, value) }
+      # After creation attempt, make sure the /dev/shm entry exists (cluster may remove entries)
       raise SystemCallError.new("Semaphore missing (#{name})") unless self.exists?(name)
       if ret < 0
         raise SystemCallError.new("create_semaphore(#{name}) failed", -ret)
@@ -178,8 +225,22 @@ if continue
     end
 
     def self.wait_semaphore(name, **opts)
-      raise SystemCallError.new("Semaphore missing (#{name})") unless self.exists?(name)
+      # Try a normal wait first
       ret = with_retry(**opts) { ScoutSemaphore.wait_semaphore_c(name) }
+
+      if ret < 0
+        err = -ret
+        # If semaphore missing or removed, try to recreate it under a lock and retry once
+        if err == Errno::ENOENT.new.errno || err == Errno::EIDRM.new.errno
+          Log.warn "wait_semaphore: semaphore #{name} appears missing (errno=#{err}); attempting recreate"
+          created = ensure_or_create(name, opts.fetch(:create_size, 1))
+          if created
+            # retry the wait after creating
+            ret = with_retry(**opts) { ScoutSemaphore.wait_semaphore_c(name) }
+          end
+        end
+      end
+
       if ret < 0
         err = -ret
         if err == Errno::EINTR.new.errno
@@ -188,12 +249,26 @@ if continue
           raise SystemCallError.new("wait_semaphore(#{name}) failed", err)
         end
       end
+
       ret
     end
 
     def self.post_semaphore(name, **opts)
-      raise SystemCallError.new("Semaphore missing (#{name})") unless self.exists?(name)
+      # Try normal post first
       ret = with_retry(**opts) { ScoutSemaphore.post_semaphore_c(name) }
+
+      if ret < 0
+        err = -ret
+        # If semaphore missing or removed, try to recreate it under a lock and then post
+        if err == Errno::ENOENT.new.errno || err == Errno::EIDRM.new.errno
+          Log.warn "post_semaphore: semaphore #{name} appears missing (errno=#{err}); attempting recreate"
+          created = ensure_or_create(name, opts.fetch(:create_size, 1))
+          if created
+            ret = with_retry(**opts) { ScoutSemaphore.post_semaphore_c(name) }
+          end
+        end
+      end
+
       if ret < 0
         raise SystemCallError.new("post_semaphore(#{name}) failed", -ret)
       end
