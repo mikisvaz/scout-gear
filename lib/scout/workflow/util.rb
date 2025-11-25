@@ -18,7 +18,7 @@ module Workflow
   end
 
   def all_tasks
-    tasks.keys
+    tasks.nil? ? [] : tasks.keys
   end
 
   def self.list
