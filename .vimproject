@@ -3,6 +3,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  README.md
  chats=chats filter="*"{
 
+  intro
+
   semaphore
 
   deploy
@@ -304,5 +306,15 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   templates=templates{
    workflow.rb
   }
+ }
+ doc=doc filter="*"{
+  Association.md
+  Entity.md
+  KnowledgeBase.md
+  Persist.md
+  Semaphore.md
+  TSV.md
+  WorkQueue.md
+  Workflow.md
  }
 }
