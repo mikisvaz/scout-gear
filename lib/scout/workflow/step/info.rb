@@ -30,7 +30,7 @@ class Step
   end
 
   def save_info(info = nil)
-    Persist.save(@info = info, info_file, SERIALIZER)
+    Persist.save(Annotation.purge(@info = info), info_file, SERIALIZER)
     @info_load_time = Time.now
   end
 
