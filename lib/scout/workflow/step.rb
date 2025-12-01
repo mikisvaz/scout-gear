@@ -16,14 +16,15 @@ require_relative 'step/archive'
 class Step 
 
   attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :provided_inputs, :compute, :overriden_task, :overriden_workflow, :workflow, :exec_context, :overriden
-  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, exec_context: nil, &task)
+  def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, overriden = nil, exec_context: nil, &task)
     @path = path
     @inputs = inputs
     @dependencies = dependencies
     @id = id
     @non_default_inputs = non_default_inputs
     @provided_inputs = provided_inputs
-    @compute = compute 
+    @compute = compute
+    @overriden = overriden unless overriden.nil?
     @task = task
     @mutex = Mutex.new
     @tee_copies = 1

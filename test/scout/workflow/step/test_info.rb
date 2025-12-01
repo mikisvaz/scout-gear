@@ -49,6 +49,8 @@ class TestStepInfo < Test::Unit::TestCase
 
       step1.run
 
+      step1 = Step.new tmpfile.step1
+
       refute Path === step1.info[:inputs][0]
 
     end

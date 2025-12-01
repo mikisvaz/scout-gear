@@ -81,7 +81,7 @@ module SchedulerJob
 
     task = job.task_name
 
-    if job.recursive_overriden_deps.any?
+    if job.overriden?
       override_deps = job.recursive_overriden_deps.
         select do |dep| Symbol === dep.overriden end.
         collect do |dep| 

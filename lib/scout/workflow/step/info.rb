@@ -83,6 +83,7 @@ class Step
 
           if start && eend
             time = eend - start
+            Log.warn "No issue time #{self.path}" if issued.nil?
             total_time = eend - issued
             if total_time - time > 1
               time_str = "#{Misc.format_seconds_short(time)} (#{Misc.format_seconds_short(total_time)})"
@@ -186,7 +187,7 @@ class Step
   end
 
   def overriden?
-    @overriden = overriden_task || overriden_workflow || overriden_deps.any? if @overriden.nil?
+    @overriden = overriden_task || overriden_workflow if @overriden.nil?
     @overriden
   end
 

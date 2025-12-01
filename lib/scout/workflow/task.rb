@@ -81,7 +81,18 @@ module Task
 
       non_default_inputs.uniq!
 
-      non_default_inputs.delete_if{|k| k.to_s.include? "#" } unless dependencies.select{|d| d.overriden? }.any?
+      override_inputs = non_default_inputs.select{|k| (String === k) && k.include?("#")  }
+      if Hash === provided_inputs && (override_inputs & provided_inputs.keys).any?
+        if dependencies.select{|dep| dep.overriden? }.any?
+          overriden = true
+        else
+          overriden = nil
+          override_inputs.each{|o| non_default_inputs.delete o }
+        end
+      else
+        override_inputs.each{|o| non_default_inputs.delete o }
+        overriden = nil
+      end
 
       id = DEFAULT_NAME if id.nil?
 
@@ -120,7 +131,7 @@ module Task
       end
       NamedArray.setup(job_inputs, @inputs.collect{|i| i[0] }) if @inputs
       step_provided_inputs = Hash === provided_inputs ? provided_inputs.slice(*non_default_inputs) : provided_inputs
-      Step.new path.find, job_inputs, dependencies, id, non_default_inputs, step_provided_inputs, compute, &self
+      Step.new path.find, job_inputs, dependencies, id, non_default_inputs, step_provided_inputs, compute, overriden, &self
     end
   end
 

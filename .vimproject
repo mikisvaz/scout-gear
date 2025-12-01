@@ -78,8 +78,6 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
      queue.rb
 
      trace.rb
-
-     orchestrator.rb
     }
     entity.rb
    }
