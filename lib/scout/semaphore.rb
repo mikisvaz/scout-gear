@@ -219,7 +219,7 @@ if continue
     def self.delete_semaphore(name, **opts)
       ret = with_retry(**opts) { ScoutSemaphore.delete_semaphore_c(name) }
       if ret < 0
-        raise SystemCallError.new("delete_semaphore(#{name}) failed", -ret)
+        Log.warn("delete_semaphore(#{name}) failed")
       end
       ret
     end
