@@ -1,4 +1,5 @@
 class Step
+
   def rec_dependencies(connected = false, seen = Set.new)
     @rec_dependencies = {}
     @rec_dependencies[connected] ||= begin
@@ -32,6 +33,31 @@ class Step
         nil
       end
     end.compact.uniq
+  end
+
+  def overrider?
+    ! (overriden_task.nil? && overriden_workflow.nil?)
+  end
+
+  def overriden?
+    @overriden
+  end
+
+  def overriden_deps
+    dependencies.select{|d| d.overriden? }
+  end
+
+  def recursive_overriden_deps
+    overriden_deps = self.overriden_deps
+    overriden_deps + overriden_deps.collect{|dep| dep.recursive_overriden_deps }
+  end
+
+  def overrider_deps
+    dependencies.select{|d| d.overrider? }
+  end
+
+  def recursive_overrider_deps
+    self.rec_dependencies.select{|dep| dep.overrider? }
   end
 
   def prepare_dependencies

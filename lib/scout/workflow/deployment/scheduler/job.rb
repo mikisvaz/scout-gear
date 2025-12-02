@@ -82,16 +82,14 @@ module SchedulerJob
     task = job.task_name
 
     if job.overriden?
-      override_deps = job.recursive_overriden_deps.
-        select do |dep| Symbol === dep.overriden end.
-        collect do |dep| 
-          o_workflow = dep.overriden_workflow || dep.workflow
-          o_workflow = o_workflow.name if o_workflow.respond_to?(:name)
-          o_task_name = dep.overriden_task || dep.task.name
-          name = [o_workflow, o_task_name] * "#"
-          [name, dep.path] * "="  
-        end.uniq * ","
-        options[:override_deps] = override_deps unless override_deps.empty?
+      override_deps = job.recursive_overrider_deps.collect do |dep| 
+        o_workflow = dep.overriden_workflow || dep.workflow
+        o_workflow = o_workflow.name if o_workflow.respond_to?(:name)
+        o_task_name = dep.overriden_task || dep.task.name
+        name = [o_workflow, o_task_name] * "#"
+        [name, dep.path] * "="  
+      end.uniq * ","
+      options[:override_deps] = override_deps unless override_deps.empty?
     end
 
     # Save inputs into inputs_dir (only if provided)

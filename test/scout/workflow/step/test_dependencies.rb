@@ -115,5 +115,40 @@ class TestStepDependencies < Test::Unit::TestCase
     assert_equal "2", step2.recursive_inputs["input1"]
     assert_equal "1", step3.recursive_inputs["input1"]
   end
+
+  def test_overriden_fixed
+    TmpFile.with_file("HELLO") do |file|
+      wf = Module.new do
+        extend Workflow
+
+        self.name = "TestWF"
+
+        task :message => :string do
+          "HI"
+        end
+
+        dep :message
+        task :say => :string do
+          "I say #{step(:message).load}"
+        end
+
+        task_alias :say_hello, self, :say, "TestWF#message" => file, :not_overriden => true
+      end
+
+      assert_equal "I say HI", wf.job(:say).run
+
+      job1 = wf.job(:say, "TestWF#message" => file)
+      assert_equal "I say HELLO", job1.run
+
+      job2 = wf.job(:say_hello)
+      assert_equal "I say HELLO", job2.run
+
+      assert job1.overriden?
+      refute job2.overriden?
+
+      assert job1.overrider_deps.any?
+      refute job2.overrider_deps.any?
+    end
+  end
 end
 

@@ -1,5 +1,23 @@
 class Workflow::Orchestrator
 
+  def self.prepare_for_execution(job)
+    rec_dependencies = job.rec_dependencies(true)
+
+    return if rec_dependencies.empty?
+
+    all_deps = rec_dependencies + [job]
+
+    all_deps.each do |dep|
+      begin
+        dep.clean if (dep.error? && dep.recoverable_error?) ||
+          dep.aborted? || (dep.done? && ! dep.updated?)
+      rescue RbbtException
+        Log.exception $!
+        next
+      end
+    end
+  end
+
   def self.job_workload(jobs)
     workload = []
     path_jobs = {}

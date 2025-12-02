@@ -21,19 +21,31 @@ class Step
   end
 
   def newer_dependencies
+    rec_dependencies = self.rec_dependencies
     newer = rec_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += input_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += rec_dependencies.collect{|dep| dep.input_dependencies }.flatten.select{|dep| Path.newer?(self.path, dep.path) }
     newer
   end
 
+  def cleaned_dependencies
+    return []
+    rec_dependencies = self.rec_dependencies
+    cleaned = rec_dependencies.select{|dep| dep.info[:status] == :cleaned }
+    cleaned += input_dependencies.select{|dep| dep.info[:status] == :cleaned }
+    cleaned += rec_dependencies.collect{|dep| dep.input_dependencies }.flatten.select{|dep| dep.info[:status] == :cleaned }
+    cleaned
+  end
+
   def updated?
     return false if self.error? && self.recoverable_error?
     return true if (self.done? || (self.error? && ! self.recoverable_error?)) && ! ENV["SCOUT_UPDATE"]
     newer = newer_dependencies
+    cleaned = cleaned_dependencies
 
     Log.low "Newer deps found for #{Log.fingerprint self}: #{Log.fingerprint newer}" if newer.any?
-    newer.empty?
+    Log.low "Cleaned deps found for #{Log.fingerprint self}: #{Log.fingerprint cleaned}" if cleaned.any?
+    newer.empty? && cleaned.empty?
   end
 
   def clean

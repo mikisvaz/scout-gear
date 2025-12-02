@@ -45,9 +45,22 @@ module Task
     memory_inputs = nil if Array === memory_inputs && memory_inputs.compact.empty?
     memory_inputs = nil if Hash === memory_inputs && memory_inputs.empty?
     Persist.memory("Task job #{self.name}", repo: Workflow.job_cache, other: {workflow: self.workflow, task: self.name, id: id, provided_inputs: memory_inputs}) do
+
+      #{{{ Provided inputs and ID
       provided_inputs, id = id, nil if (provided_inputs.nil? || provided_inputs.empty?) && (Hash === id || Array === id)
       provided_inputs = {} if provided_inputs.nil?
-      IndiferentHash.setup(provided_inputs)
+      IndiferentHash.setup(provided_inputs) if Hash === provided_inputs
+
+      provided_inputs = load_inputs(provided_inputs.delete(:load_inputs)).merge(provided_inputs) if Hash === provided_inputs && provided_inputs[:load_inputs]
+
+      provided_input_names = case provided_inputs
+                             when nil
+                               []
+                             when Array
+                               inputs.collect{|name,*| name }[0..provided_inputs.length]
+                             when Hash
+                               provided_inputs.keys
+                             end
 
       jobname_input = nil
       inputs.each do |name,type,desc,default,input_options|
@@ -56,12 +69,14 @@ module Task
       end
 
       id = provided_inputs[jobname_input] if jobname_input && id.nil?
-      #id = provided_inputs[:id] if provided_inputs.include?(:id)
+      id = DEFAULT_NAME if id.nil?
+      id = Path.sanitize_filename(id, 150)
 
+      #{{{ Missing inputs
       missing_inputs = []
       self.inputs.each do |input,type,desc,val,options|
         next unless options && options[:required]
-        missing_inputs << input unless provided_inputs.include?(input)
+        missing_inputs << input unless provided_input_names.include?(input)
       end if self.inputs
 
       if missing_inputs.length == 1
@@ -72,36 +87,32 @@ module Task
         raise ParameterException, "Inputs #{Misc.humanize_list(missing_inputs)} are required but were not provided or are nil"
       end
 
-      provided_inputs = load_inputs(provided_inputs.delete(:load_inputs)).merge(provided_inputs) if Hash === provided_inputs && provided_inputs[:load_inputs]
-
+      #{{{ Process inputs
       job_inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
+      non_default_inputs.uniq!
+      NamedArray.setup(job_inputs, @inputs.collect{|i| i[0] }) if @inputs
+      step_provided_inputs = Hash === provided_inputs ? provided_inputs.slice(*non_default_inputs) : provided_inputs
 
+      #{{{ Dependencies
       compute = {}
       dependencies = dependencies(id, provided_inputs, non_default_inputs, compute)
 
-      non_default_inputs.uniq!
+      #{{{ Overrides
+      override_inputs = provided_input_names.select{|k| (String === k) && k.include?("#")  }
+      overriden = override_inputs.any? && dependencies.select{|dep| dep.overrider? || dep.overriden? }.any?
 
-      override_inputs = non_default_inputs.select{|k| (String === k) && k.include?("#")  }
-      if Hash === provided_inputs && (override_inputs & provided_inputs.keys).any?
-        if dependencies.select{|dep| dep.overriden? }.any?
-          overriden = true
-        else
-          overriden = nil
-          override_inputs.each{|o| non_default_inputs.delete o }
-        end
-      else
-        override_inputs.each{|o| non_default_inputs.delete o }
-        overriden = nil
-      end
+      non_default_inputs.delete_if{|input| override_inputs.include? input }
+      non_default_provided_inputs = non_default_inputs & provided_input_names
+      non_default_provided_inputs.delete jobname_input if provided_inputs[jobname_input] == id
 
-      id = DEFAULT_NAME if id.nil?
-
-      sanitized_id = Path.sanitize_filename(id, 150)
-      if non_default_inputs.any? && !(non_default_inputs == [jobname_input] && provided_inputs[jobname_input] == id)
+      #{{{ Hash and Path
+      if overriden || non_default_provided_inputs.any?
         hash = Misc.digest(:inputs => input_digest_str, :dependencies => dependencies)
-        name = [sanitized_id, hash] * "_"
+        Log.debug "ID #{self.name} #{id} - #{hash}: #{Log.fingerprint(:input_digest => input_digest_str, :non_default_inputs => non_default_inputs, :dependencies => dependencies, overriden: override_inputs)}"
+        name = [id, hash] * "_"
       else
-        name = sanitized_id
+        Log.debug "ID #{self.name} #{id} - Clean"
+        name = id
       end
 
       extension = self.extension
@@ -121,15 +132,8 @@ module Task
       end
 
       path = directory[name]
-
       path = path.set_extension(extension) if extension
 
-      if hash
-        Log.debug "ID #{self.name} #{id} - #{hash}: #{Log.fingerprint(:input_digest => input_digest_str, :non_default_inputs => non_default_inputs, :dependencies => dependencies)}"
-      else
-        Log.debug "ID #{self.name} #{id} - Clean"
-      end
-      NamedArray.setup(job_inputs, @inputs.collect{|i| i[0] }) if @inputs
       step_provided_inputs = Hash === provided_inputs ? provided_inputs.slice(*non_default_inputs) : provided_inputs
       Step.new path.find, job_inputs, dependencies, id, non_default_inputs, step_provided_inputs, compute, overriden, &self
     end

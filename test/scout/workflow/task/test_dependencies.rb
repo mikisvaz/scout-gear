@@ -20,7 +20,7 @@ class TestTaskDependencies < Test::Unit::TestCase
 
     assert_equal 18, wf.job(:step2, :input1 => 2, "TaskInputs#step1" => step1_job).exec
 
-    assert_equal [step1_job.path], wf.job(:step2, :input1 => 2, "TaskInputs#step1" => step1_job).overriden_deps.collect{|d| d.path }
+    assert_equal [step1_job.path], wf.job(:step2, :input1 => 2, "TaskInputs#step1" => step1_job).overrider_deps.collect{|d| d.path }
 
     assert_equal 18, wf.job(:step2, "TaskInputs#step1" => step1_job).exec
   end

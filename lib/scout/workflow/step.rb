@@ -37,12 +37,12 @@ class Step
 
   def provided_inputs
     @provided_inputs ||= begin
-                  if info_file && Open.exists?(info_file)
-                    info[:provided_inputs]
-                  else
-                    {}
-                  end
-                end
+                           if info_file && Open.exists?(info_file)
+                             info[:provided_inputs]
+                           else
+                             {}
+                           end
+                         end
   end
 
   def non_default_inputs
@@ -190,9 +190,10 @@ class Step
       end
     end
 
-
     return @result || self.load if done?
+    
     prepare_dependencies
+
     begin
 
 

@@ -186,22 +186,6 @@ class Step
     ! (done? && status == :done) && (info[:pid] && Misc.pid_alive?(info[:pid]))
   end
 
-  def overriden?
-    @overriden = overriden_task || overriden_workflow if @overriden.nil?
-    @overriden
-  end
-
-  def overriden_deps
-    dependencies.select{|d| d.overriden? }
-  end
-
-  def recursive_overriden_deps
-    overriden_deps = dependencies.select{|d| 
-      d.overriden? 
-    }
-    (overriden_deps + overriden_deps.collect{|d| d.recursive_overriden_deps }).flatten.uniq
-  end
-
   def exception
     return nil unless info[:exception]
     begin

@@ -105,6 +105,7 @@ if clean_task
 
     job.clean if (job.task_name.to_s == clean_task.to_s) || ! job.updated?
   end
+
 end
 
 if provenance
@@ -122,6 +123,8 @@ elsif save_inputs
   exit 0
 else
   require 'scout/workflow/deployment'
+
+  Workflow::Orchestrator.prepare_for_execution(job)
 
   if deploy_rules.nil?
     rules = Workflow::Orchestrator.load_rules_for_job(job)
@@ -142,6 +145,7 @@ else
     batches = Workflow::Orchestrator.job_batches rules, job
     batches.each do |batch|
       top = batch[:top_level]
+      overriden = top.overriden?
       jobs = batch[:jobs]
       puts Log.color :title, Log.fingerprint(top)
       puts batch[:rules].to_yaml
@@ -151,6 +155,7 @@ else
         puts Log.color :green, "#{i}: " + Log.color(:blue, Log.fingerprint(v))
       end
       other = jobs - [top]
+      puts Log.color :subtitle, 'Overriden: ' + 'true' if overriden
       puts Log.color :subtitle, 'Other jobs: ' + Log.color(:blue, other.collect{|d| d.short_path}.uniq * ', ' ) if other.any?
       puts Log.color :subtitle, 'Dependencies: ' + Log.color(:blue, deps.collect{|d| d.short_path}.uniq * ', ' ) if deps.any?
     end
