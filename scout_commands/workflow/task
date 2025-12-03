@@ -143,21 +143,25 @@ else
     end
   when 'dry', 'dryrun', 'debug'
     batches = Workflow::Orchestrator.job_batches rules, job
+    batches = Workflow::Orchestrator.sort_batches batches
     batches.each do |batch|
       top = batch[:top_level]
-      overriden = top.overriden?
       jobs = batch[:jobs]
-      puts Log.color :title, Log.fingerprint(top)
-      puts batch[:rules].to_yaml
       deps = batch[:deps].collect{|dep| dep[:top_level] }
+      other = jobs - [top]
+      overriden = top.overriden?
       provided_inputs = jobs.inject({}){|acc,j| acc = IndiferentHash.add_defaults acc, j.provided_inputs }
+
+      puts Log.color :title, top.short_path
+      puts Log.color :subtitle, 'Other jobs: ' + Log.color(:blue, other.collect{|d| d.short_path}.uniq * ', ' ) if other.any?
+      puts Log.color :subtitle, 'Dependencies: ' + Log.color(:blue, deps.collect{|d| d.short_path}.uniq * ', ' ) if deps.any?
+      puts Log.color :subtitle, 'Overriden: ' + 'true' if overriden
+      batch[:rules].each do |k,v|
+        puts Log.color(:cyan, k + ": ") + v.to_json
+      end
       provided_inputs.each do |i,v|
         puts Log.color :green, "#{i}: " + Log.color(:blue, Log.fingerprint(v))
       end
-      other = jobs - [top]
-      puts Log.color :subtitle, 'Overriden: ' + 'true' if overriden
-      puts Log.color :subtitle, 'Other jobs: ' + Log.color(:blue, other.collect{|d| d.short_path}.uniq * ', ' ) if other.any?
-      puts Log.color :subtitle, 'Dependencies: ' + Log.color(:blue, deps.collect{|d| d.short_path}.uniq * ', ' ) if deps.any?
     end
     exit 0
   when "serial"

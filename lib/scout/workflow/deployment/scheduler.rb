@@ -15,14 +15,16 @@ module Workflow::Scheduler
   def self.process_batches(batches, process_options = {})
     failed_jobs = []
 
-    pending = batches.dup
+    #pending = batches.dup
 
-    sorted = []
-    while pending.any?
-      leaf_nodes = batches.select{|batch| (batch[:deps] - sorted).empty? }
-      sorted.concat(leaf_nodes - sorted)
-      pending -= leaf_nodes
-    end
+    #sorted = []
+    #while pending.any?
+    #  leaf_nodes = batches.select{|batch| (batch[:deps] - sorted).empty? }
+    #  sorted.concat(leaf_nodes - sorted)
+    #  pending -= leaf_nodes
+    #end
+
+    sorted = Workflow::Orchestrator.sort_batches batches
 
     batch_system = Scout::Config.get :system, :batch, :scheduler, 'env:BATCH_SYSTEM', default: 'SLURM'
 

@@ -127,4 +127,15 @@ class Workflow::Orchestrator
 
     batches
   end
+
+  def self.sort_batches(batches)
+    pending = batches.dup
+    sorted = []
+    while pending.any?
+      leaf_nodes = batches.select{|batch| (batch[:deps] - sorted).empty? }
+      sorted.concat(leaf_nodes - sorted)
+      pending -= leaf_nodes
+    end
+    sorted
+  end
 end
