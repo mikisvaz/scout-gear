@@ -58,6 +58,23 @@ class Workflow::Orchestrator
     chains
   end
 
+  def self.add_chain(job_chains, match, info)
+    if job_chains[match]
+      current = job_chains[match]
+      new_info = {}
+      new_info[:jobs] = (current[:jobs] + info[:jobs]).uniq
+      if current[:top_level].rec_dependencies.include?(info[:top_level]) ||
+          current[:top_level].input_dependencies.include?(info[:top_level])
+        new_info[:top_level] = current[:top_level]
+      else
+        new_info[:top_level] = info[:top_level]
+      end
+      job_chains[match] = new_info
+    else
+      job_chains[match] = info
+    end
+  end
+
   def self.job_chains(rules, job, computed = {})
     key = Log.fingerprint([rules, job.path, job.object_id])
     return computed[key] if computed.has_key?(key)
@@ -66,7 +83,7 @@ class Workflow::Orchestrator
     matches = check_chains(chains, job)
     dependencies = job_dependencies(job)
 
-    job_chains = []
+    job_chains = {}
     new_job_chains = {}
     dependencies.each do |dep|
       dep_matches = check_chains(chains, dep)
@@ -82,23 +99,25 @@ class Workflow::Orchestrator
           new_info[:jobs].concat info[:jobs]
           new_info[:top_level] = job
         else
-          job_chains << [match, info]
+          add_chain job_chains, match, info
+          #job_chains << [match, info]
         end
       end
 
       (common - found).each do |match|
-          info = {}
-          info[:jobs] = [job, dep]
-          info[:top_level] = job
-          job_chains << [match, info]
-        end
+        info = {}
+        info[:jobs] = [job, dep]
+        info[:top_level] = job
+        #job_chains << [match, info]
+        add_chain job_chains, match, info
       end
-
-      new_job_chains.each do |match, info|
-        info[:jobs].prepend job
-        job_chains << [match, info]
-      end
-
-      computed[key] = job_chains
     end
+
+    new_job_chains.each do |match, info|
+      info[:jobs].prepend job
+      add_chain job_chains, match, info
+    end
+
+    computed[key] = job_chains
+  end
 end

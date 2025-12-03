@@ -141,7 +141,17 @@ else
       puts save_inputs
       exit
     end
-  when 'dry', 'dryrun', 'debug'
+  when 'very_dry', 'vdry'
+    batches = Workflow::Orchestrator.job_batches rules, job
+    batches = Workflow::Orchestrator.sort_batches batches
+    batches.each do |batch|
+      top = batch[:top_level]
+      puts top.short_path
+    end
+    puts
+    puts "#{batches.length} batches"
+    exit 0
+  when 'dry', 'dryrun', 'dry_run', 'debug'
     batches = Workflow::Orchestrator.job_batches rules, job
     batches = Workflow::Orchestrator.sort_batches batches
     batches.each do |batch|
@@ -163,6 +173,8 @@ else
         puts Log.color :green, "#{i}: " + Log.color(:blue, Log.fingerprint(v))
       end
     end
+    puts
+    puts "#{batches.length} batches"
     exit 0
   when "serial"
     job.run(true) 

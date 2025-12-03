@@ -19,43 +19,16 @@ class Workflow::Orchestrator
   end
 
   def self.job_workload(jobs)
-    workload = []
-    path_jobs = {}
-
-    jobs = [jobs] unless Array === jobs
-
-    jobs.each do |job|
-      path_jobs[job.path] = job
-    end
-
-    heap = []
-    heap += jobs.collect(&:path)
-    while job_path = heap.pop
-      j = path_jobs[job_path]
-      next if j.done?
-      workload << j
-
-      deps = job_dependencies(j)
-      deps.each do |d|
-        path_jobs[d.path] ||= d
-      end
-
-      heap.concat deps.collect(&:path)
-      heap.uniq!
-    end
-
-    path_jobs
-  end
-
-  def self.job_workload(jobs)
     workload = {}
     jobs = [jobs] unless Array === jobs
     jobs.each do |job|
       workload[job] = []
       next if job.done? && job.updated?
+      next if job.overrider?
 
       job.dependencies.each do |dep|
         next if dep.done? && dep.updated?
+        next if dep.overrider?
         workload.merge!(job_workload(dep))
         workload[job] += workload[dep]
         workload[job] << dep
@@ -64,6 +37,7 @@ class Workflow::Orchestrator
 
       job.input_dependencies.each do |dep|
         next if dep.done? && dep.updated?
+        next if dep.overrider?
         workload.merge!(job_workload(dep))
         workload[job] += workload[dep]
         workload[job] << dep

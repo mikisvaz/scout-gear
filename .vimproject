@@ -2,6 +2,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
  README.md
  chats=chats filter="*"{
+
+
   intro
   dev
 

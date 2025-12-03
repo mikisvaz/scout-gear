@@ -92,10 +92,16 @@ class Workflow::Orchestrator
         next if batch[:deps].nil?
 
         if batch[:deps].any?
-          batch_dep_jobs = batch[:top_level].rec_dependencies
+          batch_dep_jobs = batch[:top_level].rec_dependencies.to_a
           target = batch[:deps].select do |target|
-            batch_dep_jobs.include?(target[:top_level]) &&
-              (batch[:deps] - [target] - target[:deps]).empty?
+            target_deps = []
+            stack = [target]
+            while stack.any?
+              c = stack.pop
+              target_deps << c
+              stack.concat c[:deps]
+            end
+            (batch[:deps] - target_deps).empty?
           end.first
           next if target.nil?
           target[:jobs] = batch[:jobs] + target[:jobs]
@@ -119,7 +125,7 @@ class Workflow::Orchestrator
     jobs = [jobs] unless Array === jobs
 
     workload = job_workload(jobs)
-    job_chains_map = jobs.inject([]){|acc,job| acc.concat(self.job_chains(rules, job)) }
+    job_chains_map = jobs.inject({}){|acc,job| acc.merge(self.job_chains(rules, job)) }
 
     batches = chain_batches(rules, job_chains_map, workload)
     batches = add_batch_deps(batches)
