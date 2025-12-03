@@ -110,11 +110,10 @@ TestWFC:
     job.recursive_clean
 
     job_chains = Workflow::Orchestrator.job_chains(RULES, job)
-    job_chains = NamedArray.setup(job_chains, job_chains.collect{|n,i| n })
 
-    assert_equal %w(chain_a_b chain_a), job_chains.fields
-    assert_equal 3, job_chains["chain_a"].last[:jobs].length
-    assert_equal job, job_chains["chain_a"].last[:top_level]
+    assert_equal %w(chain_a_b chain_a), job_chains.keys
+    assert_equal 3, job_chains["chain_a"].first[:jobs].length
+    assert_equal job, job_chains["chain_a"].first[:top_level]
   end
 
   def test_job_chain_b
@@ -122,9 +121,7 @@ TestWFC:
     job.recursive_clean
 
     job_chains = Workflow::Orchestrator.job_chains(RULES, job)
-    job_chains = NamedArray.setup(job_chains, job_chains.collect{|n,i| n })
 
-    assert_equal %w(chain_a chain_b chain_b2 chain_a_b).sort, job_chains.fields.sort
 
     assert_equal 2, job_chains["chain_a"].last[:jobs].length
     assert_equal job.step("a2"), job_chains["chain_a"].last[:top_level]
@@ -143,13 +140,18 @@ TestWFC:
     job = TestWFD.job(:d1, nil)
     job.recursive_clean
 
-    job_chains = Workflow::Orchestrator.job_chains(RULES, job)
-    job_chains = NamedArray.setup(job_chains, job_chains.collect{|n,i| n })
+    rules = YAML.load <<-EOF
+chains:
+  chain_a:
+    workflow: TestWFA
+    tasks: a1, a2, a3
+    EOF
 
-    assert_equal 2, job_chains.select{|n,i| n == 'chain_a' }.length
-    assert_equal ["First c3", "Second c3"].sort, job_chains.
-      select{|n,i| n == 'chain_a' }.
-      collect{|n,i| i[:top_level].name }.sort
+    job_chains = Workflow::Orchestrator.job_chains(RULES, job)
+
+    assert_equal 2, job_chains['chain_a'].length
+    assert_equal ["First c3", "Second c3"].sort, job_chains['chain_a'].
+      collect{|i| i[:top_level].name }.flatten.sort
 
     assert_equal 1, job_chains.select{|n,i| n == 'chain_d' }.length
   end

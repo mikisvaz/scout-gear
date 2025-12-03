@@ -26,5 +26,12 @@ class TestStepStatus < Test::Unit::TestCase
     end
   end
 
+  def test_updated_file
+    TmpFile.with_file 'foo' do |tmpfile|
+      s = Step.new tmpfile
+      assert s.updated?
+    end
+  end
+
 end
 

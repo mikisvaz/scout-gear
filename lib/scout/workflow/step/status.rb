@@ -39,7 +39,7 @@ class Step
 
   def updated?
     return false if self.error? && self.recoverable_error?
-    return true if (self.done? || (self.error? && ! self.recoverable_error?)) && ! ENV["SCOUT_UPDATE"]
+    return true if (self.done? || (self.error? && ! self.recoverable_error?)) && ! ENV["SCOUT_UPDATE"].to_s.downcase == 'true'
     newer = newer_dependencies
     cleaned = cleaned_dependencies
 

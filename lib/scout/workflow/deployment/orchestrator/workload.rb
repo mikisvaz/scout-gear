@@ -24,11 +24,9 @@ class Workflow::Orchestrator
     jobs.each do |job|
       workload[job] = []
       next if job.done? && job.updated?
-      next if job.overrider?
 
       job.dependencies.each do |dep|
         next if dep.done? && dep.updated?
-        next if dep.overrider?
         workload.merge!(job_workload(dep))
         workload[job] += workload[dep]
         workload[job] << dep
@@ -37,7 +35,6 @@ class Workflow::Orchestrator
 
       job.input_dependencies.each do |dep|
         next if dep.done? && dep.updated?
-        next if dep.overrider?
         workload.merge!(job_workload(dep))
         workload[job] += workload[dep]
         workload[job] << dep

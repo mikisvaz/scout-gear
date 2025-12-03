@@ -125,9 +125,18 @@ class Workflow::Orchestrator
     jobs = [jobs] unless Array === jobs
 
     workload = job_workload(jobs)
-    job_chains_map = jobs.inject({}){|acc,job| acc.merge(self.job_chains(rules, job)) }
+    job_chain_list = []
 
-    batches = chain_batches(rules, job_chains_map, workload)
+    jobs.each do |job|
+      job_chains = self.job_chains(rules, job)
+      job_chains.each do |chain,list|
+        list.each do |info|
+          job_chain_list << [chain,info]
+        end
+      end
+    end
+
+    batches = chain_batches(rules, job_chain_list, workload)
     batches = add_batch_deps(batches)
     batches = add_rules_and_consolidate(rules, batches)
 

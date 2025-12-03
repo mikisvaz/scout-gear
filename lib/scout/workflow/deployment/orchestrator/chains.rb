@@ -76,48 +76,46 @@ class Workflow::Orchestrator
   end
 
   def self.job_chains(rules, job, computed = {})
-    key = Log.fingerprint([rules, job.path, job.object_id])
+    chains = parse_chains(rules)
+    key = Log.fingerprint([job.path, job.object_id, chains])
     return computed[key] if computed.has_key?(key)
 
-    chains = parse_chains(rules)
-    matches = check_chains(chains, job)
-    dependencies = job_dependencies(job)
+    job_chains = check_chains(chains, job)
+    job_batches = {} 
+    new_batches = {}
+    job_dependencies(job).each do |dep|
+      dep_chains = check_chains(chains, dep)
+      common_chains = job_chains & dep_chains
 
-    job_chains = {}
-    new_job_chains = {}
-    dependencies.each do |dep|
-      dep_matches = check_chains(chains, dep)
-      common = matches & dep_matches
+      dep_batches = job_chains(rules, dep, computed)
 
-      dep_chains = job_chains(rules, dep, computed)
       found = []
-      dep_chains.each do |match, info|
-        if common.include?(match)
-          found << match
-          new_info = new_job_chains[match] ||= {}
-          new_info[:jobs] ||= []
-          new_info[:jobs].concat info[:jobs]
-          new_info[:top_level] = job
+      common_chains.each do |chain|
+        info = new_batches[chain]
+        info = {top_level: job, jobs: [job]} if info.nil?
+        if dep_batches[chain]
+          found << chain
+          dep_batches[chain].each do |dep_info|
+            info[:jobs] += dep_info[:jobs] - info[:jobs]
+          end
         else
-          add_chain job_chains, match, info
-          #job_chains << [match, info]
+          info[:jobs] << dep
         end
+        new_batches[chain] = info
       end
 
-      (common - found).each do |match|
-        info = {}
-        info[:jobs] = [job, dep]
-        info[:top_level] = job
-        #job_chains << [match, info]
-        add_chain job_chains, match, info
+      dep_batches.each do |chain,list|
+        next if found.include? chain
+        job_batches[chain] ||= []
+        job_batches[chain].concat list
       end
     end
 
-    new_job_chains.each do |match, info|
-      info[:jobs].prepend job
-      add_chain job_chains, match, info
+    new_batches.each do |match, info|
+      job_batches[match] ||= []
+      job_batches[match] << info
     end
 
-    computed[key] = job_chains
+    computed[key] = job_batches
   end
 end
