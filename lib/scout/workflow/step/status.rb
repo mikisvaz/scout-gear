@@ -17,11 +17,12 @@ class Step
   end
 
   def recoverable_error?
-    self.error? && ! (ScoutException === self.exception)
+    self.error? && ! ENV['SCOUT_NO_RECOVERABLE_ERROR'].to_s.downcase == 'true' && ! (ScoutException === self.exception)
   end
 
   def newer_dependencies
     rec_dependencies = self.rec_dependencies
+    rec_dependencies = rec_dependencies.reject{|dep| dep.error? && ! dep.recoverable_error? }
     newer = rec_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += input_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += rec_dependencies.collect{|dep| dep.input_dependencies }.flatten.select{|dep| Path.newer?(self.path, dep.path) }

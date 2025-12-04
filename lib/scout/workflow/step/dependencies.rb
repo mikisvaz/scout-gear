@@ -70,7 +70,14 @@ class Step
       end
 
       next if dep.done?
-      next if dep.error? && ! dep.recoverable_error?
+
+      if dep.error? && ! dep.recoverable_error?
+        if dep.canfail?
+          next
+        else
+          raise dep.exception
+        end
+      end
 
       if dep.dependencies
         dep.dependencies.each do |d|

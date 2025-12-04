@@ -153,4 +153,10 @@ class Workflow::Orchestrator
     end
     sorted
   end
+
+  def self.errors_in_batch(batch)
+    batch[:jobs].select do |job|
+      job.error? && ! job.recoverable_error?
+    end.any?
+  end
 end

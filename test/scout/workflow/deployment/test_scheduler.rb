@@ -69,7 +69,6 @@ TestWF:
 
     batches = Workflow::Orchestrator.job_batches(rules, jobs)
     dirs = Workflow::Scheduler.process_batches(batches, dry_run: true)
-    iii dirs
   end
 end
 
