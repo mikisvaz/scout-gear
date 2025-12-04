@@ -24,29 +24,15 @@ module Workflow::Scheduler
     #  pending -= leaf_nodes
     #end
 
-    sorted = Workflow::Orchestrator.sort_batches batches
+    cleaned = Workflow::Orchestrator.clean_batches batches
+    sorted = Workflow::Orchestrator.sort_batches cleaned
 
     batch_system = Scout::Config.get :system, :batch, :scheduler, 'env:BATCH_SYSTEM', default: 'SLURM'
 
     batch_ids = {}
-    error = []
     sorted.collect do |batch|
       job_options = batch[:rules]
       job_options = IndiferentHash.add_defaults job_options, process_options.dup
-
-      if Workflow::Orchestrator.errors_in_batch(batch)
-        Log.warn "Batch contains errors #{batch[:top_level].short_path}"
-        error << batch
-        next
-      elsif (error_deps = error & batch[:deps]).any?
-        if error_deps.reject{|b| b[:top_level].canfail? }.any?
-          Log.warn "Batch depends on batches with errors #{batch[:top_level].short_path} #{Log.fingerprint(error_deps)}"
-          error << batch
-          next
-        else
-          batch[:deps] -= error_deps
-        end
-      end
 
       if batch[:deps].nil?
         batch_dependencies = [] 

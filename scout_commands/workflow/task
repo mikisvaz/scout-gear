@@ -143,6 +143,7 @@ else
     end
   when 'very_dry', 'vdry'
     batches = Workflow::Orchestrator.job_batches rules, job
+    batches = Workflow::Orchestrator.clean_batches batches
     batches = Workflow::Orchestrator.sort_batches batches
     batches.each do |batch|
       top = batch[:top_level]
@@ -153,6 +154,7 @@ else
     exit 0
   when 'dry', 'dryrun', 'dry_run', 'debug'
     batches = Workflow::Orchestrator.job_batches rules, job
+    batches = Workflow::Orchestrator.clean_batches batches
     batches = Workflow::Orchestrator.sort_batches batches
     batches.each do |batch|
       top = batch[:top_level]

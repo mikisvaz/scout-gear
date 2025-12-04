@@ -153,8 +153,8 @@ module Task
         value.sub!(/^\./, File.dirname(filename)) if value.start_with?("./")
         value
       elsif filename.end_with?('.as_step')
-        value = Open.read(filename).strip
-        Step.load value
+        value = Path.setup Open.read(filename).strip
+        Step.load value.find
       elsif filename.end_with?('.as_path')
         value = Open.read(filename).strip
         Path.setup value

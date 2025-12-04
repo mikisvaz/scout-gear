@@ -159,4 +159,23 @@ class Workflow::Orchestrator
       job.error? && ! job.recoverable_error?
     end.any?
   end
+
+  def self.clean_batches(batches)
+    error = []
+    batches.collect do |batch|
+      if Workflow::Orchestrator.errors_in_batch(batch)
+        Log.warn "Batch contains errors #{batch[:top_level].short_path}"
+        error << batch
+        next
+      elsif (error_deps = error & batch[:deps]).any?
+        if error_deps.reject{|b| b[:top_level].canfail? }.any?
+          Log.warn "Batch depends on batches with errors #{batch[:top_level].short_path} #{Log.fingerprint(error_deps)}"
+          error << batch
+          next
+        else
+          batch[:deps] -= error_deps
+        end
+      end
+    end.compact
+  end
 end
