@@ -114,7 +114,7 @@ module Task
         Open.write(input_file + ".as_file", relative_file)
       end
     elsif Step === value
-      Open.write(input_file + ".as_step", value.short_path)
+      Open.write(input_file + ".as_step", value.identify_path)
     elsif type == :file
       relative_file = save_file_input(value, directory)
       Persist.save(relative_file, input_file, :file)
