@@ -17,7 +17,7 @@ class Step
   end
 
   def recoverable_error?
-    self.error? && ! ENV['SCOUT_NO_RECOVERABLE_ERROR'].to_s.downcase == 'true' && ! (ScoutException === self.exception)
+    self.error? && ! (ENV['SCOUT_NO_RECOVERABLE_ERROR'].to_s.downcase == 'true') && ! (ScoutException === self.exception)
   end
 
   def newer_dependencies
