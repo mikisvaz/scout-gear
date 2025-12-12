@@ -85,6 +85,7 @@ class Workflow::Orchestrator
         end if batch[:deps]
       end
 
+
       batches.each do |batch|
         next if batch[:top_level].overriden?
         next unless batch[:rules] && batch[:rules][:skip]
@@ -104,6 +105,8 @@ class Workflow::Orchestrator
             (batch[:deps] - target_deps).empty?
           end.first
           next if target.nil?
+          all_target_jobs = ([target] + target[:deps]).collect{|d| d[:jobs] }
+          next if all_target_jobs.reject{|j| batch_dep_jobs.include? j }.any?
           target[:jobs] = batch[:jobs] + target[:jobs]
           target[:deps] = (target[:deps] + batch[:deps]).uniq - [target]
           target[:top_level] = batch[:top_level]
@@ -155,27 +158,30 @@ class Workflow::Orchestrator
   end
 
   def self.errors_in_batch(batch)
-    batch[:jobs].select do |job|
+    errors = batch[:jobs].select do |job|
       job.error? && ! job.recoverable_error?
-    end.any?
+    end
+
+    errors.empty? ? false : errors
   end
 
   def self.clean_batches(batches)
     error = []
     batches.collect do |batch|
-      if Workflow::Orchestrator.errors_in_batch(batch)
-        Log.warn "Batch contains errors #{batch[:top_level].short_path}"
+      if failed = Workflow::Orchestrator.errors_in_batch(batch)
+        Log.warn "Batch contains errors #{batch[:top_level].short_path} #{Log.fingerprint failed}"
         error << batch
         next
       elsif (error_deps = error & batch[:deps]).any?
         if error_deps.reject{|b| b[:top_level].canfail? }.any?
-          Log.warn "Batch depends on batches with errors #{batch[:top_level].short_path} #{Log.fingerprint(error_deps)}"
+          Log.warn "Batch depends on batches with errors #{batch[:top_level].short_path} #{Log.fingerprint(error_deps.collect{|d| d[:top_level] })}"
           error << batch
           next
         else
           batch[:deps] -= error_deps
         end
       end
+      batch
     end.compact
   end
 end

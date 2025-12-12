@@ -154,7 +154,6 @@ else
     exit 0
   when 'dry', 'dryrun', 'dry_run', 'debug'
     batches = Workflow::Orchestrator.job_batches rules, job
-    batches = Workflow::Orchestrator.clean_batches batches
     batches = Workflow::Orchestrator.sort_batches batches
     batches.each do |batch|
       top = batch[:top_level]
@@ -186,7 +185,7 @@ else
     Workflow::Scheduler.produce job, rules
     exit 0
   else
-    raise 'Use scout-camp instead of scout' unless defined? OffsiteStep
+    raise "Deploy '#{deploy}' not standard, assumed to be a server name; use scout-camp instead of scout" unless defined? OffsiteStep
     if deploy.end_with?('-batch')
       server = deploy.sub('-batch','')
       OffsiteStep.setup(job, server: server, batch: true)

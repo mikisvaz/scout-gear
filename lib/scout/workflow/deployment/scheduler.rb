@@ -24,13 +24,13 @@ module Workflow::Scheduler
     #  pending -= leaf_nodes
     #end
 
-    cleaned = Workflow::Orchestrator.clean_batches batches
-    sorted = Workflow::Orchestrator.sort_batches cleaned
+    sorted = Workflow::Orchestrator.sort_batches batches
+    cleaned = Workflow::Orchestrator.clean_batches sorted
 
     batch_system = Scout::Config.get :system, :batch, :scheduler, 'env:BATCH_SYSTEM', default: 'SLURM'
 
     batch_ids = {}
-    sorted.collect do |batch|
+    cleaned.collect do |batch|
       job_options = batch[:rules]
       job_options = IndiferentHash.add_defaults job_options, process_options.dup
 
