@@ -15,15 +15,6 @@ module Workflow::Scheduler
   def self.process_batches(batches, process_options = {})
     failed_jobs = []
 
-    #pending = batches.dup
-
-    #sorted = []
-    #while pending.any?
-    #  leaf_nodes = batches.select{|batch| (batch[:deps] - sorted).empty? }
-    #  sorted.concat(leaf_nodes - sorted)
-    #  pending -= leaf_nodes
-    #end
-
     sorted = Workflow::Orchestrator.sort_batches batches
     cleaned = Workflow::Orchestrator.clean_batches sorted
 

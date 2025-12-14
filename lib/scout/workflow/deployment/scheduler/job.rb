@@ -13,7 +13,7 @@ module SchedulerJob
   def exec_cmd(job, options = {})
     options = IndiferentHash.add_defaults options, :launcher => :srun if self.system == :slurm
 
-    launcher, env_cmd, development = IndiferentHash.process_options options, :launcher, :env_cmd, :development
+    launcher, env_cmd, development, deploy = IndiferentHash.process_options options, :launcher, :env_cmd, :development, :deploy
 
     if contain = options[:contain]
       contain = File.expand_path(contain)
@@ -65,6 +65,8 @@ module SchedulerJob
     end
 
     exec_cmd << "--dev '#{development}'" if development
+
+    exec_cmd << "--deploy '#{deploy}'" if deploy
 
     exec_cmd = singularity_cmd  + exec_cmd if singularity_cmd
 
@@ -152,6 +154,7 @@ workflow task #{workflow} #{task} #{cmds}
       :manifest,
       :user_group,
       :wipe_container,
+      :deploy,
       :workdir,
       :purge_deps,
       :singularity,

@@ -179,9 +179,15 @@ else
     exit 0
   when "serial"
     job.run(true) 
-  when "local"
+  when "local", "workers"
     Workflow::LocalExecutor.produce job, rules
   when 'batch', 'sched', 'cluster', "slurm", 'pbs', 'lsf'
+    Workflow::Scheduler.produce job, rules
+    exit 0
+  when 'single_batch', 'single'
+    rules[:defaults] ||= {}
+    rules[:defaults][:skip] = true
+    rules[:defaults][:deploy] = :local
     Workflow::Scheduler.produce job, rules
     exit 0
   else
