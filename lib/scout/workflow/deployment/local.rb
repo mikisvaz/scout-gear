@@ -42,6 +42,7 @@ class Workflow::LocalExecutor
     @available_resources = IndiferentHash.setup(available_resources)
     @resources_requested = IndiferentHash.setup({})
     @resources_used      = IndiferentHash.setup({})
+    Log.info "LocalExecutor initiated #{Log.fingerprint available_resources}"
   end
 
   def process_batches(batches)
@@ -197,6 +198,7 @@ class Workflow::LocalExecutor
 
     rules = batch[:rules] 
     deploy = rules[:deploy] if rules
+    Log.debug "Processing #{deploy} #{job.short_path} #{Log.fingerprint job_rules}"
     case deploy
     when nil, 'local', :local, :serial, 'serial'
       Scout::Config.with_config do

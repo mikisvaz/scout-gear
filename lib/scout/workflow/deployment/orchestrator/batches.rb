@@ -150,7 +150,7 @@ class Workflow::Orchestrator
     pending = batches.dup
     sorted = []
     while pending.any?
-      leaf_nodes = batches.select{|batch| (batch[:deps] - sorted).empty? }
+      leaf_nodes = batches.select{|batch| batch[:deps].nil? || (batch[:deps] - sorted).empty? }
       sorted.concat(leaf_nodes - sorted)
       pending -= leaf_nodes
     end

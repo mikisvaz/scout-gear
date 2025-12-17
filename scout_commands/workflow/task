@@ -185,10 +185,7 @@ else
     Workflow::Scheduler.produce job, rules
     exit 0
   when 'single_batch', 'single'
-    rules[:defaults] ||= {}
-    rules[:defaults][:skip] = true
-    rules[:defaults][:deploy] = :local
-    Workflow::Scheduler.produce job, rules
+    Workflow::Scheduler.produce_single_batch job, rules
     exit 0
   else
     raise "Deploy '#{deploy}' not standard, assumed to be a server name; use scout-camp instead of scout" unless defined? OffsiteStep

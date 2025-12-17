@@ -47,7 +47,7 @@ class Workflow::Orchestrator
       case k.to_s
       when "config_keys"
         current[k] = add_config_keys current["config_keys"], value
-      when "cpus"
+      when "task_cpus", 'cpus'
         # choose max
         vals = [current[k], value].compact.map{|v| v.to_i }
         current[k] = vals.max unless vals.empty?

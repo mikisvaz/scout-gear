@@ -211,6 +211,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    tail
    list
    clean
+   cmd
   }
   resource=resource{
    produce

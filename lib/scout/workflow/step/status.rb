@@ -22,6 +22,7 @@ class Step
 
   def newer_dependencies
     rec_dependencies = self.rec_dependencies
+    rec_dependencies = rec_dependencies.select{|dep| Open.exists?(dep.info_file) }
     rec_dependencies = rec_dependencies.reject{|dep| dep.error? && ! dep.recoverable_error? }
     newer = rec_dependencies.select{|dep| Path.newer?(self.path, dep.path) }
     newer += input_dependencies.select{|dep| Path.newer?(self.path, dep.path) }

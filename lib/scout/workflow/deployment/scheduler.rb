@@ -12,6 +12,23 @@ module Workflow::Scheduler
     Workflow::Scheduler.process_batches(batches, options)
   end
 
+  def self.produce_single_batch(job, rules = {}, options = {})
+    batches = Workflow::Orchestrator.job_batches(rules, job)
+    rules = batches.inject({}){|acc,b| acc = Workflow::Orchestrator.accumulate_rules acc, b[:rules] }
+
+    max_time = batches.collect{|b| b[:rules][:time] }.max
+    rules[:time] = options.include?(:time) ? options[:time] : max_time
+    rules[:deploy] = :local
+    if rules[:exclusive]
+      rules[:task_cpus] = nil
+      rules[:cpus] = nil
+    end
+
+    batch = {top_level: job, jobs: [job], rules: rules, deps: [] }
+    Workflow::Scheduler.process_batches([batch], options)
+  end
+
+
   def self.process_batches(batches, process_options = {})
     failed_jobs = []
 
