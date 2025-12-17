@@ -69,6 +69,7 @@ class Workflow::Orchestrator
         task_name = job.task_name
         task_rules = task_specific_rules(rules, workflow, task_name)
         acc = accumulate_rules(acc, task_rules.dup)
+        acc
       end
 
       if chain = batch[:chain]
@@ -84,7 +85,6 @@ class Workflow::Orchestrator
           dep[:target] || dep
         end if batch[:deps]
       end
-
 
       batches.each do |batch|
         next if batch[:top_level].overriden?
@@ -105,7 +105,7 @@ class Workflow::Orchestrator
             (batch[:deps] - target_deps).empty?
           end.first
           next if target.nil?
-          all_target_jobs = ([target] + target[:deps]).collect{|d| d[:jobs] }
+          all_target_jobs = ([target] + target[:deps]).collect{|d| d[:jobs] }.flatten
           next if all_target_jobs.reject{|j| batch_dep_jobs.include? j }.any?
           target[:jobs] = batch[:jobs] + target[:jobs]
           target[:deps] = (target[:deps] + batch[:deps]).uniq - [target]
@@ -183,5 +183,9 @@ class Workflow::Orchestrator
       end
       batch
     end.compact
+  end
+  
+  def self.inspect_batch(batch)
+    batch.merge(deps: batch[:deps].collect{|b| b[:top_level] })
   end
 end

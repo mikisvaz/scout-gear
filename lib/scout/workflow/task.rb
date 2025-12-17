@@ -59,7 +59,7 @@ module Task
                              when Array
                                inputs.collect{|name,*| name }[0..provided_inputs.length]
                              when Hash
-                               provided_inputs.keys.collect{|i| i.to_sym }
+                               provided_inputs.keys
                              end
 
       jobname_input = nil
@@ -76,7 +76,7 @@ module Task
       missing_inputs = []
       self.inputs.each do |input,type,desc,val,options|
         next unless options && options[:required]
-        missing_inputs << input unless provided_input_names.include?(input.to_sym)
+        missing_inputs << input unless provided_input_names.include?(input.to_s) || provided_input_names.include?(input.to_sym)
       end if self.inputs
 
       if missing_inputs.length == 1

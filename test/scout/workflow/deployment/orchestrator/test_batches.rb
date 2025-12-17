@@ -99,15 +99,25 @@ TestWFC:
     skip: true
     log: 4
     time: 10s
+  c4:
+    skip: true
   EOF
 
   def test_chain_batches
     job = TestWFD.job(:d1, nil)
     job.recursive_clean
 
-    job_chains_map = Workflow::Orchestrator.job_chains(RULES, job)
+    job_chain_list = []
+
+    job_chains = Workflow::Orchestrator.job_chains(RULES, job)
+    job_chains.each do |chain,list|
+      list.each do |info|
+        job_chain_list << [chain,info]
+      end
+    end
+
     workload = Workflow::Orchestrator.job_workload(job)
-    batches = Workflow::Orchestrator.chain_batches(RULES, job_chains_map, workload)
+    batches = Workflow::Orchestrator.chain_batches(RULES, job_chain_list, workload)
     assert_equal 3, batches.length
   end
 

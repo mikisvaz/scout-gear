@@ -90,6 +90,8 @@ class TestTaskDependencies < Test::Unit::TestCase
     job = wf.job(:double, "TaskInputs#step1" => step1)
     assert_equal 14, job.run
     assert_not_equal Task::DEFAULT_NAME, job.name
+
+
   end
 
   def test_input_dep_override
