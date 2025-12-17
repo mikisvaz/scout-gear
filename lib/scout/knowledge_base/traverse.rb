@@ -45,7 +45,7 @@ class KnowledgeBase
 
       [source_entities, target_entities]
     end
-    
+
     def reassign(matches, source, target)
       #assignments[source] = (matches.any? ? matches.collect{|m| m.source_entity }.uniq : nil) if is_wildcard? source
       #assignments[target] = (matches.any? ? matches.collect{|m| m.target_entity }.uniq : nil) if is_wildcard? target
@@ -64,7 +64,7 @@ class KnowledgeBase
           assigned = assignments[source] || []
           matches = matches.select{|m| assigned.include? m.partition("~").first }
         end
-        
+
         if is_wildcard? target
           assigned = assignments[target] || []
           matches = matches.select{|m| assigned.include? m.partition("~").last }
@@ -110,7 +110,7 @@ class KnowledgeBase
 
       return false if paths.empty?
 
-      paths 
+      paths
     end
 
     def _ep(paths)
@@ -172,8 +172,8 @@ class KnowledgeBase
         _name, _sep, _kb = db.partition("@")
         case
         when _name[0] == '?'
-          dbs = all_dbs.select{|_db| 
-            n,_s,d=_db.partition("@"); 
+          dbs = all_dbs.select{|_db|
+            n,_s,d=_db.partition("@");
             d.nil? or d.empty? or (d == _kb and assignments[_name].include?(n))
           }
         when _kb[0] == '?'
@@ -247,7 +247,7 @@ class KnowledgeBase
           else
             dbs = id_dbs(db)
             names = names.collect{|name| assignments.include?(name) ? assignments[name] : name}.flatten
-            ids = names.collect{|name| 
+            ids = names.collect{|name|
               id = nil
               dbs.each do |db|
                 sid, tid = identify db, name, name
@@ -325,5 +325,5 @@ class KnowledgeBase
     traverser = KnowledgeBase::Traverser.new self, rules
     traverser.traverse nopaths
   end
-    
+
 end

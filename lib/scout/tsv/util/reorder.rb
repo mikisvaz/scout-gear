@@ -1,7 +1,7 @@
 require 'matrix'
 
 module TSV
-  def reorder(key_field = nil, fields = nil, merge: true, one2one: true, data: nil, unnamed: true, **kwargs) 
+  def reorder(key_field = nil, fields = nil, merge: true, one2one: true, data: nil, unnamed: true, **kwargs)
     res = data || self.annotate({})
     res.type = kwargs[:type] if kwargs.include?(:type)
     kwargs[:one2one] = one2one
@@ -61,7 +61,7 @@ module TSV
     new = self.annotate({})
     TSV.setup(new, :key_field => key_field, :fields => new_fields, :type => type, :filename => filename, :identifiers => identifiers)
 
-    m = Matrix.rows values 
+    m = Matrix.rows values
     new_rows = m.transpose.to_a
 
     fields.zip(new_rows) do |key,row|

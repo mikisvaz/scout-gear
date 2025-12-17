@@ -38,7 +38,7 @@ class TestTaskInput < Test::Unit::TestCase
     task = self.example_task
 
     assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => %w(1 2))[1]
-    
+
     TmpFile.with_file("1\n2") do |integer_array_file|
       assert_equal [:integer], task.assign_inputs(:string => "String", :integer => 2, :integer_array => integer_array_file)[1]
     end

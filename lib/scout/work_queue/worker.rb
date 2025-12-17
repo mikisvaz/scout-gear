@@ -41,10 +41,10 @@ class WorkQueue
           while obj = input.read
             if DoneProcessing === obj
               output.write DoneProcessing.new
-              raise obj 
+              raise obj
             end
             res = block.call obj
-            output.write res unless ignore_ouput || res == :ignore 
+            output.write res unless ignore_ouput || res == :ignore
           end
         rescue DoneProcessing
         rescue Interrupt
@@ -64,7 +64,7 @@ class WorkQueue
       begin
         Log.medium "Aborting worker #{worker_id}"
         Process.kill SIGNAL, @pid
-      rescue Errno::ECHILD 
+      rescue Errno::ECHILD
       rescue Errno::ESRCH
       end
     end
@@ -77,7 +77,7 @@ class WorkQueue
     def self.join(workers)
       workers = [workers] unless Array === workers
       begin
-        while pid = Process.wait 
+        while pid = Process.wait
           status = $?
             worker = workers.select{|w| w.pid == pid }.first
         end

@@ -42,7 +42,7 @@ class TestWorkflow < Test::Unit::TestCase
     end
 
     dep :prepare_batter
-    task :bake_muffin_tray => :string do 
+    task :bake_muffin_tray => :string do
       bake(step(:prepare_batter).load)
     end
 
@@ -53,7 +53,7 @@ class TestWorkflow < Test::Unit::TestCase
       batter = mix(whisked_eggs, Pantry.flour.produce)
 
       if add_bluberries
-        batter = mix(batter, Pantry.blueberries.produce) 
+        batter = mix(batter, Pantry.blueberries.produce)
       end
 
       batter

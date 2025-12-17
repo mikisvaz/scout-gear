@@ -18,7 +18,7 @@ $ #{$0} [<options>] <name> [knowledge_base]
 EOF
 if options.delete :help
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end

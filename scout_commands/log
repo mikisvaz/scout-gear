@@ -23,7 +23,7 @@ NONE
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -31,11 +31,11 @@ if options[:help]
 end
 
 if ARGV.empty?
-  if Scout.etc.log_severity.exists?                                                                                                                                                         
-    puts Scout.etc.log_severity.read                                                                                                                                                      
-  else                                                                                                                                                                                     
-    puts Scout.etc.log_severity.find + ' does not exist'                                                                                                                                  
-  end                                                                                                                                                                                      
+  if Scout.etc.log_severity.exists?
+    puts Scout.etc.log_severity.read
+  else
+    puts Scout.etc.log_severity.find + ' does not exist'
+  end
 else
   level = ARGV[0]
   level = %w(DEBUG LOW MEDIUM HIGH INFO WARN ERROR NONE)[level.to_i] if level =~ /^\d+$/

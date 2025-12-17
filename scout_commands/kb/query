@@ -21,7 +21,7 @@ $ #{$0} [<options>] <name> <entity>
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -70,7 +70,7 @@ if matches.any?
   else
     matches.each do |match|
       puts Log.color :magenta, (reverse ? match.invert : match)
-      puts index[match].prety_print 
+      puts index[match].prety_print
     end
   end
 else

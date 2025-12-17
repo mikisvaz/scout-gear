@@ -29,7 +29,7 @@ module Entity
     def self.single_method(name)
       ("_single_" + name.to_s).to_sym
     end
-     
+
     def self.array_method(name)
       ("_ary_" + name.to_s).to_sym
     end
@@ -76,7 +76,7 @@ module Entity
           self.each do |item|
             begin
               responses[item] = Entity::Property.persist(name, item, type, options.merge(other: {args: args, kwargs: kwargs})) do
-                raise MultipleEntityProperty 
+                raise MultipleEntityProperty
               end
             rescue MultipleEntityProperty
               missing << item

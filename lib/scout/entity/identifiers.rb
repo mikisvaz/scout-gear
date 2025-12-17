@@ -1,7 +1,7 @@
 module Entity
   def self.identifier_files(field)
     entity_type = Entity.formats[Entity.formats.find(field)]
-    return [] unless entity_type and entity_type.include? Entity::Identified 
+    return [] unless entity_type and entity_type.include? Entity::Identified
     entity_type.identifier_files
   end
 
@@ -20,9 +20,9 @@ module Entity
 
         target_format = case target_format
                         when :name
-                          identity_type.name_format 
+                          identity_type.name_format
                         when :default
-                          identity_type.default_format 
+                          identity_type.default_format
                         else
                           target_format
                         end
@@ -45,14 +45,14 @@ module Entity
       end
     end
 
-    def identifier_files 
+    def identifier_files
       files = identity_type.identifier_files.dup
       return [] if files.nil?
       files.collect!{|f| f.annotate f.gsub(/\b#{NAMESPACE_TAG}\b/, namespace.to_s) } if annotation_hash.include? :namespace and self.namespace
       if files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ }.any?
         Log.warn "Rejecting some identifier files for lack of 'namespace': " + files.select{|f| f =~ /\b#{NAMESPACE_TAG}\b/ } * ", "
       end
-      files.reject!{|f| f =~ /\b#{NAMESPACE_TAG}\b/ } 
+      files.reject!{|f| f =~ /\b#{NAMESPACE_TAG}\b/ }
       files
     end
 

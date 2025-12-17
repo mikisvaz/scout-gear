@@ -112,7 +112,7 @@ row2    0.1  4.5 0
       assert_equal [0.2, 0.3, 0], tsv2["row1"]
       assert_equal TSVAdapter::FloatArraySerializer, tsv2.serializer
     end
- 
+
   end
 
   def test_float_double

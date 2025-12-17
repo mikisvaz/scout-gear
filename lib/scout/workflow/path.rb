@@ -11,9 +11,9 @@ module Path
         _loaded = false
         begin
           Kernel.const_get(workflow)
-        rescue 
+        rescue
           if ! _loaded
-            Workflow.require_workflow workflow 
+            Workflow.require_workflow workflow
             _loaded = true
             retry
           end

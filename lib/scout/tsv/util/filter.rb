@@ -27,7 +27,7 @@ module Filtered
       @value = value
       @unsaved = []
 
-      case 
+      case
       when Hash === persistence
         @persistence = persistence
       when String === persistence
@@ -57,7 +57,7 @@ module Filtered
           self
         end.class_eval <<-EOC
           def match_entry(key, entry)
-            value = entry[@fieldnum] 
+            value = entry[@fieldnum]
             value == @value or (Array === value and value.include? @value)
           end
         EOC
@@ -67,7 +67,7 @@ module Filtered
     end
 
     def key
-      case 
+      case
       when String === value
         value
       else
@@ -162,7 +162,7 @@ module Filtered
     if not base.respond_to? :unfiltered_set
       class << base
         attr_accessor :filter_dir, :filters
-        
+
         alias unfiltered_set []=
         alias []= filtered_set
 
@@ -200,7 +200,7 @@ module Filtered
     if filters.empty?
       self.send(:unfiltered_set, key, value, clean)
     else
-      filters.each do |filter| 
+      filters.each do |filter|
         filter.add key if filter.match_entry key, value
       end
       self.send(:unfiltered_set, key, value, clean)
@@ -215,10 +215,10 @@ module Filtered
     end
   end
 
-  def filtered_values 
-    if filters.empty?  
-      self.send(:unfiltered_values) 
-    else 
+  def filtered_values
+    if filters.empty?
+      self.send(:unfiltered_values)
+    else
       ids = filters.inject(nil){|list,filter| list.nil? ? filter.ids.dup : Misc.intersect_sorted_arrays(list, filter.ids.dup)}
       self.send :values_at, *ids
     end

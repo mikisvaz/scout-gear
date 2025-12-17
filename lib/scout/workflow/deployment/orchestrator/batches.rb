@@ -184,7 +184,7 @@ class Workflow::Orchestrator
       batch
     end.compact
   end
-  
+
   def self.inspect_batch(batch)
     batch.merge(deps: batch[:deps].collect{|b| b[:top_level] })
   end

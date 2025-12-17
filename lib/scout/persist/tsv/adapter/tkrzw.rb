@@ -11,7 +11,7 @@ Persist.save_drivers[:tkh] = proc do |file, content|
   data
 end
 
-Persist.load_drivers[:tkh] = proc do |file| 
+Persist.load_drivers[:tkh] = proc do |file|
   data = ScoutTKRZW.open(file, false, "tkh")
   data.extend TSVAdapter unless TSVAdapter === data
   data

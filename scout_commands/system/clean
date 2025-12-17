@@ -47,7 +47,7 @@ if locks.any?
   locks.each do |file,info|
     if force or (info[:pid] && ! Misc.pid_alive?(info[:pid]))
       puts "  Removing #{ file }"
-      File.unlink file 
+      File.unlink file
     end
   end
 end
@@ -59,7 +59,7 @@ if persists.any?
   persists.each do |file,info|
     if force or (info[:pid] and Misc.pid_alive? info[:pid])
       puts "  Removing #{ file }"
-      File.unlink file 
+      File.unlink file
     end
   end
 end
@@ -71,7 +71,7 @@ if sensiblewrites.any?
   sensiblewrites.each do |file,info|
     if force or (info[:pid] and Misc.pid_alive? info[:pid])
       puts "  Removing #{ file }"
-      File.unlink file 
+      File.unlink file
     end
   end
 end
@@ -134,13 +134,13 @@ TSV.traverse jobs do |file,i|
     end
   end
 
-  if (force && status !~ /done/) or 
+  if (force && status !~ /done/) or
       status =~ /\b(old|dirty|nopid|error|missing|aborted|dead|sync|waiting)$/ or
       (status == "noinfo" and not done) or
-      status == "" 
+      status == ""
 
-    puts "  Removing #{ file } - #{status}" 
-    Step.clean(file) 
+    puts "  Removing #{ file } - #{status}"
+    Step.clean(file)
   end
 end
 

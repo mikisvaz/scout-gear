@@ -14,7 +14,7 @@ row2    a    a    id3
     EOF
 
 
-    tsv = Persist.persist("TEST Persist TSV", :tsv) do 
+    tsv = Persist.persist("TEST Persist TSV", :tsv) do
       TmpFile.with_file(content) do |filename|
         TSV.open(filename)
       end
@@ -25,7 +25,7 @@ row2    a    a    id3
     assert_include tsv.keys, 'row1'
     assert_include tsv.keys, 'row2'
 
-    tsv = Persist.persist("TEST Persist TSV", :tsv) do 
+    tsv = Persist.persist("TEST Persist TSV", :tsv) do
       TmpFile.with_file(content) do |filename|
         TSV.open(filename)
       end
@@ -35,7 +35,7 @@ row2    a    a    id3
     assert_include tsv.keys, 'row2'
 
     assert_nothing_raised do
-      tsv = Persist.persist("TEST Persist TSV", :tsv) do 
+      tsv = Persist.persist("TEST Persist TSV", :tsv) do
         raise
       end
     end
@@ -76,7 +76,7 @@ row2    a    a    id3
 
     tsv.close
     assert_nothing_raised do
-      tsv = Persist.persist("TEST Persist TSV", :HDB) do 
+      tsv = Persist.persist("TEST Persist TSV", :HDB) do
         raise
       end
     end

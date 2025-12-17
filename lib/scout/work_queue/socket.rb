@@ -57,9 +57,9 @@ class WorkQueue
       end
 
       write_length = str.length
-      wrote = stream.write(str) 
+      wrote = stream.write(str)
       while wrote < write_length
-        wrote += stream.write(str[wrote..-1]) 
+        wrote += stream.write(str[wrote..-1])
       end
     end
 

@@ -41,7 +41,7 @@ module TSV
       if block_given?
         field = method
         field = fields.index?(field) if fields && String === field
-        case 
+        case
         when block.arity == 1
           if (method == key_field or method == :key)
             yield(key)
@@ -69,7 +69,7 @@ module TSV
     new = TSV.setup({}, :key_field => key_field, :fields => fields, :type => type, :filename => filename, :identifiers => identifiers)
 
     self.annotate(new)
-    
+
     case
     when (method.nil? and block_given?)
       through do |key, values|
@@ -101,7 +101,7 @@ module TSV
       end
     when ((String === method) || (Symbol === method))
       if block_given?
-        case 
+        case
         when block.arity == 1
           with_unnamed do
             case

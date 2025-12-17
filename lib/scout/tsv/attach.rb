@@ -28,7 +28,7 @@ module TSV
       end
     end
 
-    match_key = source.key_field if match_key.nil? 
+    match_key = source.key_field if match_key.nil?
 
     if other_key.nil?
       other_key = other.identify_field(match_key)
@@ -87,13 +87,13 @@ module TSV
           index = TSV.translation_index(identifier_files.flatten, match_key_name, other_key_name)
         end
 
-        if other_key != :key 
+        if other_key != :key
           other = other.reorder other_key, fields, one2one: one2one, merge: true, type: :double
         end
 
-        other_field_positions = other.identify_field(fields.dup) 
+        other_field_positions = other.identify_field(fields.dup)
         fields.zip(other_field_positions) do |o,n|
-          raise "Field #{o} not found. Options: #{Log.fingerprint other.fields}" if n.nil? 
+          raise "Field #{o} not found. Options: #{Log.fingerprint other.fields}" if n.nil?
         end
 
         log_message = "Attach #{Log.fingerprint fields - source.fields} to #{Log.fingerprint source} (#{[match_key, other_key] * "=~"})"
@@ -139,7 +139,7 @@ module TSV
 
             if other_values.nil?
               other_values = empty_other_values
-            elsif other.type == :flat 
+            elsif other.type == :flat
               other_values = [other_values]
             elsif other.type == :list && source.type == :double
               other_values = other_values.collect{|v| [v] }
@@ -185,9 +185,9 @@ module TSV
                               end
           other.each do |other_key,other_values|
             next if source.include?(other_key)
-            if other.type == :flat 
+            if other.type == :flat
               other_values = [other_values]
-            elsif other.type == :single 
+            elsif other.type == :single
               other_values = [other_values]
             elsif other.type == :list && type == :double
               other_values = other_values.collect{|v| [v] }

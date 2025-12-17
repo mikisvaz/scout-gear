@@ -27,9 +27,9 @@ module Workflow
     end
 
     def workflow_dir
-      @workflow_dir || 
-        ENV["SCOUT_WORKFLOW_DIR"] || 
-        begin 
+      @workflow_dir ||
+        ENV["SCOUT_WORKFLOW_DIR"] ||
+        begin
           workflow_dir_config = Path.setup("etc/workflow_dir")
           if workflow_dir_config.exists?
             Path.setup(workflow_dir_config.read.strip)
@@ -40,9 +40,9 @@ module Workflow
     end
 
     def workflow_repo
-      @workflow_repo || 
-        ENV["SCOUT_WORKFLOW_REPO"] || 
-        begin 
+      @workflow_repo ||
+        ENV["SCOUT_WORKFLOW_REPO"] ||
+        begin
           workflow_repo_config = Path.setup("etc/workflow_repo")
           if workflow_repo_config.exists?
             workflow_repo_config.read.strip

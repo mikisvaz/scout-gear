@@ -6,7 +6,7 @@ class TestClass < Test::Unit::TestCase
     m = TSVAdapter.serializer_module :marshal
     v = [1, :a]
     d = m.dump(v)
-    assert_equal v, m.load(d) 
+    assert_equal v, m.load(d)
   end
 end
 

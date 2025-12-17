@@ -129,7 +129,7 @@ module TSV
 
     filename = @filename
     filename = "No filename" if filename.nil? || String === filename && filename.empty?
-    filename.find if Path === filename 
+    filename.find if Path === filename
     filename = File.basename(filename) + " [" + File.basename(persistence_path) + "]" if respond_to?(:persistence_path) and persistence_path
 
     with_unnamed do

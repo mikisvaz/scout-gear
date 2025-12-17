@@ -7,7 +7,7 @@ class TestStepChildren < Test::Unit::TestCase
   def test_child
     TmpFile.with_file do |tmpfile|
       step = Step.new tmpfile, ["12"] do |s|
-        pid = child do 
+        pid = child do
           Open.write(self.file(:somefile), 'TEST')
         end
         Process.waitpid pid

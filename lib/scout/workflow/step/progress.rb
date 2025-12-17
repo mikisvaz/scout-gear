@@ -27,9 +27,9 @@ class Step
   end
 
   def monitor_stream(stream, options = {}, &block)
-    case options[:bar] 
+    case options[:bar]
     when TrueClass
-      bar = progress_bar 
+      bar = progress_bar
     when Hash
       bar = progress_bar options[:bar]
     when Numeric

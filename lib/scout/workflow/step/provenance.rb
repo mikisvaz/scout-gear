@@ -58,10 +58,10 @@ class Step
     str = if ! (Open.remote?(path) || Open.ssh?(path)) && (Open.exists?(path) && $main_mtime && path_mtime && ($main_mtime - path_mtime) < -2)
             prov_status_msg(status.to_s) << " " << [workflow, task, path, input_str].compact * " " << " (#{Log.color(:red, "Mtime out of sync") })"
           else
-            prov_status_msg(status.to_s) << " " << [workflow, task, path, input_str].compact * " " 
+            prov_status_msg(status.to_s) << " " << [workflow, task, path, input_str].compact * " "
           end
 
-    if $inputs and $inputs.any? 
+    if $inputs and $inputs.any?
       job_inputs = Step.new(path).recursive_inputs.to_hash
       IndiferentHash.setup(job_inputs)
 
@@ -119,7 +119,7 @@ class Step
     step.dependencies.each do |dep|
       if dep.input_dependencies.any?
         dep.input_dependencies.each do |id|
-          input_name, _dep = dep.recursive_inputs.select{|f,d| 
+          input_name, _dep = dep.recursive_inputs.select{|f,d|
             d == id || (String === d && d.start_with?(id.files_dir)) || (Array === d && d.include?(id))
           }.keys.last
           if input_name
@@ -135,7 +135,7 @@ class Step
     indent = prov_indent(step, offset, input_dependencies)
     str << indent + this_step_msg if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
 
-    step.dependencies.dup.tap{|l| 
+    step.dependencies.dup.tap{|l|
       l.reverse! if ENV["SCOUT_ORIGINAL_STACK"] == 'true'
     }.each do |dep|
       path = dep.path

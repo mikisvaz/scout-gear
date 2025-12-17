@@ -56,7 +56,7 @@ class TestWorkflowDefinition < Test::Unit::TestCase
     end
 
     old_cache = Scout::Config::CACHE.dup
-    Scout::Config.set({:forget_dep_tasks => true, :remove_dep_tasks => true}, 'task:CallName#call_miguel') 
+    Scout::Config.set({:forget_dep_tasks => true, :remove_dep_tasks => true}, 'task:CallName#call_miguel')
     job = wf.job(:call_miguel)
     dep_path = job.step(:call_name).path
     assert_equal "Hi Miguel", job.run

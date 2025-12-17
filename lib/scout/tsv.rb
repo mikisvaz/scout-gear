@@ -68,7 +68,7 @@ module TSV
   end
 
   def self.str_setup(option_str, obj)
-    options = TSV.str2options(option_str) 
+    options = TSV.str2options(option_str)
     setup(obj, **options)
   end
 
@@ -87,7 +87,7 @@ module TSV
 
     file = StringIO.new file if String === file && ! (Path === file) && file.index("\n")
 
-    source_name, options = 
+    source_name, options =
       case file
       when StringIO
         [file.inspect, options]

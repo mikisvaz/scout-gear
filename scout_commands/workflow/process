@@ -22,7 +22,7 @@ $ #{$0} [<options>] ([<workflow>] [<task>] [<name>] | <filename>)
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -69,7 +69,7 @@ begin
   end
 
   jobs = files.collect{|file| Workflow.queue_job(file) }
-  
+
 
   begin
     Workflow.produce(jobs, **options)

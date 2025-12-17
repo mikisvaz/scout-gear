@@ -31,7 +31,7 @@ module Workflow
     title = doc_parse_first_line doc
     description, task_info = doc_parse_up_to doc, /^# Tasks/i
     task_description, tasks = doc_parse_up_to task_info, /^##/, true
-    tasks = doc_parse_chunks tasks, /^## (.*)/ 
+    tasks = doc_parse_chunks tasks, /^## (.*)/
     {:title => title.strip, :description => description.strip, :task_description => task_description.strip, :tasks => tasks}
   end
 
@@ -52,11 +52,11 @@ module Workflow
                          documentation = Workflow.parse_workflow_doc documentation_markdown
 
                          if @description && (documentation[:description].nil? || documentation[:description].empty?)
-                           documentation[:description] = @description 
+                           documentation[:description] = @description
                          end
 
                          if @title && (documentation[:title].nil? || documentation[:title].empty?)
-                           documentation[:title] = @title 
+                           documentation[:title] = @title
                          end
                          documentation[:tasks].each do |task, description|
                            if task.include? "#"
@@ -74,7 +74,7 @@ module Workflow
                            if workflow.tasks.include? task
                              workflow.tasks[task].description = description
                            else
-                             Log.low "Documentation for #{ task }, but not a #{ workflow.to_s } task" 
+                             Log.low "Documentation for #{ task }, but not a #{ workflow.to_s } task"
                            end
                          end
                          documentation

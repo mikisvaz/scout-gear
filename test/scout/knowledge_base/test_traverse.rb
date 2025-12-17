@@ -126,8 +126,8 @@ end
 #
 #        kb.register :gene_ages, datadir_test.gene_ages, :source => "=>Associated Gene Name"
 #
-#        kb.register :CollecTRI, datadir_test.CollecTRI, 
-#          :source => "Transcription Factor=~Associated Gene Name", 
+#        kb.register :CollecTRI, datadir_test.CollecTRI,
+#          :source => "Transcription Factor=~Associated Gene Name",
 #          :target => "Target Gene=~Associated Gene Name",
 #          :fields => ["[ExTRI] Confidence", "[ExTRI] PMID"]
 #

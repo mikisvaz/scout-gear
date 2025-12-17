@@ -62,7 +62,7 @@ module Open
 
       if into.respond_to?(:close)
         obj = obj.find if Path === obj
-        into_thread = Thread.new do 
+        into_thread = Thread.new do
           Thread.current.report_on_exception = false
           Thread.current["name"] = "Traverse into"
           error = false
@@ -96,7 +96,7 @@ module Open
       queue.process do |res|
         callback.call res if callback
       end
-      
+
       begin
         self.traverse(obj, **options) do |*args|
           queue.write args
@@ -210,7 +210,7 @@ module TSV
 
   def self.process_stream(stream, header_hash: "#", &block)
     sout = Open.open_pipe do |sin|
-      while line = stream.gets 
+      while line = stream.gets
         break unless line.start_with?(header_hash)
         sin.puts line
       end

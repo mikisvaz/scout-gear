@@ -123,7 +123,7 @@ module Workflow
     block = lambda &self.method(name) if block.nil?
     begin
       @annotate_next_task ||= {}
-      @annotate_next_task[:extension] ||=  
+      @annotate_next_task[:extension] ||=
         case type
         when :tsv
           "tsv"
@@ -144,24 +144,24 @@ module Workflow
     end
   end
 
-  FORGET_TASK_ALIAS = begin 
+  FORGET_TASK_ALIAS = begin
                         %w(SCOUT_FORGET_TASK_ALIAS SCOUT_FORGET_DEP_TASKS RBBT_FORGET_DEP_TASKS).select do |var|
                           ENV[var] == 'true'
                         end.any?
                       end
-  REMOVE_TASK_ALIAS = begin 
+  REMOVE_TASK_ALIAS = begin
                         remove = %w(SCOUT_REMOVE_TASK_ALIAS SCOUT_REMOVE_DEP_TASKS RBBT_REMOVE_DEP_TASKS).select do |var|
                           ENV.include?(var) && ENV[var] != 'false'
                         end.first
                         remove.nil? ? false : remove
                       end
   def task_alias(name, workflow, oname, *rest, &block)
-    dep(workflow, oname, *rest, &block) 
+    dep(workflow, oname, *rest, &block)
     extension :dep_task unless @extension
     task_proc = workflow.tasks[oname] if workflow.tasks
     if task_proc
       returns task_proc.returns if @returns.nil?
-      type = task_proc.type 
+      type = task_proc.type
     end
     task name => type do
       raise ScoutException, "dep_task does not have any dependencies" if dependencies.empty?
@@ -187,7 +187,7 @@ module Workflow
         Open.rm_rf self.files_dir if Open.exist? self.files_dir
         Open.link_dir dep.files_dir, self.files_dir if Open.exist?(dep.files_dir)
 
-        if dep.overriden? 
+        if dep.overriden?
           Open.link dep.path, self.tmp_path
         else
           Open.ln_h dep.path, self.tmp_path
@@ -201,11 +201,11 @@ module Workflow
               d.clean unless Scout::Config.get(:remove_dep, "task:#{d.task_signature}", "task:#{d.task_name}", "workflow:#{d.workflow.name}", :default => true).to_s == 'false'
             end
             dep.clean unless Scout::Config.get(:remove_dep, "task:#{dep.task_signature}", "task:#{dep.task_name}", "workflow:#{dep.workflow.name}", :default => true).to_s == 'false'
-          end 
+          end
         end
       else
         if Open.exists?(dep.files_dir)
-          Open.rm_rf self.files_dir 
+          Open.rm_rf self.files_dir
           Open.link dep.files_dir, self.files_dir
         end
         if defined?(RemoteStep) && RemoteStep === dep

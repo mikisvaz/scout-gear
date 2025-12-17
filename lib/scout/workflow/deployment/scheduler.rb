@@ -43,11 +43,11 @@ module Workflow::Scheduler
       job_options = IndiferentHash.add_defaults job_options, process_options.dup
 
       if batch[:deps].nil?
-        batch_dependencies = [] 
-      else 
+        batch_dependencies = []
+      else
         top_jobs = batch[:jobs]
 
-        batch_dependencies = batch[:deps].collect{|dep| 
+        batch_dependencies = batch[:deps].collect{|dep|
           dep_target = dep[:top_level]
           id = batch_ids[dep_target].to_s
 

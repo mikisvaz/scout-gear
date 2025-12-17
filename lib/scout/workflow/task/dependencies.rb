@@ -2,7 +2,7 @@ module Task
   def dependencies(id, provided_inputs, non_default_inputs = [], compute = {})
     return [] if deps.nil?
     dependencies = []
-    
+
     provided_inputs ||= {}
 
     # Helper function

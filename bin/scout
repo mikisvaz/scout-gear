@@ -21,7 +21,7 @@ if _i = ARGV.index("--dev")
   ARGV.delete dev_dir
 end
 
-if dev_dir.nil? 
+if dev_dir.nil?
   _s = nil
   ARGV.each_with_index do |s,i|
     if s.match(/^--dev(?:=(.*))?/)
@@ -95,7 +95,7 @@ elsif Log.severity.nil?
 
   global_severity = Log.get_level(Scout.etc.log_severity.read.strip) if Scout.etc.log_severity.exists?
   if ENV["SCOUT_LOG"]
-    Log.severity = ENV["SCOUT_LOG"].to_i 
+    Log.severity = ENV["SCOUT_LOG"].to_i
   else
     global_severity = Log.get_level(Scout.etc.log_severity.read.strip) if Scout.etc.log_severity.exists?
     Log.severity = global_severity.to_i if global_severity
@@ -119,10 +119,10 @@ $scout_command_dir = Scout.scout_commands
 #$scout_command_dir.path_maps[:scout_commands] = File.join(File.dirname(__dir__), "{PATH/bin\\/scout/scout_commands}")
 
 SOPT.description =<<EOF
-This command controls many aspects of the Scout framework, from configuration tasks to running applications. 
+This command controls many aspects of the Scout framework, from configuration tasks to running applications.
 
-Commands are implemented in separate files under the Scout path '#{$scout_command_dir}'. 
-Known locations are: #{([$scout_command_dir] + $scout_command_dir.find_all) * ", " }. 
+Commands are implemented in separate files under the Scout path '#{$scout_command_dir}'.
+Known locations are: #{([$scout_command_dir] + $scout_command_dir.find_all) * ", " }.
 You can place your own commads at #{$scout_command_dir.find(:user)}.
 EOF
 
@@ -158,11 +158,11 @@ def scout_usage(prev = nil)
     puts Log.color :magenta, "## COMMANDS"
     puts
     puts Log.color :magenta, "Command:"
-    puts 
+    puts
     puts "  #{File.basename($0)} #{prev * " "}"
-    puts 
+    puts
     puts Log.color :magenta, "Subcommands:"
-    puts 
+    puts
     prev_dir = prev_dir(prev)
     commands(prev).each do |command|
       directory = File.directory? prev_dir[command].find
@@ -177,7 +177,7 @@ def scout_usage(prev = nil)
   true
 end
 
-alias usage scout_usage 
+alias usage scout_usage
 
 def print_error(error, backtrace = nil)
   puts Log.color :magenta, "## ERROR"
@@ -209,7 +209,7 @@ def cmd_alias
     ARGV.replace tokenize_cmd_params(aliases[ARGV[0]]) + ARGV[1..-1]
   end
 end
-    
+
 dir = $scout_command_dir
 $previous_commands = []
 

@@ -16,7 +16,7 @@ If no gem is specified 'scout-gear' is selected.
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end

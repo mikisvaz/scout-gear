@@ -60,9 +60,9 @@ module TSV
                 key = values.delete_at(key_pos)
               end
             end
-          else 
+          else
             orig_key = key
-            key = @type == :flat ? values : values[key_pos] if key_pos != :key 
+            key = @type == :flat ? values : values[key_pos] if key_pos != :key
 
             values = values.values_at(*positions)
             if key_index
@@ -85,7 +85,7 @@ module TSV
 
           values = TSV.cast_value(values, cast) if cast
 
-          if Array === key 
+          if Array === key
             key = key.uniq if uniq
             if @type == :double && one2one
               if one2one == :strict
@@ -159,7 +159,7 @@ module TSV
         end
       end
     end
-    
+
 
     [key_name, field_names]
   end

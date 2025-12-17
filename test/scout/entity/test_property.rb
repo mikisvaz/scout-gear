@@ -70,7 +70,7 @@ class TestEntityProperty < Test::Unit::TestCase
     end
 
     property :annotation_list => :single do
-      self.chars.to_a.collect{|c| 
+      self.chars.to_a.collect{|c|
         ReversableString.setup(c)
       }
     end
@@ -80,11 +80,11 @@ class TestEntityProperty < Test::Unit::TestCase
     end
 
     $processed_multiple = []
-    property :multiple_annotation_list => :multiple do 
+    property :multiple_annotation_list => :multiple do
       $processed_multiple.concat self
       res = {}
       self.collect do |e|
-        e.chars.to_a.collect{|c| 
+        e.chars.to_a.collect{|c|
           ReversableString.setup(c)
         }
       end

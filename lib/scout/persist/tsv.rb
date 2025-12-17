@@ -2,7 +2,7 @@ require 'scout/persist'
 require_relative 'engine'
 require_relative 'tsv/adapter'
 
-Persist.save_drivers[:tsv] = proc do |file,content| 
+Persist.save_drivers[:tsv] = proc do |file,content|
   case content
   when IO
     Open.sensible_write(file, content)

@@ -60,7 +60,7 @@ class Workflow::LocalExecutor
         exception = failed_jobs.collect(&:get_exception).compact.first
         if exception
           Log.warn 'Some work failed'
-          raise exception 
+          raise exception
         else
           raise 'Some work failed'
         end
@@ -160,7 +160,7 @@ class Workflow::LocalExecutor
   def release_resources(job)
     if resources_used[job]
       Log.debug "Orchestrator releasing resouces from #{job.path}"
-      resources_used[job].each do |resource,value| 
+      resources_used[job].each do |resource,value|
         next if resource == 'size'
         resources_requested[resource] -= value.to_i
       end
@@ -196,7 +196,7 @@ class Workflow::LocalExecutor
   def run_batch(batch)
     job, job_rules = batch.values_at :top_level, :rules
 
-    rules = batch[:rules] 
+    rules = batch[:rules]
     deploy = rules[:deploy] if rules
     Log.debug "Processing #{deploy} #{job.short_path} #{Log.fingerprint job_rules}"
     case deploy

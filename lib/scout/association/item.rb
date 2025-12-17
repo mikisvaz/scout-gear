@@ -9,11 +9,11 @@ module AssociationItem
 
   property :name => :single do
     [source_entity, target_entity].collect{|e| e.respond_to?(:name)? e.name || e : e } * "~"
-  end 
+  end
 
   property :full_name => :single do
     database ? [database, name] * ":" : name
-  end 
+  end
 
   property :invert => :both do
     if Array === self
@@ -124,7 +124,7 @@ module AssociationItem
         if info_fields.empty?
           tsv[p] = [source, target]
         else
-          tsv[p] = [source, target].concat v 
+          tsv[p] = [source, target].concat v
         end
       end
     end
@@ -159,7 +159,7 @@ module AssociationItem
         matches[s][t] = value unless value.nil? or (mv = matches[s][t] and value > mv)
       else
         matches[s] ||= Hash.new{false}
-        matches[s][t] ||= true 
+        matches[s][t] ||= true
       end
     end
 
@@ -210,7 +210,7 @@ module AssociationItem
           else
             orig = item.info[key]
             orig = orig.split(";;") if String orig
-            _select_match orig, value 
+            _select_match orig, value
           end
         end
       end

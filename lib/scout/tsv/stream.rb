@@ -77,7 +77,7 @@ module TSV
         fields = fields.compact.flatten
       end
 
-      options = input_options.first 
+      options = input_options.first
       type ||= options[:type]
       type ||= :list if type == :single
       type ||= :double if type == :flat
@@ -152,7 +152,7 @@ module TSV
 
                 if k == keys[i]
                   new_parts = NamedArray.zip_fields([new_parts]).zip(p).collect{|p| [p.flatten * "|"] }
-                  raise TryAgain 
+                  raise TryAgain
                 end
                 keys[i]= k
                 parts[i]= p

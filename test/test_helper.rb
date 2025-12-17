@@ -54,7 +54,7 @@ class Test::Unit::TestCase
     Workflow.job_cache.clear
     SchedulerJob.batch_base_dir = tmpdir.batch
   end
-  
+
   teardown do
     Open.rm_rf tmpdir
   end

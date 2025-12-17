@@ -36,7 +36,7 @@ module TestWFC
   dep :c1
   dep :c2
   task :c3 => :string do self.task_name.to_s end
-  
+
   dep_task :c4, TestWFC, :c3
 end
 
@@ -135,7 +135,7 @@ TestWFC:
     assert_equal 4, job_chains["chain_a_b"].last[:jobs].length
     assert_equal job, job_chains["chain_a_b"].last[:top_level]
   end
-  
+
   def test_job_chains_double
     job = TestWFD.job(:d1, nil)
     job.recursive_clean

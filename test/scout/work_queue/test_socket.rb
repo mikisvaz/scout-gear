@@ -6,7 +6,7 @@ class TestSocket < Test::Unit::TestCase
   class DoneProcessing end
 
   def test_simple
-    socket = WorkQueue::Socket.new 
+    socket = WorkQueue::Socket.new
 
     socket.write 1
     socket.write 2
@@ -25,7 +25,7 @@ class TestSocket < Test::Unit::TestCase
   end
 
   def __test_speed
-    socket = WorkQueue::Socket.new 
+    socket = WorkQueue::Socket.new
 
     num = 50_000
 
@@ -33,7 +33,7 @@ class TestSocket < Test::Unit::TestCase
       num.times do |i|
         socket.write nil
       end
-      socket.write DoneProcessing.new 
+      socket.write DoneProcessing.new
     end
 
     bar = Log::ProgressBar.new num

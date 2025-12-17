@@ -31,11 +31,11 @@ if continue
       database = Log.ignore_stderr do Persist::CONNECTIONS[path] ||= tokyocabinet_class.new end
 
       if big and not Open.exists?(path)
-        database.tune(nil, nil, nil, tokyocabinet_class::TLARGE | tokyocabinet_class::TDEFLATE) 
+        database.tune(nil, nil, nil, tokyocabinet_class::TLARGE | tokyocabinet_class::TDEFLATE)
       end
 
       flags = (write ? tokyocabinet_class::OWRITER | tokyocabinet_class::OCREAT : tokyocabinet_class::OREADER)
-      database.close 
+      database.close
 
       if !database.open(path, flags)
         ecode = database.ecode

@@ -1,7 +1,7 @@
 module TSV
   class Dumper
     def self.header(options={})
-      key_field, fields, sep, header_hash, preamble, unnamed = IndiferentHash.process_options options, 
+      key_field, fields, sep, header_hash, preamble, unnamed = IndiferentHash.process_options options,
         :key_field, :fields, :sep, :header_hash, :preamble, :unnamed,
         :sep => "\t", :header_hash => "#", :preamble => true
 
@@ -29,8 +29,8 @@ module TSV
     attr_accessor :options, :initialized, :type, :sep, :compact, :filename, :namespace
     def initialize(options = {})
       options = options.options.merge(sep: nil) if TSV::Parser === options || TSV === options
-      @sep, @type = IndiferentHash.process_options options, 
-        :sep, :type, 
+      @sep, @type = IndiferentHash.process_options options,
+        :sep, :type,
         :sep => "\t", :type => :double
       @compact = options[:compact]
       @options = options
@@ -54,7 +54,7 @@ module TSV
     def key_field
       @options[:key_field]
     end
-    
+
     def fields
       @options[:fields]
     end
@@ -62,7 +62,7 @@ module TSV
     def key_field=(key_field)
       @options[:key_field] = key_field
     end
-    
+
     def fields=(fields)
       @options[:fields] = fields
     end
@@ -100,7 +100,7 @@ module TSV
           when :double
             @sin << key + @sep + value.collect{|v| Array === v ? (@compact ? v.compact : v) * "|" : v } * @sep << "\n"
           else
-            if Array === value 
+            if Array === value
               if Array === value.first
                 @sin << key + @sep + value.collect{|v| Array === v ? (@compact ? v.compact : v) * "|" : v } * @sep << "\n"
               else
@@ -147,7 +147,7 @@ module TSV
   end
 
   def dumper_stream(options = {})
-    preamble, unmerge, keys, stream = IndiferentHash.process_options options, 
+    preamble, unmerge, keys, stream = IndiferentHash.process_options options,
       :preamble, :unmerge, :keys, :stream,
       :preamble => true, :unmerge => false
     unmerge = false unless @type === :double
@@ -177,7 +177,7 @@ module TSV
 
     self.with_unnamed do
       if stream.nil?
-        t = Thread.new do 
+        t = Thread.new do
           begin
             Thread.current.report_on_exception = true
             Thread.current["name"] = "Dumper thread"

@@ -12,7 +12,7 @@ List all batch jobs
 
 $ #{$0} [<options>] <filename> [<other|->]*
 
-$ rbbt slurm list [options] 
+$ rbbt slurm list [options]
 
 -h--help Print this help
 -d--done Done jobs only
@@ -33,7 +33,7 @@ $ rbbt slurm list [options]
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -132,7 +132,7 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
   end
 
   if File.exist?(fstatus = File.join(dir, 'job.status'))
-    fstatus_txt = Open.read(fstatus) 
+    fstatus_txt = Open.read(fstatus)
     begin
       if job_batch_system == "lsf"
         nodes = Open.read(fstatus).split("\n").last.split(/\s+/)[5].split(",")
@@ -170,47 +170,47 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
   cadeps = Open.read(fcadep).split("\n") if File.exist?(fcadep)
 
   is_running =  exit_status.nil? && ( (running_jobs.include?(id) && (deps.nil? || (running_jobs & deps).empty?)) || different_system )
-  if done || error || aborted || running || queued || jobid 
+  if done || error || aborted || running || queued || jobid
     select = false
     select = true if done && exit_status == 0
-    select = true if error && exit_status && exit_status != 0 
+    select = true if error && exit_status && exit_status != 0
     select = true if aborted && (exit_status.nil? && ! running_jobs.include?(id))
     select = true if queued && deps && (running_jobs & deps).any? || queued && is_running && nodes.empty?
     select = true if running && nodes.any? && (exit_status.nil? && running_jobs.include?(id)) && (!deps || (running_jobs & deps).empty?)
     select = true if jobid && jobid.split(",").include?(id)
     select = select && step_path.match(/#{search}/) if search
-    next unless select 
+    next unless select
   elsif search
     select = false
     select = true if search && cmd.match(/#{search}/)
-    next unless select 
+    next unless select
   end
 
 
   count += 1
 
   if options[:compressed] && tail.nil?
-    status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) :  Log.color(:green, id)  
+    status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) :  Log.color(:green, id)
     if different_system
-      status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) + " (#{ id })" :  Log.color(:green, id)  
+      status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) + " (#{ id })" :  Log.color(:green, id)
     else
       #status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) + " (#{ id })" :  (running_jobs.include?(id) || $norunningjobs ? Log.color(:green, id) : Log.color(:red, id) )
-      status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) + " (#{ id })" : 
-        (running_jobs.include?(id) || $norunningjobs ? 
-         (is_running ? Log.color(:cyan, id) : Log.color(:yellow, id) ) : 
+      status = exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) + " (#{ id })" :
+        (running_jobs.include?(id) || $norunningjobs ?
+         (is_running ? Log.color(:cyan, id) : Log.color(:yellow, id) ) :
          Log.color(:red, id) )
-    end 
+    end
     prog_rep = []
-    if options[:progress] 
+    if options[:progress]
       step_line = Open.read(fcmd).split("\n").select{|line| line =~ /^#STEP_PATH:/}.first
       if step_line
         step_path = step_line.split(": ").last.strip
         step = Step.new step_path
         has_bar = false
         [step].reverse.each do |j|
-          next if j.done? 
+          next if j.done?
           if j.file(:progress).exists?
-            bar = Log::ProgressBar.new 
+            bar = Log::ProgressBar.new
             bar.load(j.file(:progress).yaml)
             rep = bar.report_msg.split("·")[1]
             rep = rep.sub(/.*?(\d+%)/, Log.color(:blue,'\1')).sub(/\-.*/,'')
@@ -238,7 +238,7 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
     puts Log.color(:magenta, "Job ID (#{Log.color(:red, job_batch_system)}): ") << (exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) + " (#{ id })" :  Log.color(:green, id)  )
   else
     puts Log.color(:magenta, "Job ID: ") << (exit_status ? (exit_status == 0 ? Log.color(:green, "Done") : Log.color(:red, "Error")) + " (#{ id })" :  (running_jobs.include?(id) || $norunningjobs ? Log.color(:green, id) : Log.color(:red, id) ))
-  end 
+  end
   puts Log.color(:magenta, "Dependencies: ") << deps * ", " if deps
   puts Log.color(:magenta, "Dependencies (can fail): ") << cadeps * ", " if cadeps
   puts Log.color(:magenta, "Nodes: ") << nodes * ", " if long
@@ -247,7 +247,7 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
 
   if options[:batch_parameters]
     puts Log.color(:magenta, "BATCH parameters: ")
-    case job_batch_system 
+    case job_batch_system
     when 'slurm'
       text = CMD.cmd('grep "^#SBATCH" ', :in => Open.read(fcmd)).read.strip
     when 'lsf'
@@ -295,14 +295,14 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
     ticks = 1 if ticks == 0
     time_elapsed = 1 if time_elapsed == 0
     puts Log.color(:yellow, "CPU average: ") + "%.2f" % ( ticks / clock_ticks / time_elapsed * 100).to_s
-    puts Log.color(:yellow, "RSS average: ") + "%.2f GB" % Misc.mean(rss_average.collect{|t,l| Misc.sum(l) / (1024 * 1024 * 1024)}).to_s 
+    puts Log.color(:yellow, "RSS average: ") + "%.2f GB" % Misc.mean(rss_average.collect{|t,l| Misc.sum(l) / (1024 * 1024 * 1024)}).to_s
     puts Log.color(:yellow, "Time: ") + Misc.format_seconds((eend - start))
 
   end
 
   if options[:sacct_peformance]
     begin
-      raise "sacct not supported for LSF" unless batch_system == 'slurm' 
+      raise "sacct not supported for LSF" unless batch_system == 'slurm'
       tsv = TSV.open(CMD.cmd("sacct -j #{id} -o 'jobid,AveRSS,MaxRSS,MaxDiskRead,MaxDiskWrite' -P|grep 'JobID\\|\.batch'"), :header_hash => '', :sep => "|", :type => :list)
       values = tsv[tsv.keys.first]
       if values.compact.any?
@@ -328,16 +328,16 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
     end
   end
 
-  if options[:progress] 
+  if options[:progress]
     step_line = Open.read(fcmd).split("\n").select{|line| line =~ /^#STEP_PATH:/}.first
     if step_line
       step_path = step_line.split(": ").last.strip
       step = Step.new step_path
       has_bar = false
       (step.rec_dependencies.to_a + [step]).reverse.each do |j|
-        next if j.done? 
+        next if j.done?
         if j.file(:progress).exists?
-          bar = Log::ProgressBar.new 
+          bar = Log::ProgressBar.new
           bar.load(j.file(:progress).yaml)
           puts Log.color(:magenta, "Progress: ") + bar.report_msg + " " + Log.color(:yellow, j.task_signature)
           has_bar = true
@@ -352,6 +352,6 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
 
 end
 
-puts 
+puts
 puts Log.color :clear, "Found #{count} jobs"
 

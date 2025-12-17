@@ -1,5 +1,5 @@
 module SchedulerJob
-  @batch_base_dir = File.expand_path(File.join('~/scout-batch')) 
+  @batch_base_dir = File.expand_path(File.join('~/scout-batch'))
   self.singleton_class.attr_accessor :batch_base_dir
 
   module_function
@@ -27,7 +27,7 @@ module SchedulerJob
 
       singularity_img, singularity_opt_dir, singularity_ruby_inline, singularity_mounts = options.values_at :singularity_img, :singularity_opt_dir, :singularity_ruby_inline, :singularity_mounts
 
-      singularity_cmd = %(singularity exec -e -B "#{File.expand_path singularity_opt_dir}":/singularity_opt/ -B "#{File.expand_path singularity_ruby_inline}":"/.singularity_ruby_inline":rw ) 
+      singularity_cmd = %(singularity exec -e -B "#{File.expand_path singularity_opt_dir}":/singularity_opt/ -B "#{File.expand_path singularity_ruby_inline}":"/.singularity_ruby_inline":rw )
 
       if singularity_mounts
         singularity_mounts.split(",").each do |mount|
@@ -37,7 +37,7 @@ module SchedulerJob
 
       if contain && options[:hardened]
         singularity_cmd << %( -C -H "#{contain}" \
--B "/.singularity_ruby_inline":"#{contain}/.singularity_ruby_inline":rw 
+-B "/.singularity_ruby_inline":"#{contain}/.singularity_ruby_inline":rw
 -B "#{options[:batch_dir]}" \
 -B /scratch/tmp \
           #{ group != user_group ? "-B /gpfs/projects/#{user_group}" : "" } \
@@ -82,12 +82,12 @@ module SchedulerJob
     task = job.task_name
 
     if job.overriden?
-      override_deps = job.recursive_overrider_deps.collect do |dep| 
+      override_deps = job.recursive_overrider_deps.collect do |dep|
         o_workflow = dep.overriden_workflow || dep.workflow
         o_workflow = o_workflow.name if o_workflow.respond_to?(:name)
         o_task_name = dep.overriden_task || dep.task.name
         name = [o_workflow, o_task_name] * "#"
-        [name, dep.path] * "="  
+        [name, dep.path] * "="
       end.uniq * ","
       options[:override_deps] = override_deps unless override_deps.empty?
     end
@@ -190,7 +190,7 @@ workflow task #{workflow} #{task} #{cmds}
     keys_from_config.each do |key|
       next unless batch_options.include? key
       default_value = Scout::Config.get(key, "batch_#{key}", "batch")
-      next if default_value.nil? 
+      next if default_value.nil?
       IndiferentHash.add_defaults batch_options, default_value
     end
 
@@ -209,7 +209,7 @@ workflow task #{workflow} #{task} #{cmds}
         batch_options[:contain] = File.join(contain_base, random_file)
       end
 
-      batch_options[:sync] ||= "~/.scout/var/jobs" 
+      batch_options[:sync] ||= "~/.scout/var/jobs"
       batch_options[:wipe_container] ||= 'post'
     end
 
@@ -217,23 +217,23 @@ workflow task #{workflow} #{task} #{cmds}
       options[:workdir_all] = batch_options[:contain]
     end
 
-    IndiferentHash.add_defaults batch_options, 
+    IndiferentHash.add_defaults batch_options,
       :batch_name => batch_name,
-      :inputs_dir => inputs_dir, 
-      :nodes => 1, 
+      :inputs_dir => inputs_dir,
+      :nodes => 1,
       :step_path => job.path,
       :task_cpus => 1,
-      :time => '2min', 
+      :time => '2min',
       :env => {'JDK_JAVA_OPTIONS' => "-Xms1g -Xmx${MAX_MEMORY}m"},
       :singularity_img => ENV["SINGULARITY_IMG"] || "~/scout.singularity.img",
       :singularity_ruby_inline => ENV["SINGULARITY_RUBY_INLINE"] || "~/.singularity_ruby_inline",
       :singularity_opt_dir => ENV["SINGULARITY_OPT_DIR"] || "~/singularity_opt",
-      :workdir => Dir.pwd 
+      :workdir => Dir.pwd
 
     exec_cmd = exec_cmd(job, batch_options)
     scout_cmd = scout_job_exec_cmd(job, options)
 
-    IndiferentHash.add_defaults batch_options, 
+    IndiferentHash.add_defaults batch_options,
       :exec_cmd => exec_cmd,
       :scout_cmd => scout_cmd
 
@@ -342,7 +342,7 @@ batch_erase_contain_dir()
 function batch_sync_contain_dir(){
   mkdir -p "$(dirname '#{sync}')"
   rsync -avztAXHP --copy-unsafe-links "#{source}/" "#{sync}/" 2>1 >> '#{options[:fsync]}'
-  sync_es="$?" 
+  sync_es="$?"
   echo $sync_es > '#{options[:fsexit]}'
   find '#{sync}' -type l -ls | awk '$13 ~ /^#{sync.gsub('/','\/')}/ { sub("#{source}", "#{sync}", $13); print $11, $13 }' | while read A B; do rm $A; ln -s $B $A; done
 }
@@ -351,7 +351,7 @@ function batch_sync_contain_dir(){
 
     if options[:env]
       prepare_environment +=<<-EOF
-# Set ENV variables 
+# Set ENV variables
 #{options[:env].collect{|n,v| "export #{n}=\"#{v}\"" } * "\n"}
       EOF
     end
@@ -382,7 +382,7 @@ for tmpd in persist_locks  produce_locks  R_sockets  sensiblewrite  sensiblewrit
     mkdir -p "#{contain}/.scout/tmp/$tmpd"
 done
 
-# Copy environment 
+# Copy environment
 cp ~/.scout/etc/environment #{contain}/.scout/etc/
 
 # Set search_paths
@@ -404,7 +404,7 @@ echo "user_scratch: #{scratch_group_dir}/#{user}/{PKGDIR}/{TOPLEVEL}/{SUBPATH}" 
     exec_cmd, job_cmd, task_cpus = options.values_at :exec_cmd, :scout_cmd, :task_cpus
 
     script=<<-EOF
-step_path=$( 
+step_path=$(
       #{exec_cmd} #{job_cmd} --printpath
 )
 exit_status=$?
@@ -424,7 +424,7 @@ fi
 
     if options[:sync]
       sync_environment +=<<-EOF
-if [ $exit_status == '0' ]; then 
+if [ $exit_status == '0' ]; then
   batch_sync_contain_dir
 else
   sync_es=$exit_status
@@ -439,8 +439,8 @@ fi
     cleanup_environment = ""
 
     cleanup_environment +=<<-EOF if options[:purge_deps]
-if [ $exit_status == '0' ]; then 
-  #{options[:exec_cmd]} workflow forget_deps --purge --recursive_purge "$step_path" 2>1 >> '#{options[:fsync]}' 
+if [ $exit_status == '0' ]; then
+  #{options[:exec_cmd]} workflow forget_deps --purge --recursive_purge "$step_path" 2>1 >> '#{options[:fsync]}'
 fi
     EOF
 
@@ -451,7 +451,7 @@ batch_erase_contain_dir
         EOF
       elsif options[:wipe_container] == 'post' || options[:wipe_container] == 'both'
         cleanup_environment +=<<-EOF
-if [ $sync_es == '0' -a $empty_contain_dir == 'true' ]; then 
+if [ $sync_es == '0' -a $empty_contain_dir == 'true' ]; then
   batch_erase_contain_dir
 fi
         EOF
@@ -510,7 +510,7 @@ exit $exit_status
 env > #{batch_options[:fenv]}
 
 # #{Log.color :green, "2. Execute"}
-#{execute} 
+#{execute}
 
 # #{Log.color :green, "3. Sync and cleanup environment"}
 #{sync_environment}
@@ -553,13 +553,13 @@ env > #{batch_options[:fenv]}
   def run_job(job, options = {})
     system = self.to_s.split("::").last
 
-    batch_base_dir, clean_batch_job, remove_batch_dir, procpath, tail, batch_dependencies, dry_run, orchestration_rules_file = IndiferentHash.process_options options, 
+    batch_base_dir, clean_batch_job, remove_batch_dir, procpath, tail, batch_dependencies, dry_run, orchestration_rules_file = IndiferentHash.process_options options,
       :batch_base_dir, :clean_batch_job, :remove_batch_dir, :batch_procpath, :tail, :batch_dependencies, :dry_run, :orchestration_rules,
       :batch_base_dir => SchedulerJob.batch_base_dir
 
     if (batch_job = job.info[:batch_job]) && job_queued(batch_job)
       Log.info "Job #{job.short_path} already queued in #{batch_job}"
-      return batch_job, batch_dir_for_id(batch_base_dir, batch_job) 
+      return batch_job, batch_dir_for_id(batch_base_dir, batch_job)
     end
 
     if job.running?
@@ -568,7 +568,7 @@ env > #{batch_options[:fenv]}
       if job.info[:batch_job]
         return job.info[:batch_job], batch_dir_for_id(batch_base_dir, batch_job)
       else
-        return 
+        return
       end
     end
 
@@ -580,8 +580,8 @@ env > #{batch_options[:fenv]}
     workflows_to_load = job.rec_dependencies.select{|d| Step === d}.collect{|d| d.workflow }.compact.collect(&:to_s) - [workflow.to_s]
 
     TmpFile.with_file(nil, remove_batch_dir, :tmpdir => batch_base_dir, :prefix => "#{system}_scout_job-#{workflow.to_s}-#{task_name}-") do |batch_dir|
-      IndiferentHash.add_defaults options, 
-        :batch_dir => batch_dir, 
+      IndiferentHash.add_defaults options,
+        :batch_dir => batch_dir,
         :inputs_dir => File.join(batch_dir, "inputs_dir"),
         :workflows => workflows_to_load.any? ? workflows_to_load.uniq * "," : nil
 

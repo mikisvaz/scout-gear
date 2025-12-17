@@ -20,7 +20,7 @@ class TestWorkflowStep < Test::Unit::TestCase
       s.length
     end
 
-    step2 = Step.new tmpfile.step2 do 
+    step2 = Step.new tmpfile.step2 do
       step1 = dependencies.first
       step1.inputs.first + " has " + step1.load.to_s + " characters"
     end
@@ -37,7 +37,7 @@ class TestWorkflowStep < Test::Unit::TestCase
       s.length
     end
 
-    step2 = Step.new tmpdir.test_task2.step2 do 
+    step2 = Step.new tmpdir.test_task2.step2 do
       step1 = dependencies.first
       step1.inputs.first + " has " + step1.load.to_s + " characters"
     end
@@ -86,7 +86,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     assert res.nil?
     step1.clean
 
-    step2 = Step.new tmpfile.step2 do 
+    step2 = Step.new tmpfile.step2 do
       step1 = dependencies.first
       stream = step1.stream
 
@@ -145,7 +145,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     end
     step1.type = :array
 
-    step2 = Step.new tmpfile.step2 do 
+    step2 = Step.new tmpfile.step2 do
       step1 = dependencies.first
       stream = step1.stream
 
@@ -160,7 +160,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     step2.type = :array
     step2.dependencies = [step1]
 
-    step3 = Step.new tmpfile.step3 do 
+    step3 = Step.new tmpfile.step3 do
       step1, step2 = dependencies
       stream = step2.stream
 
@@ -201,7 +201,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     end
     step1.type = :array
 
-    step2 = Step.new tmpfile.step2 do 
+    step2 = Step.new tmpfile.step2 do
       step1 = dependencies.first
       stream = step1.stream
 
@@ -216,7 +216,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     step2.type = :array
     step2.dependencies = [step1]
 
-    step3 = Step.new tmpfile.step3 do 
+    step3 = Step.new tmpfile.step3 do
       step1 = dependencies.first
       stream = step1.stream
 
@@ -232,7 +232,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     step3.dependencies = [step1]
 
 
-    step4 = Step.new tmpfile.step4 do 
+    step4 = Step.new tmpfile.step4 do
       step2, step3 = dependencies
 
       mutex = Mutex.new
@@ -288,7 +288,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     step1.type = :array
 
 
-    step2 = Step.new tmpfile.step2 do 
+    step2 = Step.new tmpfile.step2 do
       step1 = dependencies.first
       stream = step1.stream
 
@@ -303,7 +303,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     step2.type = :array
     step2.dependencies = [step1]
 
-    step3 = Step.new tmpfile.step3 do 
+    step3 = Step.new tmpfile.step3 do
       step1 = dependencies.first
       stream = step1.stream
 
@@ -319,7 +319,7 @@ class TestWorkflowStep < Test::Unit::TestCase
     step3.dependencies = [step1]
 
 
-    step4 = Step.new tmpfile.step4 do 
+    step4 = Step.new tmpfile.step4 do
       step2, step3 = dependencies
 
       mutex = Mutex.new
@@ -356,7 +356,7 @@ class TestWorkflowStep < Test::Unit::TestCase
       s.length
     end
 
-    step2 = Step.new tmpfile.step2 do 
+    step2 = Step.new tmpfile.step2 do
       step1 = dependencies.first
       step1.inputs.first + " has " + step1.load.to_s + " characters"
     end
@@ -375,7 +375,7 @@ class TestWorkflowStep < Test::Unit::TestCase
       "done1"
     end
 
-    step2 = Step.new tmpfile.step2 do 
+    step2 = Step.new tmpfile.step2 do
       sleep 2
       "done2"
     end

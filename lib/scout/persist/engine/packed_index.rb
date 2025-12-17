@@ -56,7 +56,7 @@ class PackedIndex
   def file
     @persistence_path
   end
-  
+
   def close
     @stream.close
   end
@@ -82,7 +82,7 @@ class PackedIndex
   def get_position(position)
     @stream.seek(position * item_size + offset)
     encoded = @stream.read(item_size)
-    return nil if encoded.nil? or encoded == nil_string 
+    return nil if encoded.nil? or encoded == nil_string
     encoded.unpack mask
   end
 

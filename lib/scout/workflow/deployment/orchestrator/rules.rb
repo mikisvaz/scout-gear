@@ -183,7 +183,7 @@ class Workflow::Orchestrator
     r = rules_block[:resources] || {}
     r = IndiferentHash.setup r
 
-    r = IndiferentHash.add_defaults r, 
+    r = IndiferentHash.add_defaults r,
       cpus: rules_block[:cpus] || rules_block[:task_cpus] || 1,
       time: rules_block[:time]
 
@@ -237,7 +237,7 @@ class Workflow::Orchestrator
       merge_rule_file(acc, file_rules)
     end
   end
-  
+
   def self.load_rules_for_job(jobs)
     jobs = [jobs] unless Array === jobs
 

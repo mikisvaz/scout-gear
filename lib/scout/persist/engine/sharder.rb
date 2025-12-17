@@ -10,7 +10,7 @@ class Sharder
     @db_type = db_type
 
     if write
-      @databases = {} 
+      @databases = {}
     end
   end
 
@@ -210,9 +210,9 @@ class Sharder
   end
 
   def size
-    databases.inject(0){|acc,i| 
-      shard, db = i; 
-      acc += db.size 
+    databases.inject(0){|acc,i|
+      shard, db = i;
+      acc += db.size
     }
   end
 end

@@ -25,7 +25,7 @@ $ #{$0} [<options>] <filename> [<other|->]*
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -109,7 +109,7 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
  end
 
  if File.exist?(fstatus = File.join(dir, 'job.status'))
-   fstatus_txt = Open.read(fstatus) 
+   fstatus_txt = Open.read(fstatus)
    begin
      if job_batch_system == "lsf"
        nodes = Open.read(fstatus).split("\n").last.split(/\s+/)[5].split(",")
@@ -140,28 +140,28 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
  aborted = error = true if ! done && aborted.nil? && error.nil?
  #if done || error || aborted || running || queued || jobid || search
  #  select = false
- #  select = true if done && exit_status && exit_status.to_i == 0 
- #  select = true if error && exit_status && exit_status.to_i != 0 
+ #  select = true if done && exit_status && exit_status.to_i == 0
+ #  select = true if error && exit_status && exit_status.to_i != 0
  #  select = true if aborted && (exit_status.nil? && ! running_jobs.include?(id))
- #  select = select && jobid.split(",").include?(id) if jobid 
+ #  select = select && jobid.split(",").include?(id) if jobid
  #  select = select && cmd.match(/#{search}/) if search
- #  next unless select 
+ #  next unless select
  #end
 
- if done || error || aborted || queued || jobid 
+ if done || error || aborted || queued || jobid
    select = false
    select = true if done && exit_status == 0
-   select = true if error && exit_status && exit_status != 0 
+   select = true if error && exit_status && exit_status != 0
    select = true if aborted && (exit_status.nil? && ! running_jobs.include?(id))
    is_running =  exit_status.nil? && ( (running_jobs.include?(id) && (!deps || (running_jobs & deps).empty?)) || different_system )
    select = true if queued && deps && (running_jobs & deps).any? || queued && is_running && nodes.empty?
    select = true if jobid && jobid.split(",").include?(id)
    select = select && cmd.match(/#{search}/) if search
-   next unless select 
+   next unless select
  elsif search
    select = false
    select = true if search && cmd.match(/#{search}/)
-   next unless select 
+   next unless select
  end
 
 
@@ -180,7 +180,7 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
 
  if options[:batch_parameters]
    puts Log.color(:magenta, "BATCH parameters: ")
-   case job_batch_system 
+   case job_batch_system
    when 'slurm'
      puts Log.color :blue, CMD.cmd('grep "^#SBATCH" |tail -n +6', :in => Open.read(fcmd)).read.strip
    when 'lsf'
@@ -206,6 +206,6 @@ workdir.glob("**/command.batch").sort_by{|f| File.mtime(f)}.each do |fcmd|
  Open.rm_rf dir unless dry_run
 end
 
-puts 
+puts
 puts "Found #{count} jobs"
 

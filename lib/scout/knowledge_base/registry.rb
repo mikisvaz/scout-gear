@@ -23,7 +23,7 @@ class KnowledgeBase
     return [] unless @registry
     (@registry.keys + present_databases).uniq
   end
-  
+
   def database_file(name)
     if @registry[name].nil?
       nil
@@ -72,8 +72,8 @@ class KnowledgeBase
     name = name.to_s
     options[:namespace] ||= self.namespace unless self.namespace.nil?
     @indices ||= IndiferentHash.setup({})
-    @indices[[name, options]] ||= 
-      begin 
+    @indices[[name, options]] ||=
+      begin
         if options.empty?
           key = name.to_s
         elsif options[:key]
@@ -131,11 +131,11 @@ class KnowledgeBase
   def get_database(name, options = {})
     options = options.dup
     if self.namespace == options[:namespace]
-      options.delete(:namespace) 
+      options.delete(:namespace)
     end
     @databases ||= IndiferentHash.setup({})
-    @databases[[name, options]] ||= 
-      begin 
+    @databases[[name, options]] ||=
+      begin
         fp = Log.fingerprint([name,options])
 
         if options.empty?

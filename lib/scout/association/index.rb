@@ -7,8 +7,8 @@ module Association
     target = kwargs.delete :target if kwargs.include?(:target)
 
     persist_options = IndiferentHash.pull_keys kwargs, :persist
-    index_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true, 
-      prefix: "Association::Index", 
+    index_persist_options = IndiferentHash.add_defaults persist_options.dup, persist: true,
+      prefix: "Association::Index",
       other_options: kwargs.merge(source: source, target: target, source_format: source_format, target_format: target_format, format: format)
 
     index = Persist.tsv(file, kwargs, engine: "BDB", persist_options: index_persist_options) do |data|
@@ -103,7 +103,7 @@ module Association
         end
       end
 
-      matches = source.uniq.inject([]){|acc,e| 
+      matches = source.uniq.inject([]){|acc,e|
         if block_given?
           acc.concat(match(e))
         else
@@ -115,7 +115,7 @@ module Association
 
       target_matches = {}
 
-      matches.each{|code| 
+      matches.each{|code|
         s,sep,t = code.partition "~"
         next if undirected and t > s and source.include? t
         target_matches[t] ||= []
@@ -217,7 +217,7 @@ module Association
 
       tsv = if value_pos
               AssociationItem.incidence self.keys, key_field do |key|
-                if block_given? 
+                if block_given?
                   yield self[key][value_pos]
                 else
                   self[key][value_pos]
@@ -226,7 +226,7 @@ module Association
             elsif block_given?
               AssociationItem.incidence self.keys, key_field, &block
             else
-              AssociationItem.incidence self.keys, key_field 
+              AssociationItem.incidence self.keys, key_field
             end
     end
   end

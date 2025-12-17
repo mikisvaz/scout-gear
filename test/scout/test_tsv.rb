@@ -27,7 +27,7 @@ row4    a    a    id3
     tsv = TmpFile.with_file(content) do |filename|
       TSV.open(filename)
     end
-    
+
     TmpFile.with_file(content2) do |filename|
       TSV.open(filename, :data => tsv)
     end
@@ -228,7 +228,7 @@ row2    A AA AAA
 
   def test_flat_key
     content =<<-EOF
-#Id    ValueA 
+#Id    ValueA
 row1   a   aa   aaa
 row2   b  bbb bbbb bb aa
     EOF

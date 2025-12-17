@@ -24,14 +24,14 @@ module Association
 
   def self.normalize_specs(spec, all_fields = nil)
     return nil if spec.nil?
-    field, header, format = parse_field_specification spec 
+    field, header, format = parse_field_specification spec
 
     specs = if all_fields.nil? or all_fields.include? field
                [field, header, format]
              else
                if all_fields.nil?
                  begin
-                   identify_entity_format field, all_fields 
+                   identify_entity_format field, all_fields
                  rescue
                    [field, header, format]
                  end
@@ -69,30 +69,30 @@ module Association
     end
 
     if source_specs[0].nil? and target_specs[0].nil?
-      source_specs[0] = key_field 
+      source_specs[0] = key_field
       target_specs[0] = fields[0]
-    elsif source_specs[0].nil? 
+    elsif source_specs[0].nil?
       if target_specs[0] == :key or target_specs[0] == key_field
         source_specs[0] = fields[0]
       else
         source_specs[0] = key_field
       end
-    elsif target_specs[0].nil? 
-      if source_specs[0] == fields.first 
+    elsif target_specs[0].nil?
+      if source_specs[0] == fields.first
         target_specs[0] = key_field
       else
-        target_specs[0] = fields.first 
+        target_specs[0] = fields.first
       end
     end
 
     # If format is specified, then perhaps we need to change the
-    if target_specs[2].nil? 
+    if target_specs[2].nil?
       target_type = Entity.formats[target_specs[1] || target_specs[0]]
       target_specs[2] = format[target_type.to_s] if format
       target_specs[2] = nil if target_specs[2] == target_specs[0] or target_specs[2] == target_specs[1]
     end
 
-    if source_specs[2].nil? 
+    if source_specs[2].nil?
       source_type = Entity.formats[source_specs[1] || source_specs[0]]
       source_specs[2] = format[source_type.to_s] if format
       source_specs[2] = nil if source_specs[2] == source_specs[0] or source_specs[2] == source_specs[1]
@@ -105,7 +105,7 @@ module Association
     return nil if default_format.nil? or default_format.empty?
     default_format.each do |type, format|
       entity_type = Entity.formats[field] || format
-      return format if entity_type.to_s === type 
+      return format if entity_type.to_s === type
     end
     return nil
   end
@@ -118,7 +118,7 @@ module Association
 
     #source_pos = all_fields.index source_field
     #target_pos = all_fields.index target_field
-   
+
     source_pos = TSV.identify_field all_fields.first, all_fields[1..-1], source_field
     target_pos = TSV.identify_field all_fields.first, all_fields[1..-1], target_field
 
@@ -133,13 +133,13 @@ module Association
     info_fields.delete_at NamedArray.identify_name(info_fields, target_field) if NamedArray.identify_name(info_fields, target_field)
     info_fields.unshift target_field
 
-    field_headers = [target_header] 
+    field_headers = [target_header]
     info_fields[1..-1].each do |field|
       header = case field
-               when String 
+               when String
                  field
                when Numeric
-                 all_fields[field] 
+                 all_fields[field]
                when :key
                  all_fields.first
                end
@@ -147,7 +147,7 @@ module Association
       field_headers << header
     end
 
-    field_pos = info_fields.collect do |f| 
+    field_pos = info_fields.collect do |f|
       p = TSV.identify_field all_fields.first, all_fields[1..-1], f
       p == :key ? 0 : p + 1
     end

@@ -20,7 +20,7 @@ module TSV
              else
                target
              end
-               
+
     target.fields = new_fields
     target.key_field = new_key_field
     target.type = type
@@ -57,7 +57,7 @@ module TSV
             [new_key, new_values]
           end
         end
-        
+
         MultipleResult.setup(res)
       else
         field_value = v[field_pos]

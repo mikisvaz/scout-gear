@@ -62,7 +62,7 @@ class WorkQueue
   end
 
   def process(&callback)
-    @workers.each do |w| 
+    @workers.each do |w|
       w.process @input, @output, &@worker_proc
     end
 
@@ -126,9 +126,9 @@ class WorkQueue
           t
         end
         exceptions = []
-        threads.each do |t| 
+        threads.each do |t|
           begin
-            t.join 
+            t.join
           rescue Exception
             exceptions << $!
           end
@@ -155,10 +155,10 @@ class WorkQueue
     @aborted = true
     Log.low "Aborting #{@workers.length} workers in queue #{queue_id}"
     @worker_mutex.synchronize do
-      @workers.each do |w| 
+      @workers.each do |w|
         ScoutSemaphore.post_semaphore(@output.write_sem)
         ScoutSemaphore.post_semaphore(@input.read_sem)
-        w.abort 
+        w.abort
       end
     end
   end

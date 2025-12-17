@@ -101,6 +101,6 @@ Persist.save_drivers[:fwt] = proc do |file, content|
   Misc.sensiblewrite(file, content.file.read)
 end
 
-Persist.load_drivers[:fwt] = proc do |file| 
+Persist.load_drivers[:fwt] = proc do |file|
   FixWidthTable.new file
 end

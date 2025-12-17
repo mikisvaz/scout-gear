@@ -11,7 +11,7 @@ class TestClass < Test::Unit::TestCase
 10,20,30
 20,40,60
     EOF
-    
+
     target =<<-EOF
 #: :sep=,#:type=:list
 #ID,Size,Time,System

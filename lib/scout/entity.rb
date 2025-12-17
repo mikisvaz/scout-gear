@@ -34,7 +34,7 @@ module Entity
       mod = Entity === field ? field : Entity.formats[field]
 
       entity = entity.dup
-      entity = (entity.frozen? and not entity.nil?) ? entity.dup : ((Array === entity and dup_array) ? entity.collect{|e| e.nil? ? e : e.dup} : entity) 
+      entity = (entity.frozen? and not entity.nil?) ? entity.dup : ((Array === entity and dup_array) ? entity.collect{|e| e.nil? ? e : e.dup} : entity)
 
       entity = mod.setup(entity, params)
 

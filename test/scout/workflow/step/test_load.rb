@@ -10,7 +10,7 @@ class TestStepLoad < Test::Unit::TestCase
       s.length
     end
 
-    step2 = Step.new tmpfile.step2 do 
+    step2 = Step.new tmpfile.step2 do
       step1 = dependencies.first
       step1.inputs.first + " has " + step1.load.to_s + " characters"
     end

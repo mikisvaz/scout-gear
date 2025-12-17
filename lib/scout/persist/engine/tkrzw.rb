@@ -5,7 +5,7 @@ module ScoutTKRZW
 
   def self.open(path, write = true, persistence_class = 'tkh', options = {})
     open_options = IndiferentHash.add_defaults options, truncate: true, num_buckets: 100, dbm: "HashDBM", sync_hard: true, encoding: "UTF-8"
-  
+
     path = path.find if Path === path
 
     dir = File.dirname(File.expand_path(path))

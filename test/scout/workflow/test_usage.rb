@@ -5,7 +5,7 @@ require 'scout/workflow'
 class TestWorkflowUsage < Test::Unit::TestCase
   module UsageWorkflow
     extend Workflow
-    
+
     self.name = "UsageWorkflow"
 
     self.title = "Workflow to test documentation"

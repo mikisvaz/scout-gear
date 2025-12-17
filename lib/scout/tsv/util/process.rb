@@ -13,7 +13,7 @@ module TSV
         field_values = values[field_pos]
       end
 
-      new_values = case 
+      new_values = case
                    when block.arity == 1
                      yield(field_values)
                    when block.arity == 2
@@ -54,7 +54,7 @@ module TSV
         values = new_values
       when (values.nil? and (fields.nil? or fields.empty?))
         values = [new_values]
-      when values.nil?  
+      when values.nil?
         values = [nil] * fields.length + [new_values]
       when Array === values
         values += [new_values]

@@ -16,7 +16,7 @@ If you don't specify the module it prints those available
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -26,7 +26,7 @@ end
 
 module_name = ARGV.first
 if module_name.nil?
-  puts Scout.doc.lib.scout.glob("**/*.md").collect{|f| 
+  puts Scout.doc.lib.scout.glob("**/*.md").collect{|f|
     f.find.unset_extension.sub(Scout.doc.lib.scout.find + "/", '')
   } * "\n"
 else

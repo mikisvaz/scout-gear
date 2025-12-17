@@ -6,7 +6,7 @@ require 'scout/workflow/deployment/scheduler/slurm'
 class TestScheduler < Test::Unit::TestCase
   setup do
     module TestWF
-      extend Workflow 
+      extend Workflow
       self.name = "TestWF"
 
       MULT ||= 0.1

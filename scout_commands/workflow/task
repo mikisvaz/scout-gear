@@ -89,7 +89,7 @@ job = workflow.job(task_name, jobname, job_inputs)
 job.recursive_clean if recursive_clean
 job.clean if clean
 
-if clean_task 
+if clean_task
   ENV["SCOUT_UPDATE"] = 'true'
   clean_task.split(",").each do |clean_task|
     if clean_task.include? "#"
@@ -99,7 +99,7 @@ if clean_task
     job.rec_dependencies.each do |dep|
       next unless dep.task_name.to_s == clean_task.to_s
       next unless clean_workflow.nil? || clean_workflow == dep.workflow.to_s
-      dep.clean 
+      dep.clean
       dep.set_info :status, :cleaned
     end
 
@@ -178,7 +178,7 @@ else
     puts "#{batches.length} batches"
     exit 0
   when "serial"
-    job.run(true) 
+    job.run(true)
   when "local", "workers"
     Workflow::LocalExecutor.produce job, rules
   when 'batch', 'sched', 'cluster', "slurm", 'pbs', 'lsf'

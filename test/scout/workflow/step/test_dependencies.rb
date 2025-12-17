@@ -60,7 +60,7 @@ class TestStepDependencies < Test::Unit::TestCase
       end
       step1.type = :array
 
-      step2 = Step.new tmpfile.step2 do 
+      step2 = Step.new tmpfile.step2 do
         step1 = dependencies.first
         raise ScoutException unless step1.streaming?
         stream = step1.stream

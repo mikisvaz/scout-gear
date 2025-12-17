@@ -4,7 +4,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 class TestWorkflowDocumentation < Test::Unit::TestCase
   module UsageWorkflow
     extend Workflow
-    
+
     self.name = "UsageWorkflow"
 
     self.title = "Workflow to test documentation"

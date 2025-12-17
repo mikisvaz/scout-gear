@@ -87,7 +87,7 @@ module TSV
                       pos = NamedArray.identify_name(TSV.all_fields(file1), TSV.all_fields(file2))
                       TSV.all_fields(file1)[pos.compact.first]
                     end
-    Persist.persist(name, "HDB", persist_options) do 
+    Persist.persist(name, "HDB", persist_options) do
       index = path.inject(nil) do |acc,file|
         if acc.nil?
           if source.nil?

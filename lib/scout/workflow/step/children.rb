@@ -40,7 +40,7 @@ class Step
       if c == "\n"
         Log.logn "STDOUT [#{child_pid}]: ", level
       end
-    end 
+    end
 
     io.join
 

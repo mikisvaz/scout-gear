@@ -39,7 +39,7 @@ module Workflow
     asynchronous_exports.replace asynchronous_exports - names if asynchronous_exports
     stream_exports.replace stream_exports - names if stream_exports
   end
-  
+
   def export_exec(*names)
     unexport *names
     exec_exports.concat names

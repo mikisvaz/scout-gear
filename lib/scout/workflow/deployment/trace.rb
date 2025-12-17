@@ -132,10 +132,10 @@ module Workflow
       info[:time] << time
 
       report_keys.each do |key|
-        info[key] = dep_info[key] 
+        info[key] = dep_info[key]
       end
 
-      dep.info[:config_keys].each do |kinfo| 
+      dep.info[:config_keys].each do |kinfo|
         key, value, tokens = kinfo
 
         info[key.to_s] = value if report_keys.include? key.to_s

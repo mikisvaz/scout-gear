@@ -1,7 +1,7 @@
 require_relative 'job'
 require 'scout'
 
-module PBS 
+module PBS
   extend SchedulerJob
 
   def self.system
@@ -13,7 +13,7 @@ module PBS
 let TOTAL_PROCESORS="$(cat /proc/cpuinfo|grep ^processor |wc -l)"
 let MAX_MEMORY_DEFAULT="$(grep MemTotal /proc/meminfo|grep -o "[[:digit:]]*") / ( (1024 * $TOTAL_PROCESORS) / $PBS_CPUS_PER_TASK )"
 MAX_MEMORY="$MAX_MEMORY_DEFAULT"
-[ ! -z $PBS_MEM_PER_CPU ] && let MAX_MEMORY="$PBS_MEM_PER_CPU * $PBS_CPUS_PER_TASK" 
+[ ! -z $PBS_MEM_PER_CPU ] && let MAX_MEMORY="$PBS_MEM_PER_CPU * $PBS_CPUS_PER_TASK"
 [ ! -z $PBS_MEM_PER_NODE ] && MAX_MEMORY="$PBS_MEM_PER_NODE"
 export MAX_MEMORY_DEFAULT
 export MAX_MEMORY
@@ -36,7 +36,7 @@ cd ${PBS_O_WORKDIR}
     time       = IndiferentHash.process_options options, :time
     nodes      = IndiferentHash.process_options options, :nodes
 
-    # PBS 
+    # PBS
     place      = IndiferentHash.process_options options, :place, :place => 'scatter'
     system     = IndiferentHash.process_options options, :partition
     filesystems = IndiferentHash.process_options options, :filesystems
@@ -45,7 +45,7 @@ cd ${PBS_O_WORKDIR}
 
     filesystems = filesystems * "," if Array === filesystems
 
-    # NOT USED 
+    # NOT USED
     partition  = IndiferentHash.process_options options, :partition
     task_cpus  = IndiferentHash.process_options options, :task_cpus
     exclusive  = IndiferentHash.process_options options, :exclusive

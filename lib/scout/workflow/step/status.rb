@@ -5,7 +5,7 @@ class Step
       begin
         s = Misc.abort_child pid, true
         Log.medium "Aborted pid #{path} #{s}"
-      rescue 
+      rescue
         Log.debug("Aborted job #{pid} was not killed: #{$!.message}")
       end
     else
@@ -52,7 +52,7 @@ class Step
 
   def clean
     Log.debug "Cleaning job files: #{path}"
-    @take_stream = nil 
+    @take_stream = nil
     @result = nil
     @info = nil
     @info_load_time = nil

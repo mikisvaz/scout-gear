@@ -13,7 +13,7 @@ require_relative 'step/inputs'
 require_relative 'step/children'
 require_relative 'step/archive'
 
-class Step 
+class Step
 
   attr_accessor :path, :inputs, :dependencies, :id, :task, :tee_copies, :non_default_inputs, :provided_inputs, :compute, :overriden_task, :overriden_workflow, :workflow, :exec_context, :overriden
   def initialize(path = nil, inputs = nil, dependencies = nil, id = nil, non_default_inputs = nil, provided_inputs = nil, compute = nil, overriden = nil, exec_context: nil, &task)
@@ -98,7 +98,7 @@ class Step
     return @id if @id
     return info[:clean_name] if info.include? :clean_name
     if m = name.match(/(.+?)(?:_[a-z0-9]{32})?(?:\..*)?$/)
-      return m[1] 
+      return m[1]
     end
     return name.split(".").first
   end
@@ -191,7 +191,7 @@ class Step
     end
 
     return @result || self.load if done?
-    
+
     prepare_dependencies
 
     begin
@@ -202,7 +202,7 @@ class Step
 
 
         reset_info :status => :setup, :issued => Time.now,
-          :pid => Process.pid, :pid_hostname => Misc.hostname, 
+          :pid => Process.pid, :pid_hostname => Misc.hostname,
           :task_name => task_name, :workflow => workflow.to_s,
           :provided_inputs => IndiferentHash.serializable(provided_inputs),
           :non_default_inputs => non_default_inputs,
@@ -315,7 +315,7 @@ class Step
   end
 
   def streaming?
-    @take_stream || IO === @result || StringIO === @result 
+    @take_stream || IO === @result || StringIO === @result
   end
 
   def stream
@@ -346,16 +346,16 @@ class Step
   end
 
   def consume_all_streams
-    threads = [] 
+    threads = []
     while @result && streaming? && stream = self.stream
       threads << Open.consume_stream(stream, true)
     end
 
     threads.compact!
 
-    threads.each do |t| 
+    threads.each do |t|
       begin
-        t.join 
+        t.join
       rescue Exception
         threads.compact.each{|t| t.raise(Aborted); t.join }
         raise $!
@@ -390,7 +390,7 @@ class Step
 
     raise self.exception if self.exception
 
-    raise "Error in job #{self.path}" if self.error? or self.aborted? 
+    raise "Error in job #{self.path}" if self.error? or self.aborted?
 
     self
   end

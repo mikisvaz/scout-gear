@@ -5,7 +5,7 @@ module Task
 
     if String === value && ! [:path, :file, :folder, :binary, :tsv].include?(type) && ! (options &&  (options[:noload] || options[:stream] || options[:nofile] || options[:asfile]))
       if Open.exists?(value) && ! Open.directory?(value)
-        Persist.load(value, type) 
+        Persist.load(value, type)
       else
         Persist.deserialize(value, type)
       end
@@ -96,7 +96,7 @@ module Task
       basename += "-#{digest}"
     end
     new_file = File.join(directory, 'saved_input_files', basename)
-    relative_file = File.join('.', 'saved_input_files', basename) 
+    relative_file = File.join('.', 'saved_input_files', basename)
     Open.link orig_file, new_file
     relative_file
   end
@@ -104,7 +104,7 @@ module Task
   def self.save_input(directory, name, type, value)
     input_file = File.join(directory, name.to_s)
 
-    if Path.is_filename?(value) 
+    if Path.is_filename?(value)
       if type == :path
         Open.write(input_file + ".as_path", value)
       elsif Path.step_file?(value)
@@ -183,7 +183,7 @@ module Task
     self.recursive_inputs.each do |p|
       name, type, desc, value, options = p
       next if seen.include?(name)
-      filename = File.join(directory, name.to_s) 
+      filename = File.join(directory, name.to_s)
       value = Task.load_input_from_file(filename, type, options)
       inputs[name] = value unless value.nil?
       seen << name

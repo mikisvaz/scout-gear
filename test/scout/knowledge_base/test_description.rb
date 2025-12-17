@@ -46,7 +46,7 @@ Sibling relationships.
       assert_include kb.description(:brothers), "Sibling relationships."
     end
   end
- 
+
   def test_full_description
     TmpFile.with_dir do |dir|
       brothers = datafile_test(:person).brothers

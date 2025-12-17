@@ -26,7 +26,7 @@ row2    A2|A22    B2|B22
 
       assert_equal %w(A1 A11 B1 B11), tsv['row1']
     end
-    
+
   end
 
   def test_traverse

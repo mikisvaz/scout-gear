@@ -15,10 +15,10 @@ class TestAnnotationTSV < Test::Unit::TestCase
     AnnotationClass.setup(str1, :c11, :c12)
     AnnotationClass.setup(str2, :c21, :c22)
 
-    assert_equal str1, Annotation.tsv([str1, str2], :all).tap{|t| t.unnamed = false}[str1.annotation_id + "#0"]["literal"] 
-    assert_equal :c11, Annotation.tsv([str1, str2], :all).tap{|t| t.unnamed = false}[str1.annotation_id + "#0"]["code"] 
-    assert_equal str2, Annotation.tsv([str1, str2], :all).tap{|t| t.unnamed = false}[str2.annotation_id + "#1"]["literal"] 
-    assert_equal :c21, Annotation.tsv([str1, str2], :all).tap{|t| t.unnamed = false}[str2.annotation_id + "#1"]["code"] 
+    assert_equal str1, Annotation.tsv([str1, str2], :all).tap{|t| t.unnamed = false}[str1.annotation_id + "#0"]["literal"]
+    assert_equal :c11, Annotation.tsv([str1, str2], :all).tap{|t| t.unnamed = false}[str1.annotation_id + "#0"]["code"]
+    assert_equal str2, Annotation.tsv([str1, str2], :all).tap{|t| t.unnamed = false}[str2.annotation_id + "#1"]["literal"]
+    assert_equal :c21, Annotation.tsv([str1, str2], :all).tap{|t| t.unnamed = false}[str2.annotation_id + "#1"]["code"]
     assert_equal "c11", JSON.parse(Annotation.tsv([str1, str2], :code, :JSON).tap{|t| t.unnamed = false}[str1.annotation_id + "#0"]["JSON"])["code"]
   end
 

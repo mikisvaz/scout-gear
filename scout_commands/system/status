@@ -177,7 +177,7 @@ workflows.sort.each do |workflow,tasks|
       if options[:quick] and i[:done]
         status = 'done'
         str << " #{ Step.prov_status_msg status }"
-        if inputs and inputs.any? 
+        if inputs and inputs.any?
           str << input_msg(file, inputs)
         end
 
@@ -210,15 +210,15 @@ workflows.sort.each do |workflow,tasks|
         status = status.to_s
         if status != "done" and pid and not Misc.pid_alive?(pid)
           if File.exist? file
-            status << Log.color(:red, " (out of sync)") 
+            status << Log.color(:red, " (out of sync)")
           else
-            status << Log.color(:red, " (dead)") 
+            status << Log.color(:red, " (dead)")
           end
         end
         str << " #{ Step.prov_status_msg status }"
         str << " (dirty)" if status == 'done' && Step.new(file).dirty?
 
-        if inputs and inputs.any? 
+        if inputs and inputs.any?
           str << input_msg(file, inputs)
         end
 

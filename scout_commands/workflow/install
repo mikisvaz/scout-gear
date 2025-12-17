@@ -22,7 +22,7 @@ workflows install automatically as required.
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end

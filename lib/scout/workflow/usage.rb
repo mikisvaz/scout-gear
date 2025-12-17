@@ -11,13 +11,13 @@ module Task
         str.puts Log.color :yellow, title
         str.puts Log.color :yellow, "-" * title.length
         if paragraph
-          str.puts "\n" << Misc.format_paragraph(paragraph) 
+          str.puts "\n" << Misc.format_paragraph(paragraph)
         end
       else
         title = self.name.to_s
         str.puts Log.color :yellow, title
         str.puts Log.color :yellow, "-" * title.length
-        str.puts "\n" << Misc.format_paragraph(description) 
+        str.puts "\n" << Misc.format_paragraph(description)
       end
     else
       title = self.name.to_s
@@ -92,7 +92,7 @@ module Task
       str.puts
       str.puts Log.color(:magenta, "Input select options")
       selects.collect{|p| p}.uniq.each do |input,options|
-        str.puts 
+        str.puts
         str.puts Log.color(:blue, input.to_s + ": ") << Misc.format_paragraph(options.collect{|o| Array === o ? o.first.to_s : o.to_s} * ", ") << "\n"
       end
     end
@@ -164,7 +164,7 @@ module Workflow
   end
 
   def _prov_tasks(tree)
-    tasks = [] 
+    tasks = []
     heap = tree.values
     heap = [tree]
     while heap.any?
@@ -199,7 +199,7 @@ module Workflow
       else
         description += ";" + task_name.to_s
       end
-      
+
       seen << [workflow, task_name]
     end
     description
@@ -212,9 +212,9 @@ module Workflow
 
     offset_str = " " * offset
 
-    lines << offset_str 
+    lines << offset_str
 
-    tree.each do |p,dtree| 
+    tree.each do |p,dtree|
       next if seen.include?(p)
       seen.push(p)
       workflow, task = p
@@ -233,7 +233,7 @@ module Workflow
       str.puts Log.color :magenta, title
       str.puts Log.color :magenta, "=" * title.length
     else
-      str.puts Log.color :magenta, self.name 
+      str.puts Log.color :magenta, self.name
       str.puts Log.color :magenta, "=" * self.name.length
     end
 
@@ -244,14 +244,14 @@ module Workflow
     elsif task.nil?
 
       if self.documentation[:description] and not self.documentation[:description].empty?
-        str.puts Misc.format_paragraph self.documentation[:description] 
+        str.puts Misc.format_paragraph self.documentation[:description]
         str.puts
       end
 
       str.puts Log.color :magenta, "## TASKS"
       if self.documentation[:task_description] and not self.documentation[:task_description].empty?
         str.puts
-        str.puts Misc.format_paragraph self.documentation[:task_description] 
+        str.puts Misc.format_paragraph self.documentation[:task_description]
       end
       str.puts
 
@@ -276,7 +276,7 @@ module Workflow
 
         prov_string = prov_string(dep_tree(name))
         str.puts Misc.format_paragraph Log.color(:blue, "->" + prov_string) if prov_string && ! prov_string.empty?
-      end 
+      end
 
     else
 
@@ -302,7 +302,7 @@ module Workflow
               offset, workflow, task_name =  m.values_at 1, 2, 3
               str.puts [offset, Log.color(:magenta, workflow), "#", Log.color(:yellow, task_name)] * ""
           else
-            str.puts Log.color :blue, line 
+            str.puts Log.color :blue, line
           end
         end
         str.puts

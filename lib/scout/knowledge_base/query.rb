@@ -19,7 +19,7 @@ class KnowledgeBase
                when :all
                  {:target => :all, :source => :all}
                when AnnotatedArray
-                 format = entities.format if entities.respond_to? :format 
+                 format = entities.format if entities.respond_to? :format
                  format ||= entities.base_entity.to_s
                  {format => entities.purge}
                when Hash
@@ -31,7 +31,7 @@ class KnowledgeBase
     identify, identify_source, identify_target = entities.merge(options || {}).values_at :identify, :identify_source, :identify_target
 
     source, target = select_entities(name, entities, options)
-    
+
     source = identify_source(name, source) if identify_source
     target = identify_target(name, target) if identify_target
 
@@ -46,7 +46,7 @@ class KnowledgeBase
 
     setup(name, matches)
 
-    matches = matches.select(&block) if block_given? 
+    matches = matches.select(&block) if block_given?
 
     matches
   end
@@ -89,7 +89,7 @@ class KnowledgeBase
   def neighbours(name, entity)
     hash = _neighbours(name, entity)
     IndiferentHash.setup(hash)
-    setup(name, hash[:children]) if hash[:children] 
+    setup(name, hash[:children]) if hash[:children]
     setup(name, hash[:parents], true) if hash[:parents]
     hash
   end

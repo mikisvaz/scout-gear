@@ -21,7 +21,7 @@ type, property, entity = ARGV
 
 if options[:help] and type.nil?
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -63,12 +63,12 @@ end
 entity_module = Kernel.const_get type
 
 entity_module.annotations.uniq.each do |attr|
-  SOPT.register attr.slice(0,1).to_s, attr, true, "Entity attribute" 
+  SOPT.register attr.slice(0,1).to_s, attr, true, "Entity attribute"
 end
 
 if options[:help] and property.nil?
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -99,7 +99,7 @@ if options[:help]
   end * " "
 
   SOPT.synopsys['[<property_parameters>]*'] = property_str
-  
+
   if defined? scout_usage
     scout_usage
   else

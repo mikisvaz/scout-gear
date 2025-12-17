@@ -10,7 +10,7 @@ module TSVAdapter
     def self.dump(o); [o].pack('m'); end
     def self.load(str); str.unpack('m').first; end
   end
-  
+
   class IntegerSerializer
     def self.dump(i); [i].pack("l"); end
     def self.load(str); str.unpack("l").first; end
@@ -101,8 +101,8 @@ module TSVAdapter
     :flat => StringArraySerializer,
     :double => StringDoubleArraySerializer,
     :clean => CleanSerializer,
-    :integer => IntegerSerializer, 
-    :float => FloatSerializer, 
+    :integer => IntegerSerializer,
+    :float => FloatSerializer,
     :integer_array => IntegerArraySerializer,
     :float_array => FloatArraySerializer,
     :strict_integer_array => StrictIntegerArraySerializer,

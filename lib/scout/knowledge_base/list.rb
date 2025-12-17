@@ -47,7 +47,7 @@ class KnowledgeBase
 
   def load_list(id, entity_type = nil)
     if entity_type
-      path = list_file(id, entity_type) 
+      path = list_file(id, entity_type)
       path = list_file(id) unless path.exists?
     else
       path = list_file(id)

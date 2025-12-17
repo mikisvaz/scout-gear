@@ -19,7 +19,7 @@ class KnowledgeBase
 
   def self.parse_knowledge_base_doc(doc)
     description, db_description = doc_parse_up_to doc, /^#/, true
-    databases = doc_parse_chunks db_description, /^# (.*)/ 
+    databases = doc_parse_chunks db_description, /^# (.*)/
     IndiferentHash.setup({:description => description.strip, :databases => databases})
   end
 
@@ -32,11 +32,11 @@ class KnowledgeBase
       ""
     end
   end
-  
+
   def database_description_file(name)
     dir[name.to_s + '.md']
   end
-  
+
   def knowledge_base_description_file(name)
     file = dir['README.md']
     return file if file.exists?
@@ -46,11 +46,11 @@ class KnowledgeBase
     source_readme = file.dirname['README.md'] if file
     return source_readme if source_readme  && source_readme.exists?
   end
-  
+
   def description(name)
     return registered_options(name)[:description] if registered_options(name)[:description]
-    
-    return database_description_file(name).read if database_description_file(name).exist? 
+
+    return database_description_file(name).read if database_description_file(name).exist?
 
     if knowledge_base_description_file(name)
       KnowledgeBase.parse_knowledge_base_doc(knowledge_base_description_file(name).read)[:databases][name.to_s.downcase]
@@ -79,21 +79,21 @@ class KnowledgeBase
                        []
                      end
 
-    if source_type 
+    if source_type
       full_description << "Source: #{source_type} - #{source(name)}"
     else
       full_description << "Source: #{source(name)}"
     end
     #full_description.last << ". Accepted formats: #{source_formats*", "}" if source_formats.any?
 
-    if target_type 
+    if target_type
       full_description << "Target: #{target_type} - #{target(name)}"
     else
       full_description << "Target: #{target(name)}"
     end
     #full_description.last << ". Accepted formats: #{target_formats*", "}" if target_formats.any?
-    
-    if undirected?(name) 
+
+    if undirected?(name)
       full_description << "Undirected database, source and target can be reversed."
     end
 

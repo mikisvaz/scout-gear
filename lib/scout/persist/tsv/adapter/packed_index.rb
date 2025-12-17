@@ -44,7 +44,7 @@ module PKIAdapter
   end
 
   def add(key, value)
-    key = pos_function.call(key) if pos_function 
+    key = pos_function.call(key) if pos_function
     if Numeric === key
       @_last ||= -1
       skipped = key - @_last - 1

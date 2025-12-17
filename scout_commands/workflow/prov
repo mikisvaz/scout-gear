@@ -19,7 +19,7 @@ $ #{$0} [<options>] <filename> [<other|->]*
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end
@@ -77,10 +77,10 @@ def adjacency(step)
     info[:dependencies].each do |task,name,path|
       dep = get_step path
       _id, _edges, _node_info = adjacency(dep)
-      edges << [_id, id] 
+      edges << [_id, id]
       edges.concat _edges
       node_info.merge!(_node_info)
-    end 
+    end
   end
 
   [id, edges, node_info]

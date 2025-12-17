@@ -62,7 +62,7 @@ class FixWidthTable
       Persist::CONNECTIONS[persistence_path] = self.new(persistence_path, value_size, range, update)
     end
 
-    Persist::CONNECTIONS[persistence_path] 
+    Persist::CONNECTIONS[persistence_path]
   end
 
   def format(pos, value)
@@ -209,10 +209,10 @@ class FixWidthTable
     values = []
     l_start = idx_pos(idx)
     l_end   = idx_pos_end(idx)
-    
+
     if return_idx
       while l_start <= r_end
-        values << idx if l_end >= r_start 
+        values << idx if l_end >= r_start
         idx += 1
         break if idx >= size
         l_start = idx_pos(idx)
@@ -220,7 +220,7 @@ class FixWidthTable
       end
     else
       while l_start <= r_end
-        values << idx_value(idx) if l_end >= r_start 
+        values << idx_value(idx) if l_end >= r_start
         idx += 1
         break if idx >= size
         l_start = idx_pos(idx)
@@ -254,7 +254,7 @@ class FixWidthTable
     values = []
     l_start = idx_pos(idx)
     l_end   = idx_pos_end(idx)
-    if return_idx 
+    if return_idx
       while l_start <= r_end
         values << idx
         idx += 1
@@ -284,7 +284,7 @@ class FixWidthTable
       get_point(pos)
     end
   end
-  
+
   def overlaps(pos, value = false)
     return [] if size == 0
     idxs = if @range

@@ -15,7 +15,7 @@ class TestTSVIndex < Test::Unit::TestCase
     end
 
     tsv = tsv.slice ["Start", "End"]
- 
+
     tsv
   end
 

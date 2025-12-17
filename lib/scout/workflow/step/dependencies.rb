@@ -107,7 +107,7 @@ class Step
   end
 
   def run_dependencies
-    all_dependencies.each do |dep| 
+    all_dependencies.each do |dep|
       next if dep.running? || dep.done?
       next if dep.error? && ! dep.recoverable_error?
 
@@ -133,7 +133,7 @@ class Step
   end
 
   def abort_dependencies
-    all_dependencies.each{|dep| dep.abort if dep.running? } 
+    all_dependencies.each{|dep| dep.abort if dep.running? }
   end
 
   def self.wait_for_jobs(jobs, canfail=false)

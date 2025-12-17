@@ -15,7 +15,7 @@ class TestTSVParser < Test::Unit::TestCase
   def test_parse_line_key
     line = (0..10).to_a * "\t"
     key, values = TSV.parse_line(line, key: 2)
-    
+
     assert_equal "2", key
     assert_equal %w(0 1 3 4 5 6 7 8 9 10), values
   end
@@ -33,7 +33,7 @@ class TestTSVParser < Test::Unit::TestCase
     num = 10_000
     txt = num.times.inject(nil) do |acc,i|
       (acc.nil? ? "" : acc << "\n") << (0..10).collect{|v| v == 0 ? i : [v,v] * "|" } * "\t"
-    end 
+    end
 
     txt = StringIO.new(([txt] * (10))*"\n")
     Misc.benchmark 5 do

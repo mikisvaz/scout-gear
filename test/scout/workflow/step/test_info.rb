@@ -25,7 +25,7 @@ class TestStepInfo < Test::Unit::TestCase
       assert_equal 2, step1.exec
       assert_equal 2, step1.run
 
-      step2 = Step.new tmpfile.step2 do 
+      step2 = Step.new tmpfile.step2 do
         step1 = dependencies.first
         step1.inputs.first + " has " + step1.load.to_s + " characters"
       end

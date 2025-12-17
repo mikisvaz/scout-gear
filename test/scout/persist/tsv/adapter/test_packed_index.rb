@@ -16,16 +16,16 @@ class TestClass < Test::Unit::TestCase
 
       pi = PackedIndex.new(tmpfile, false)
       100.times do |i|
-        assert_equal i, pi[i][0] 
-        assert_equal i+2, pi[i][1] 
+        assert_equal i, pi[i][0]
+        assert_equal i+2, pi[i][1]
       end
       assert_equal nil, pi[100]
       assert_equal nil, pi[101]
 
       pi = Persist.open_pki tmpfile, false, %w(i i 23s f f f f f)
       100.times do |i|
-        assert_equal i, pi[i][0] 
-        assert_equal i+2, pi[i][1] 
+        assert_equal i, pi[i][0]
+        assert_equal i+2, pi[i][1]
       end
       assert_equal nil, pi[100]
       assert_equal nil, pi[101]

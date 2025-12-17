@@ -40,7 +40,7 @@ class TestAssociation < Test::Unit::TestCase
     assert_equal "2021", database["Clei"]["Date"]
     assert_include database.key_field, "Alias"
   end
-  
+
   def test_brothers_id
     database = Association.database(datadir_test.person.brothers, :source => "Older=~Older (Alias)=>Name", :target => "Younger=~Younger (Alias)=>ID")
     assert_equal '001', database["Isabel"]["Younger"]

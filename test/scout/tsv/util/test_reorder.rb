@@ -83,7 +83,7 @@ row1    a    b    Id1
 row2    A    B    Id3
 row3    a    C    Id4
     EOF
- 
+
     TmpFile.with_file(content) do |filename|
       tsv = TSV.open(filename, :sep => /\s+/)
 

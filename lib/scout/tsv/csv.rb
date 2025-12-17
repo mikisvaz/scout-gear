@@ -1,7 +1,7 @@
 require 'csv'
 
 module TSV
-  def self.csv(obj, options = {}) 
+  def self.csv(obj, options = {})
     options = IndiferentHash.add_defaults options, :headers => true, :type => :list
     headers = options[:headers]
 
@@ -12,7 +12,7 @@ module TSV
     merge = options.delete :merge
     key_field = options.delete :key_field
     fields = options.delete :fields
-    
+
     if key_field || fields
       orig_type = type
       type = :double
@@ -49,7 +49,7 @@ module TSV
       else
         key, *values = row
       end
-      
+
       if cast
         values = values.collect{|v| v.send cast }
       end

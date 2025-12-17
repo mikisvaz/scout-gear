@@ -81,7 +81,7 @@ class Workflow::Orchestrator
     return computed[key] if computed.has_key?(key)
 
     job_chains = check_chains(chains, job)
-    job_batches = {} 
+    job_batches = {}
     new_batches = {}
     job_dependencies(job).each do |dep|
       dep_chains = check_chains(chains, dep)

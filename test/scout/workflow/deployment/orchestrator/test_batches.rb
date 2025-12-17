@@ -35,7 +35,7 @@ module TestWFC
   dep :c1
   dep :c2
   task :c3 => :string do self.task_name.to_s end
-  
+
   dep_task :c4, TestWFC, :c3
 end
 

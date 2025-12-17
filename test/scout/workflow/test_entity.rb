@@ -39,7 +39,7 @@ class TestWorkflowEntity < Test::Unit::TestCase
 
   def test_list
     ewf = get_EWF
-    
+
     l = ewf.setup(["Miki", "Clei"])
 
     assert_equal 2, l.hi.length
@@ -49,7 +49,7 @@ class TestWorkflowEntity < Test::Unit::TestCase
 
   def test_multiple
     ewf = get_EWF
-    
+
     l = ewf.setup(["Miki", "Clei"])
 
     assert_equal 2, l.bye.length

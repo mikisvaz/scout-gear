@@ -182,7 +182,7 @@ row2    A    B
       tsv.pop_filter
       assert tsv.filename !~ /ValueA/
     end
- 
+
   end
 end
 

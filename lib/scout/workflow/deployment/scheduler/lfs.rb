@@ -1,7 +1,7 @@
 require_relative 'job'
 require 'scout'
 
-module LSF 
+module LSF
   extend SchedulerJob
 
   def self.system

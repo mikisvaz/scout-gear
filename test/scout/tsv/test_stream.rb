@@ -14,7 +14,7 @@ row3 AAA BBB CCC
 
     text2=<<-EOF
 #: :sep=" "
-#Row Labela Labelb 
+#Row Labela Labelb
 row1 a b
 row2 aa bb
 row3 aaa bbb

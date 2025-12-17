@@ -41,7 +41,7 @@ module Annotation
   def self.list_tsv_values(objs, fields)
     obj_tsv_values(objs, fields)
   end
-  
+
 
   def self.tsv(objs, *fields)
     return nil if objs.nil?
@@ -76,7 +76,7 @@ module Annotation
       tsv.key_field = "List"
 
       tsv[objs.id] = self.list_tsv_values(objs, fields).dup
-    when Array === objs 
+    when Array === objs
       tsv.key_field = "ID"
 
       if Annotation.is_annotated?(objs.compact.first)

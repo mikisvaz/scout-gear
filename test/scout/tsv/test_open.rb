@@ -78,7 +78,7 @@ class TestOpenTraverse < Test::Unit::TestCase
     num_lines = 100
     lines = num_lines.times.collect{|i| "line-#{i}" }
 
-    assert_raise ScoutException do 
+    assert_raise ScoutException do
       i = 0
       Log.with_severity 7 do
         dumper = TSV::Dumper.new :key_field => "Key", :fields => ["Value"], :type => :single
@@ -125,7 +125,7 @@ row2 aa bb cc
 
     s = StringIO.new text
     collapsed = TSV.collapse_stream(s)
-    tsv = TSV.open collapsed 
+    tsv = TSV.open collapsed
     assert_equal ["A", "a"], tsv["row1"][0]
     assert_equal ["BB", "bb"], tsv["row2"][1]
   end

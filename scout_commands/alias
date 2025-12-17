@@ -17,7 +17,7 @@ earlier, like --dev or --log. Edit #{Scout.ect.cmd_alias.find} to fine tune.
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end

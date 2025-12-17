@@ -68,7 +68,7 @@ class TestTaskDependencies < Test::Unit::TestCase
 
       dep :my_sum
       task :double => :integer do
-        step(:my_sum).load * 2 
+        step(:my_sum).load * 2
       end
     end
 
@@ -332,7 +332,7 @@ class TestTaskDependencies < Test::Unit::TestCase
   def test_can_fail
     wf = Workflow.annonymous_workflow "TaskInputs" do
       input :input1, :integer, "", 1
-      task :step1 => :string do |i1| 
+      task :step1 => :string do |i1|
         if i1 < 0
           raise ScoutException
         else
@@ -345,7 +345,7 @@ class TestTaskDependencies < Test::Unit::TestCase
         if step(:step1).error?
           "0"
         else
-          step(:step1).load 
+          step(:step1).load
         end
       end
     end
@@ -358,7 +358,7 @@ class TestTaskDependencies < Test::Unit::TestCase
   def test_jobname_input
     wf = Workflow.annonymous_workflow "JobnameInput" do
       input :input1, :string, "", nil, jobname: true
-      task :step1 => :string do |i1| 
+      task :step1 => :string do |i1|
         i1
       end
 
@@ -383,7 +383,7 @@ class TestTaskDependencies < Test::Unit::TestCase
   def test_jobname_input_reset
     wf = Workflow.annonymous_workflow "JobnameInput" do
       input :input1, :string, "", nil, jobname: true
-      task :step1 => :string do |i1| 
+      task :step1 => :string do |i1|
         i1
       end
 
@@ -406,7 +406,7 @@ class TestTaskDependencies < Test::Unit::TestCase
   def test_non_default_inputs_ignore_hidden
     wf = Workflow.annonymous_workflow "JobnameInput" do
       input :input1, :string, "", nil, jobname: true
-      task :step1 => :string do |i1| 
+      task :step1 => :string do |i1|
         i1
       end
 

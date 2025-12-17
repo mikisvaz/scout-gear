@@ -61,7 +61,7 @@ module TSV
       if filename
         index = ScoutCabinet.open(filename, true, engine)
         TSV.setup(index, :type => :single)
-        index.extend TSVAdapter 
+        index.extend TSVAdapter
       else
         index = TSV.setup({}, :type => :single)
       end

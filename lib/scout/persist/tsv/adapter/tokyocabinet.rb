@@ -1,7 +1,7 @@
 require_relative 'base'
 require_relative '../../engine/tokyocabinet'
 
-module TKAdapter 
+module TKAdapter
   include TSVAdapter
   def self.extended(obj)
     obj.extend TSVAdapter
@@ -38,7 +38,7 @@ Persist.save_drivers[:HDB] = proc do |file, content|
   end
 end
 
-Persist.load_drivers[:HDB] = proc do |file| 
+Persist.load_drivers[:HDB] = proc do |file|
   data = ScoutCabinet.open(file, false, "HDB")
   data.extend TKAdapter unless TKAdapter === data
   data
@@ -58,7 +58,7 @@ Persist.save_drivers[:BDB] = proc do |file, content|
   end
 end
 
-Persist.load_drivers[:BDB] = proc do |file| 
+Persist.load_drivers[:BDB] = proc do |file|
   data = ScoutCabinet.open(file, false, "BDB")
   data.extend TKAdapter unless TKAdapter === data
   data

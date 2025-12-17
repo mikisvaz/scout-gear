@@ -46,7 +46,7 @@ class TestQueueWorker < Test::Unit::TestCase
           Open.consume_stream(sout, false, outfile)
           txt = Open.read(outfile)
           pid_list = txt.split("\n")
-          
+
           assert_equal (num_lines + 2) * num_workers, pid_list.length
 
           assert_nothing_raised do
@@ -122,7 +122,7 @@ class TestQueueWorker < Test::Unit::TestCase
       end
     end
 
-    read = Thread.new do 
+    read = Thread.new do
       begin
         while obj = output.read
           if DoneProcessing === obj

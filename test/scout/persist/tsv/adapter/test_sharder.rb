@@ -11,7 +11,7 @@ class TestSharder < Test::Unit::TestCase
 
       size = 10
       sharder = Persist.open_sharder(dir, true, :HDB, :path => dir, :shard_function => shard_function, :persist => true, :serializer => :float_array)
-      size.times do |v| 
+      size.times do |v|
         sharder[v.to_s] = [v, v*2]
       end
       assert_equal dir, sharder.persistence_path
@@ -97,15 +97,15 @@ id11,a11,b11
       size = 10
       sharder = Persist.tsv(dir,
                             persist_options: {
-                              :engine => 'fwt', 
-                              :path => dir, 
+                              :engine => 'fwt',
+                              :path => dir,
                               :serializer => :float,
-                              :range => false, :value_size => 64, 
-                              :shard_function => shard_function, 
+                              :range => false, :value_size => 64,
+                              :shard_function => shard_function,
                               :pos_function => pos_function
                             }
                            ) do |db|
-                             size.times do |v| 
+                             size.times do |v|
                                v = v + 1
                                chr = "chr" << (v % 5).to_s
                                key = chr + ":" << v.to_s
@@ -131,7 +131,7 @@ id11,a11,b11
 
       assert_equal 4.0, sharder["chr2:2"]
 
-      assert_equal size, sharder.size 
+      assert_equal size, sharder.size
     end
   end
 
@@ -147,19 +147,19 @@ id11,a11,b11
 
       size = 10
       chrs = (1..10).to_a
-      sharder = Persist.tsv(dir, 
-                            engine: 'pki', 
-                            :persist_options => { 
+      sharder = Persist.tsv(dir,
+                            engine: 'pki',
+                            :persist_options => {
                               :pattern =>  %w(f f),
-                              :range => false, 
-                              :value_size => 64, 
-                              :file => dir, 
+                              :range => false,
+                              :value_size => 64,
+                              :file => dir,
                               :shard_function => shard_function,
                               :pos_function => pos_function
                             }) do |db|
         chrs.each do |c|
-          size.times do |v| 
-            v = v 
+          size.times do |v|
+            v = v
             chr = "chr" << c.to_s
             key = chr + ":" << v.to_s
             db[key] = [v, v*2]
@@ -184,7 +184,7 @@ id11,a11,b11
       assert_equal count, size*chrs.length
 
       sharder = Persist.open_sharder(
-        dir, false, 'pki', 
+        dir, false, 'pki',
         {:pattern => %w(f f), :file => dir, :range => false, :value_size => 64, :pos_function => pos_function}, &shard_function
       )
 
@@ -209,7 +209,7 @@ id11,a11,b11
       chrs = (1..10).to_a
       sharder = Persist.tsv(dir, persist_options: {:pattern => %w(f), :range => false, :value_size => 64, :engine => 'pki', :file => dir, :shard_function => shard_function, :pos_function => pos_function}) do |db|
         chrs.each do |c|
-          size.times do |v| 
+          size.times do |v|
             v = v + 1
             chr = "chr" << c.to_s
             key = chr + ":" << (v*2).to_s
@@ -249,15 +249,15 @@ id11,a11,b11
 
       size = 10
       sharder = Persist.persist_tsv("ShardTSV_FWT", nil, {}, {
-                              :engine => 'fwt', 
-                              :path => dir, 
+                              :engine => 'fwt',
+                              :path => dir,
                               :serializer => :float,
-                              :range => false, :value_size => 64, 
-                              :shard_function => shard_function, 
+                              :range => false, :value_size => 64,
+                              :shard_function => shard_function,
                               :pos_function => pos_function
                             }
                            ) do |db|
-                             size.times do |v| 
+                             size.times do |v|
                                v = v + 1
                                chr = "chr" << (v % 5).to_s
                                key = chr + ":" << v.to_s
@@ -282,7 +282,7 @@ id11,a11,b11
 
       assert_equal 4.0, sharder["chr2:2"]
 
-      assert_equal size, sharder.size 
+      assert_equal size, sharder.size
     end
   end
 

@@ -8,13 +8,13 @@ options = SOPT.setup <<EOF
 
 List all workflows
 
-$ #{$0} [<options>] 
+$ #{$0} [<options>]
 
 -h--help Print this help
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end

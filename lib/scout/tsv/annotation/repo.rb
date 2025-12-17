@@ -56,25 +56,25 @@ module Persist
     else
       annotations = yield
 
-      repo.write_and_close do 
+      repo.write_and_close do
         case
         when annotations.nil?
           repo[subkey + "NIL"] = nil
         when annotations.empty?
           repo[subkey + "EMPTY"] = nil
         when (not Array === annotations or (AnnotatedArray === annotations and not Array === annotations.first))
-          tsv_values = Annotation.obj_tsv_values(annotations, repo_fields) 
+          tsv_values = Annotation.obj_tsv_values(annotations, repo_fields)
           repo[subkey + annotations.id << ":" << "SINGLE"] = tsv_values
         when (not Array === annotations or (AnnotatedArray === annotations and AnnotatedArray === annotations.first))
           annotations.each_with_index do |e,i|
             next if e.nil?
-            tsv_values = Annotation.obj_tsv_values(e, repo_fields) 
+            tsv_values = Annotation.obj_tsv_values(e, repo_fields)
             repo[subkey + "ANNOTATED_DOUBLE_ARRAY:" << i.to_s] = tsv_values
           end
         else
           annotations.each_with_index do |e,i|
             next if e.nil?
-            tsv_values = Annotation.obj_tsv_values(e, repo_fields) 
+            tsv_values = Annotation.obj_tsv_values(e, repo_fields)
             repo[subkey + i.to_s] = tsv_values
           end
         end

@@ -42,8 +42,8 @@ module Workflow
   def rec_input_use(task_name)
     input_use = {}
     task = self.tasks[task_name]
-    task.inputs.each do |name,_| 
-      input_use[name] ||= {} 
+    task.inputs.each do |name,_|
+      input_use[name] ||= {}
       input_use[name][self] ||= []
       input_use[name][self] << task_name
     end
@@ -69,7 +69,7 @@ module Workflow
     raise "No '#{name}' task in '#{self.name}' Workflow" if task.nil?
     id = File.join(self.name, name.to_s)
     @task_info ||= {}
-    @task_info[id] ||= begin 
+    @task_info[id] ||= begin
                          description = task.description
                          returns = task.returns
 

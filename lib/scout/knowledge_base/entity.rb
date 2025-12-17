@@ -24,7 +24,7 @@ class KnowledgeBase
     options[:format] = @format[type] if Hash === @format && @format.include?(type)
     namespace = self.namespace
     namespace = db_namespace(database_name) if namespace.nil? and database_name
-    if database_name  
+    if database_name
       database = get_database(database_name)
       if database.entity_options and (database.entity_options[type] or database.entity_options[Entity.formats[type.to_s].to_s])
         options = options.merge(database.entity_options[type] || database.entity_options[Entity.formats[type.to_s].to_s])
@@ -94,7 +94,7 @@ class KnowledgeBase
       TSV.translation_index identifier_files, nil, source(name), :persist => true
     end
   end
-  
+
   def target_index(name)
     Persist.memory("Target index #{name}: KB directory #{dir}") do
       if @identifier_files && @identifier_files.any?
@@ -120,9 +120,9 @@ class KnowledgeBase
 
   def identify_source(name, entity)
     return :all if entity == :all
-    index = begin 
-              source_index(name) 
-            rescue 
+    index = begin
+              source_index(name)
+            rescue
               Log.exception $!
               nil
             end
@@ -133,7 +133,7 @@ class KnowledgeBase
       index[entity] || entity
     end
   end
-  
+
   def identify_target(name, entity)
     return :all if entity == :all
     index = begin target_index(name) rescue nil end

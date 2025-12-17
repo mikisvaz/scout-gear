@@ -19,7 +19,7 @@ Print a template making the substitutions that follow
 EOF
 if options[:help]
   if defined? scout_usage
-    scout_usage 
+    scout_usage
   else
     puts SOPT.doc
   end

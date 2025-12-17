@@ -3,7 +3,7 @@ require File.expand_path(__FILE__).sub(%r(.*/test/), '').sub(/test_(.*)\.rb/,'\1
 
 require 'scout/workflow/deployment/trace'
 module TestWF
-  extend Workflow 
+  extend Workflow
   self.name = "TestWF"
 
   MULT = 0.1
@@ -83,7 +83,7 @@ TestWF:
       second_cpus[second] = cpus
     end
 
-    assert Misc.mean(second_cpus.values) > 15 
+    assert Misc.mean(second_cpus.values) > 15
     assert Misc.mean(second_cpus.values) < 30
   end
 

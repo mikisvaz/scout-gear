@@ -95,7 +95,7 @@ class Step
             message = Log.color(:time, time_str)
           end
         end
-        report_status value, message 
+        report_status value, message
       end
 
       if key == :message
@@ -138,7 +138,7 @@ class Step
   def set_info(key, value)
     merge_info(key => value)
   end
-  
+
   def report_status(status, message = nil)
     if message.nil?
       Log.info [Log.color(:status, status, true), Log.color(:task, task_name, true), Log.color(:path, path)] * " "
