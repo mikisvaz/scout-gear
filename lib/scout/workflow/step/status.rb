@@ -73,7 +73,7 @@ class Step
     dependencies.each do |dep|
       dep.recursive_clean
     end
-    clean
+    clean if Open.exists?(self.info_file)
   end
 
   def canfail?
