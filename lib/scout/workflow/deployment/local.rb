@@ -45,84 +45,89 @@ class Workflow::LocalExecutor
     Log.info "LocalExecutor initiated #{Log.fingerprint available_resources}"
   end
 
-  def process_batches(batches)
+  def process_batches(batches, bar: true)
     retry_jobs = []
     failed_jobs = []
 
-    while batches.reject{|b| Workflow::Orchestrator.done_batch?(b) }.any?
+    bar = {desc: "Processing batches"} if TrueClass === bar
+    Log::ProgressBar.with_bar batches.length, bar do |b|
+      b.init
+      while (missing_batches = batches.reject{|b| Workflow::Orchestrator.done_batch?(b) }).any?
+        b.tick batches.length - missing_batches.length
 
-      candidates = Workflow::LocalExecutor.candidates(batches)
-      top_level_jobs = candidates.collect{|batch| batch[:top_level] }
+        candidates = Workflow::LocalExecutor.candidates(batches)
+        top_level_jobs = candidates.collect{|batch| batch[:top_level] }
 
-      raise NoWork, "No candidates and no running jobs #{Log.fingerprint batches}" if resources_used.empty? && top_level_jobs.empty?
+        raise NoWork, "No candidates and no running jobs #{Log.fingerprint batches}" if resources_used.empty? && top_level_jobs.empty?
 
-      if candidates.reject{|batch| failed_jobs.include? batch[:top_level] }.empty? && resources_used.empty? && top_level_jobs.empty?
-        exception = failed_jobs.collect(&:get_exception).compact.first
-        if exception
-          Log.warn 'Some work failed'
-          raise exception
-        else
-          raise 'Some work failed'
-        end
-      end
-
-      candidates.each do |batch|
-        begin
-
-          job = batch[:top_level]
-
-          case
-          when (job.error? || job.aborted?)
-            begin
-              if job.recoverable_error?
-                if retry_jobs.include?(job)
-                  Log.warn "Failed twice #{job.path} with recoverable error"
-                  retry_jobs.delete job
-                  failed_jobs << job
-                  next
-                else
-                  retry_jobs << job
-                  job.clean
-                  raise TryAgain
-                end
-              else
-                failed_jobs << job
-                Log.warn "Non-recoverable error in #{job.path}"
-                next
-              end
-            ensure
-              Log.warn "Releases resources from failed job: #{job.path}"
-              release_resources(job)
-            end
-          when job.done?
-            Log.debug "Orchestrator done #{job.path}"
-            release_resources(job)
-            clear_batch(batches, batch)
-            erase_job_dependencies(job, batches)
-          when job.running?
-            next
-
+        if candidates.reject{|batch| failed_jobs.include? batch[:top_level] }.empty? && resources_used.empty? && top_level_jobs.empty?
+          exception = failed_jobs.collect(&:get_exception).compact.first
+          if exception
+            Log.warn 'Some work failed'
+            raise exception
           else
-            check_resources(batch) do
-              run_batch(batch)
-            end
+            raise 'Some work failed'
           end
-        rescue TryAgain
-          retry
         end
-      end
 
-      batches.each do |batch|
-        job = batch[:top_level]
-        if job.done? || job.aborted? || job.error?
-          job.join if job.done?
-          clear_batch(batches, batch)
-          release_resources(job)
-          erase_job_dependencies(job, batches)
+        candidates.each do |batch|
+          begin
+
+            job = batch[:top_level]
+
+            case
+            when (job.error? || job.aborted?)
+              begin
+                if job.recoverable_error?
+                  if retry_jobs.include?(job)
+                    Log.warn "Failed twice #{job.path} with recoverable error"
+                    retry_jobs.delete job
+                    failed_jobs << job
+                    next
+                  else
+                    retry_jobs << job
+                    job.clean
+                    raise TryAgain
+                  end
+                else
+                  failed_jobs << job
+                  Log.warn "Non-recoverable error in #{job.path}"
+                  next
+                end
+              ensure
+                Log.warn "Releases resources from failed job: #{job.path}"
+                release_resources(job)
+              end
+            when job.done?
+              Log.debug "Orchestrator done #{job.path}"
+              release_resources(job)
+              clear_batch(batches, batch)
+              erase_job_dependencies(job, batches)
+            when job.running?
+              next
+
+            else
+              check_resources(batch) do
+                run_batch(batch)
+              end
+            end
+          rescue TryAgain
+            retry
+          end
         end
-      end
 
-      sleep timer
+        batches.each do |batch|
+          job = batch[:top_level]
+          if job.done? || job.aborted? || job.error?
+            job.join if job.done?
+            clear_batch(batches, batch)
+            release_resources(job)
+            erase_job_dependencies(job, batches)
+          end
+        end
+
+        sleep timer
+      end
     end
 
     batches.each{|batch|
