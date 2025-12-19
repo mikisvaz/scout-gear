@@ -286,39 +286,6 @@ class KnowledgeBase
       [assignments, paths]
     end
 
-    #def traverse
-    #  all_matches = []
-
-    #  rules.each do |rule|
-    #    rule = rule.strip
-    #    next if rule.empty?
-    #    source, db, target, conditions = rule.match(/([^\s]+)\s+([^\s]+)\s+([^\s]+)(?:\s+-\s+([^\s]+))?/).captures
-
-    #    source_entities, target_entities = identify db, source, target
-
-    #    matches = kb.subset(db, :source => source_entities, :target => target_entities)
-
-    #    if conditions
-    #      conditions.split(/\s+/).each do |condition|
-    #        if condition.index "="
-    #          key, value = conditions.split("=")
-    #          matches = matches.select{|m| m.info[key.strip].to_s =~ /\b#{value.strip}\b/}
-    #        else
-    #          matches = matches.select{|m| m.info[condition.strip].to_s =~ /\btrue\b/}
-    #        end
-    #      end
-    #    end
-
-    #    reassign matches, source, target
-
-    #    all_matches << matches
-    #  end
-
-    #  paths = find_paths rules, all_matches, assignments
-
-    #  [assignments, paths]
-    #end
-
   end
 
   def traverse(rules, nopaths=false)
