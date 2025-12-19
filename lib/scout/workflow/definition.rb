@@ -187,20 +187,22 @@ module Workflow
         Open.rm_rf self.files_dir if Open.exist? self.files_dir
         Open.link_dir dep.files_dir, self.files_dir if Open.exist?(dep.files_dir)
 
-        if dep.overriden?
+        if dep.overriden? || dep.overrider?
           Open.link dep.path, self.tmp_path
         else
           Open.ln_h dep.path, self.tmp_path
 
-          case remove.to_s
-          when 'true'
-            dep.clean
-          when 'recursive'
-            (dep.dependencies.to_a + dep.rec_dependencies.to_a).uniq.each do |d|
-              next if d.overriden
-              d.clean unless Scout::Config.get(:remove_dep, "task:#{d.task_signature}", "task:#{d.task_name}", "workflow:#{d.workflow.name}", :default => true).to_s == 'false'
+          if Open.exists?(dep.info_file)
+            case remove.to_s
+            when 'true'
+              dep.clean
+            when 'recursive'
+              (dep.dependencies.to_a + dep.rec_dependencies.to_a).uniq.each do |d|
+                next if d.overriden
+                d.clean unless Scout::Config.get(:remove_dep, "task:#{d.task_signature}", "task:#{d.task_name}", "workflow:#{d.workflow.name}", :default => true).to_s == 'false'
+              end
+              dep.clean unless Scout::Config.get(:remove_dep, "task:#{dep.task_signature}", "task:#{dep.task_name}", "workflow:#{dep.workflow.name}", :default => true).to_s == 'false'
             end
-            dep.clean unless Scout::Config.get(:remove_dep, "task:#{dep.task_signature}", "task:#{dep.task_name}", "workflow:#{dep.workflow.name}", :default => true).to_s == 'false'
           end
         end
       else

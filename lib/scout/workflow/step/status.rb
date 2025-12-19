@@ -57,9 +57,9 @@ class Step
     @info = nil
     @info_load_time = nil
     @done = nil
-    Open.rm path if Open.exist_or_link?(path)
-    Open.rm tmp_path if Open.exist_or_link?(tmp_path)
-    Open.rm info_file if Open.exist_or_link?(info_file)
+    Open.rm path if Open.exist_or_link?(path) && Path.can_write?(path)
+    Open.rm tmp_path if Open.exist_or_link?(tmp_path) && Path.can_write?(tmp_path)
+    Open.rm info_file if Open.exist_or_link?(info_file) && Path.can_write?(info_file)
     Open.rm_rf files_dir if Open.exist_or_link?(files_dir)
     self
   end

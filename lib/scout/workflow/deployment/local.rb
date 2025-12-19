@@ -50,10 +50,13 @@ class Workflow::LocalExecutor
     failed_jobs = []
 
     bar = {desc: "Processing batches"} if TrueClass === bar
-    Log::ProgressBar.with_bar batches.length, bar do |b|
-      b.init
+    bar = {bar: bar} if Log::ProgressBar === bar
+    Log::ProgressBar.with_bar batches.length, bar do |bar|
+      bar.init if bar
+
       while (missing_batches = batches.reject{|b| Workflow::Orchestrator.done_batch?(b) }).any?
-        b.tick batches.length - missing_batches.length
+
+        bar.pos batches.select{|b| Workflow::Orchestrator.done_batch?(b) }.length if bar
 
         candidates = Workflow::LocalExecutor.candidates(batches)
         top_level_jobs = candidates.collect{|batch| batch[:top_level] }
@@ -147,7 +150,16 @@ class Workflow::LocalExecutor
 
   def process(rules, jobs = nil)
     jobs, rules = rules, {} if jobs.nil?
-    jobs = [jobs] if Step === jobs
+
+    if Step === jobs
+      jobs = [jobs]
+    end
+
+    if jobs.length == 1
+      bar = jobs.first.progress_bar("Process batches for #{jobs.first.short_path}")
+    else
+      bar = true
+    end
 
     batches = Workflow::Orchestrator.job_batches(rules, jobs)
     batches.each do |batch|
@@ -159,7 +171,7 @@ class Workflow::LocalExecutor
       batch[:rules] = rules
     end
 
-    process_batches(batches)
+    process_batches(batches, bar: bar)
   end
 
   def release_resources(job)
@@ -214,7 +226,7 @@ class Workflow::LocalExecutor
         log = job_rules[:log] if job_rules
         log = Log.severity if log.nil?
         Log.with_severity log do
-          job.fork
+          job.fork(true)
         end
       end
     when 'batch', 'sched', 'slurm', 'pbs', 'lsf'
