@@ -73,7 +73,7 @@ module AssociationItem
   end
 
   property :undirected => :both do
-    knowledge_base.undirected(database)
+    knowledge_base.undirected(database) if knowledge_base
   end
 
   property :target_entity => :array2single do
@@ -142,6 +142,15 @@ module AssociationItem
     keys
   end
 
+  property :incidence => :array do |*args,**kwargs,&block|
+    AssociationItem.incidence(self,*args,**kwargs,&block)
+  end
+
+  property :adjacency => :array do |*args,**kwargs,&block|
+    AssociationItem.adjacency(self,*args,**kwargs,&block)
+  end
+
+
   def self.incidence(pairs, key_field = nil, &block)
     matrix = {}
     targets = []
@@ -173,15 +182,16 @@ module AssociationItem
     defined?(TSV)? TSV.setup(matrix, :key_field => (key_field || "Source") , :fields => targets, :type => :list) : matrix
   end
 
+
   def self.adjacency(pairs, key_field = nil, &block)
-    incidence = incidence(pairs, key_field, &block)
+    incidence = pairs.respond_to?(:incidence) ? pairs.incidence(key_field, &block) : incidence(pairs, key_field, &block)
 
     targets = incidence.fields
     adjacency = TSV.setup({}, :key_field => incidence.key_field, :fields => ["Target"], :type => :double)
     TSV.traverse incidence, :into => adjacency, :unnamed => true do |k,values|
       target_values = targets.zip(values).reject{|t,v| v.nil? }.collect{|t,v| [t,v]}
       next if target_values.empty?
-      [k, Misc.zip_fields(target_values)]
+      [k, NamedArray.zip_fields(target_values)]
     end
   end
 

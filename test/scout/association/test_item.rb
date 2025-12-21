@@ -9,6 +9,11 @@ class TestAssociationItem < Test::Unit::TestCase
     assert TSV === AssociationItem.incidence(pairs)
     assert_equal 2, AssociationItem.incidence(pairs).length
     assert_equal 2, AssociationItem.incidence(pairs).fields.length
+
+    associations = AssociationItem.setup(pairs)
+    associations.extend AnnotatedArray
+
+    assert_equal 2, associations.incidence.fields.length
   end
 
   def test_brothers
