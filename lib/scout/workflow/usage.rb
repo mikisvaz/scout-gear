@@ -5,7 +5,7 @@ module Task
     str = StringIO.new
 
     if description
-      title, paragraph = description.split("\n\n")
+      title, _, paragraph = description.partition("\n\n")
       if title.length < Misc::MAX_TTY_LINE_WIDTH
         title = self.name.to_s + " - " + title
         str.puts Log.color :yellow, title
