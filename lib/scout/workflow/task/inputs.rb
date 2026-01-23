@@ -1,7 +1,11 @@
 require 'scout/named_array'
 module Task
   def self.format_input(value, type, options = {})
+    return nil if value.nil?
     return value if IO === value || StringIO === value || Step === value
+
+    return value.to_i if type == :integer && ! value.nil?
+    return value.to_f if type == :float && ! value.nil?
 
     if String === value && Path.is_filename?(value) && ! [:path, :file, :folder, :binary, :tsv].include?(type) && ! (options &&  (options[:noload] || options[:stream] || options[:nofile] || options[:asfile]))
       if Open.exists?(value) && ! Open.directory?(value)
@@ -13,6 +17,8 @@ module Task
       if m = type.to_s.match(/(.*)_array/)
         if Array === value
           value.collect{|v| self.format_input(v, m[1].to_sym, options) }
+        else
+          value
         end
       else
         value
