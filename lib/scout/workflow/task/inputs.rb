@@ -4,15 +4,16 @@ module Task
     return nil if value.nil?
     return value if IO === value || StringIO === value || Step === value
 
-    return value.to_i if type == :integer && ! value.nil?
-    return value.to_f if type == :float && ! value.nil?
-
     if String === value && Path.is_filename?(value) && ! [:path, :file, :folder, :binary, :tsv].include?(type) && ! (options &&  (options[:noload] || options[:stream] || options[:nofile] || options[:asfile]))
       if Open.exists?(value) && ! Open.directory?(value)
         Persist.load(value, type)
       else
         Persist.deserialize(value, type)
       end
+    elsif (String === value) && type == :integer
+      value.to_i
+    elsif (String === value) && type == :float
+      value.to_f
     else
       if m = type.to_s.match(/(.*)_array/)
         if Array === value
