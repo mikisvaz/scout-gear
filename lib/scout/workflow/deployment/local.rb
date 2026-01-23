@@ -155,13 +155,14 @@ class Workflow::LocalExecutor
       jobs = [jobs]
     end
 
+    batches = Workflow::Orchestrator.job_batches(rules, jobs)
+
     if jobs.length == 1
-      bar = jobs.first.progress_bar("Process batches for #{jobs.first.short_path}")
+      bar = jobs.first.progress_bar("Processing batches for #{jobs.first.short_path}", max: batches.length)
     else
       bar = true
     end
 
-    batches = Workflow::Orchestrator.job_batches(rules, jobs)
     batches.each do |batch|
       rules = IndiferentHash.setup batch[:rules]
       rules.delete :erase if jobs.include?(batch[:top_level])
