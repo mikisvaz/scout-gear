@@ -256,7 +256,8 @@ module TSV
 
   def self.parse_header(stream, fix: true, header_hash: '#', sep: "\t")
     sep = "\t" if sep.nil?
-    if (Path === stream) || ((String === stream) && Path.is_filename?(stream))
+
+    if (Path === stream) || ((String === stream) && Path.is_filename?(stream, false))
       Open.open(stream) do |f|
         return parse_header(f, fix: fix, header_hash: header_hash, sep: sep)
       end
