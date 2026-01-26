@@ -17,8 +17,8 @@ end
 dev_dir = nil
 if _i = ARGV.index("--dev")
   dev_dir = ARGV[_i+1]
-  ARGV.delete "--dev"
-  ARGV.delete dev_dir
+  ARGV.delete_at _i+1
+  ARGV.delete_at _i
 end
 
 if dev_dir.nil?
