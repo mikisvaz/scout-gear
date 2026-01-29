@@ -29,8 +29,9 @@ module Association
       if database.type == :double
         transformer.traverse do |source,value_list|
           res = []
-          NamedArray.zip_fields(value_list).collect do |values|
+          NamedArray.zip_fields(value_list).each do |values|
             target, *info = values
+            next if source.nil? or target.nil?
             key = [source, target] * "~"
             res << [key, info]
             if undirected
@@ -45,6 +46,7 @@ module Association
           res = []
           res.extend MultipleResult
           targets.each do |target|
+            next if source.nil? or target.nil?
             key = [source, target] * "~"
             res << [key, []]
             if undirected
@@ -59,6 +61,7 @@ module Association
           res = []
           res.extend MultipleResult
           target, *info = values
+          next if source.nil? or target.nil?
           key = [source, target] * "~"
           res << [key, info]
           if undirected

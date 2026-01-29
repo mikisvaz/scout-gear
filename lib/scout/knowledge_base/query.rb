@@ -75,7 +75,9 @@ class KnowledgeBase
     entity = identify_target(name, entity)
     matches = _parents(name, entity)
     #matches.each{|m| m.replace(m.partition("~").reverse*"") } unless undirected(name)
-    setup(name, matches, true)
+    items = setup(name, matches, true)
+    items = items.invert unless undirected(name)
+    items
   end
 
   def _neighbours(name, entity)

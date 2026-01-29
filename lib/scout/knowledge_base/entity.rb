@@ -91,7 +91,7 @@ class KnowledgeBase
       identifier_files.collect!{|f| f.annotate(f.gsub(/\bNAMESPACE\b/, namespace))} if namespace
       identifier_files.collect!{|f| f.annotate(f.gsub(/\bNAMESPACE\b/, db_namespace(name)))} if not namespace and db_namespace(name)
       identifier_files.reject!{|f| f.match(/\bNAMESPACE\b/)}
-      TSV.translation_index identifier_files, nil, source(name), :persist => true
+      TSV.translation_index identifier_files.uniq, nil, source(name), :persist => true
     end
   end
 
@@ -114,7 +114,7 @@ class KnowledgeBase
       identifier_files.collect!{|f| f.annotate(f.gsub(/\bNAMESPACE\b/, namespace))} if self.namespace
       identifier_files.collect!{|f| f.annotate(f.gsub(/\bNAMESPACE\b/, db_namespace(name)))} if namespace.nil? and db_namespace(name)
       identifier_files.reject!{|f| f.match(/\bNAMESPACE\b/)}
-      TSV.translation_index identifier_files, nil, target(name), :persist => true
+      TSV.translation_index identifier_files.uniq, nil, target(name), :persist => true
     end
   end
 

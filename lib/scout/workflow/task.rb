@@ -59,7 +59,7 @@ module Task
                              when Array
                                inputs.collect{|name,*| name }[0..provided_inputs.length]
                              when Hash
-                               provided_inputs.keys
+                               provided_inputs.keys.collect{|k| k.to_sym }
                              end
 
       jobname_input = nil
