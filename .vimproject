@@ -2,6 +2,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  Rakefile
  README.md
  chats=chats filter="*"{
+
+  update_workflow_doc
+
   job_chains
 
 

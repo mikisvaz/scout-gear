@@ -89,6 +89,72 @@ input :count, :integer, "Times", 1, required: false
   - required: true — missing or nil values raise ParameterException.
   - shortcut — preferred CLI short option letter (SOPT).
 
+Important (common pitfall): inputs and other annotations are **queued for the next task definition**.
+
+In implementation terms, `input`, `dep`, `desc`, `returns` and `extension` call `annotate_next_task(...)` and
+their annotations are consumed by the next call to `task(...)` **or** `task_alias(...)`/`dep_task(...)`.
+After that, the annotation queue is cleared.
+
+This is the most frequent source of confusion when you introduce intermediate `task_alias` helpers.
+
+Bad (inputs attach to the alias, not to `analysis`):
+
+```ruby
+input :top_k, :integer, "How many states", 5
+task_alias :backend, self, :tool_run, mode: :fast
+
+dep :backend
+task :analysis => :json do |top_k|
+  # top_k will be nil here (it was attached to :backend)
+end
+```
+
+Good (define alias first, then analysis-specific inputs, then the task):
+
+```ruby
+task_alias :backend, self, :tool_run, mode: :fast
+dep :backend
+
+input :top_k, :integer, "How many states", 5
+task :analysis => :json do |top_k|
+  # ok
+end
+```
+
+### Common gotchas
+
+These are the failure modes that most often bite first-time workflow authors:
+
+- **Annotations attach to the next task definition**: `input`, `dep`, `desc`, `returns`, `extension` are queued and consumed by the next `task(...)` *or* `task_alias(...)` call.
+  - If you use `task_alias` as a convenience backend, define the alias *first*, then define analysis-only inputs, then define the analysis task.
+
+- **`dep_task` is just an alias for `task_alias`**: it defines a task alias; it does not mean “declare a dependency”. You still need `dep :that_alias` if you want it to be a dependency.
+
+- **`step(:name)` only finds declared dependencies**: inside a task, `step(:x)` returns a dependency Step whose `task_name` is `:x`.
+  - If you forgot `dep :x`, then `step(:x)` will be `nil`.
+
+- **On-disk layout is `<job>`, `<job>.info`, `<job>.files/`**:
+  - `.info` is a file (JSON metadata), and `.files/` is a directory.
+  - There is no `.info.files/` path.
+
+- **Caching and recomputation**:
+  - Jobs are cached by *non-default inputs* plus a digest of their dependency tree.
+  - Changing task code does not automatically invalidate old results; use `--update` to recompute when dependencies are newer,
+    or `--clean`/`--recursive_clean` to remove cached outputs.
+  - When debugging, it can be useful to change the job name (`--jobname`) or set an explicit input so you get a fresh job directory.
+
+- **Array/list CLI inputs**: prefer a single comma-separated flag (e.g. `--nodes A,B,C`) rather than repeating the same flag many times.
+
+- **Introspection vs execution helpers**:
+  - `Task#dependencies(...)` is an internal constructor used during job creation and requires arguments.
+  - For introspection, use `task.deps`, `workflow.usage(task)`, or `workflow.dep_tree(task)`.
+
+- **Tool invocation**:
+  - `CMD.cmd('MyTool', ...)` runs a binary from PATH.
+  - `CMD.cmd(:mytool, ...)` only works if that tool symbol is registered in CMD’s tool registry.
+  - For details, see the CMD documentation (in scout-essentials: `doc/CMD.md`).
+
+
 Task definitions:
 
 ```ruby
@@ -162,6 +228,17 @@ Step basics:
 - `step.files_dir`: companion directory `<path>.files` holding auxiliary files.
 - `step.file("name")`: file helper within files_dir.
 - `step.info`: IndiferentHash with status, pid, start/end times, messages, inputs, dependencies, etc. Stored at `<path>.info` (JSON by default).
+
+On disk you will typically see:
+
+```text
+var/jobs/<Workflow>/<task>/<jobname>.<ext>        # main result
+var/jobs/<Workflow>/<task>/<jobname>.<ext>.info   # JSON info (status, inputs, deps, messages, exceptions)
+var/jobs/<Workflow>/<task>/<jobname>.<ext>.files/ # auxiliary files created by the task
+```
+
+There is **no** `...<job>.info.files/` directory; `.info` is a file alongside the `.files/` directory.
+
 - `step.log(status, [message_or_block])`: set info status and message (block timed).
 - Status helpers: `done?`, `error?`, `aborted?`, `running?`, `waiting?`, `updated?`, `dirty?`, `started?`, `recoverable_error?`.
 - Cleanup: `clean`, `recursive_clean`, `produce(with_fork: false)`.
@@ -234,6 +311,14 @@ task_alias :say_hello, self, :say, name: "Miguel"
 # alias name => inferred type, returns and extension from :say
 ```
 
+Notes:
+- `dep_task` is an alias for `task_alias` (same method).
+- The `workflow` argument should be a Workflow module (often `self` inside the workflow module, or an explicit module name).
+  There is no special `Self` constant.
+- `task_alias` is itself a task definition, so any queued `input` / `dep` / `desc` / `returns` / `extension` immediately preceding it
+  are consumed by the alias (not by the following task).
+
+
 Behavior:
 - The alias depends on the original task; upon completion:
   - With config forget/remove enabled (see below), the alias job archives dependency info and either hard-links, copies, or removes dep artifacts.
@@ -246,6 +331,73 @@ Behavior:
 
 Overriding dependencies at job time:
 - Pass `"Workflow#task" => Step_or_Path` in job inputs; the system marks dep as overridden, adjusts naming, and uses provided artifact.
+
+### Pattern: backend + analysis tasks (wrapping external tools)
+
+When wrapping external command-line tools (any CLI program), prefer a two-layer design:
+
+1) **Backend task**: runs the tool, writes full outputs to `step.files_dir`, and returns a small JSON document
+   describing what was produced (paths, key parameters, summary stats).
+
+2) **Analysis task(s)**: `dep` on the backend task and parse its outputs into compact, LLM-friendly summaries.
+
+This pattern keeps caching/reproducibility correct (because the backend inputs are part of the dependency graph)
+and avoids blowing up the CLI / LLM context window with large outputs.
+
+Example skeleton:
+
+```ruby
+# backend
+input :network, :text, required: true
+input :seed, :integer, 0
+task :tool_run => :json do |network, seed|
+  Open.write(file('input.txt'), network)
+  io = CMD.cmd('SomeTool', "--seed #{seed} '#{file('input.txt')}'", log: true, save_stderr: true)
+  raise ScoutException, io.read + "\n" + io.std_err if io.exit_status != 0
+
+  {
+    "files" => Dir.glob(file('out').to_s + '*'),
+    "params" => {"seed" => seed}
+  }.to_json
+end
+
+# analysis
+dep :tool_run
+input :top_k, :integer, 5
+task :tool_summary => :json do |top_k|
+  info = JSON.parse(step(:tool_run).load)
+  # parse info["files"] ...
+end
+```
+
+Notes:
+- Use `step.file('name')`/`file('name')` to ensure artifacts land in the step `.files` directory.
+- For binaries that are not registered in CMD's tool registry, use `CMD.cmd('BinaryName', ...)` (string),
+  not `CMD.cmd(:BinaryName, ...)` (symbol).
+
+
+### Designing tasks for interactive/agent use
+
+Many users (and autonomous agents) cannot afford to load large tool outputs into memory or into a chat context window.
+A robust pattern is:
+
+- **Persist the full output to disk** (in `step.files_dir`) and return only a *small* summary object.
+  - Prefer returning `:json`/`:text` with a compact JSON document.
+
+- **Echo analysis parameters** in the returned JSON.
+  - This makes it obvious what was actually used when debugging caching, CLI parsing, or defaults.
+
+- **Separate “run” from “summarize”**.
+  - Backend task: run tool, write outputs, return metadata + file list.
+  - Analysis task(s): parse, aggregate, downsample, and return small summaries.
+
+- **Use task_alias for common presets**.
+  - e.g. a `*_final_run` alias that fixes `final: true`, or a `*_trajectory_run` alias that fixes `format: 'csv'`.
+
+- **Keep results stable and machine-readable**.
+  - Prefer JSON hashes/arrays over ad-hoc human-readable text; add derived fields (like expression strings) for convenience.
+
+
 
 ---
 
@@ -272,6 +424,7 @@ SOPT integration:
   - `task.get_SOPT` returns parsed `--input` options from ARGV.
   - Boolean inputs render as `--flag`; string-like inputs accept `--key=value` or `--key value`.
   - Array inputs accept comma-separated values; file/path arrays resolve files.
+  - Tip: prefer a single flag with comma-separated values (e.g. `--nodes A,B,C`) over repeating the same flag multiple times.
 
 ---
 
@@ -366,6 +519,8 @@ Task:
 - assign_inputs(provided_inputs, id=nil) => [input_array, non_default_inputs, jobname_input?]
 - process_inputs(provided_inputs, id=nil) => [input_array, non_default_inputs, digest_str]
 - dependencies(id, provided_inputs, non_default_inputs, compute) => [Step...]
+  - Note: `Task#dependencies` is an internal constructor used during job creation and requires arguments.
+    For introspection, use `task.deps` (declared dependency annotations) or `workflow.usage(task)` / `workflow.dep_tree(...)`.
 - recursive_inputs(overridden=[]) => inputs array
 - save_inputs(dir, provided_inputs) and load_inputs(dir)
 
