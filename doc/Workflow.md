@@ -128,6 +128,9 @@ These are the failure modes that most often bite first-time workflow authors:
 - **Annotations attach to the next task definition**: `input`, `dep`, `desc`, `returns`, `extension` are queued and consumed by the next `task(...)` *or* `task_alias(...)` call.
   - If you use `task_alias` as a convenience backend, define the alias *first*, then define analysis-only inputs, then define the analysis task.
 
+- **`return` cannot be used inside tasks**: because of how they are implemented you need to use next to abort execution
+  and return a value. Just replace `return` for `next` inside a task block.
+
 - **`dep_task` is just an alias for `task_alias`**: it defines a task alias; it does not mean “declare a dependency”. You still need `dep :that_alias` if you want it to be a dependency.
 
 - **`step(:name)` only finds declared dependencies**: inside a task, `step(:x)` returns a dependency Step whose `task_name` is `:x`.
