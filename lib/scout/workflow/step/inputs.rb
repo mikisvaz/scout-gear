@@ -1,8 +1,6 @@
 class Step
   def save_inputs(inputs_dir)
-    if clean_name != name
-      #hash = name[clean_name.length..-1]
-      #inputs_dir += hash
+    if provided_inputs.any?
       Log.medium "Saving job inputs to: #{Log.fingerprint inputs_dir} #{Log.fingerprint provided_inputs}"
       self.task.save_inputs(inputs_dir, provided_inputs)
     else
