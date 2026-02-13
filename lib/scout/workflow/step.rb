@@ -192,7 +192,13 @@ class Step
 
     return @result || self.load if done?
 
-    prepare_dependencies
+    begin
+      prepare_dependencies
+    rescue => e
+      exception_encoded = Base64.encode64(Marshal.dump(e))
+      merge_info :status => :error, :exception => exception_encoded, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
+      raise $!
+    end
 
     begin
 

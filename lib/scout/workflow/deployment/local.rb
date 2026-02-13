@@ -9,10 +9,7 @@ class Workflow::LocalExecutor
   def self.produce(jobs, rules = {}, produce_cpus: Etc.nprocessors, produce_timer: 1)
     jobs = [jobs] unless Array === jobs
     orchestrator = self.new produce_timer.to_f, cpus: produce_cpus.to_i
-    begin
-      orchestrator.process(rules, jobs)
-    rescue self::NoWork
-    end
+    orchestrator.process(rules, jobs)
   end
 
   def self.produce_dependencies(jobs, tasks, rules = {}, produce_cpus: Etc.nprocessors, produce_timer: 1)
@@ -172,7 +169,14 @@ class Workflow::LocalExecutor
       batch[:rules] = rules
     end
 
-    process_batches(batches, bar: bar)
+    begin
+      process_batches(batches, bar: bar)
+    rescue NoWork
+      batches.each do |batch|
+        job = batch[:top_level]
+        raise job.exception if job.error? && ! job.recoverable_error?
+      end
+    end
   end
 
   def release_resources(job)
@@ -309,7 +313,6 @@ class Workflow::LocalExecutor
   end
 
   def self.candidates(batches)
-
     leaf_nodes = batches.select{|b| b[:deps].empty? }
 
     leaf_nodes.reject!{|b| Workflow::Orchestrator.done_batch?(b) }
