@@ -195,7 +195,7 @@ class Step
     begin
       prepare_dependencies
     rescue => e
-      exception_encoded = Base64.encode64(Marshal.dump(e))
+      exception_encoded = Step.encode_exception e
       merge_info :status => :error, :exception => exception_encoded, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
       raise $!
     end
@@ -248,17 +248,10 @@ class Step
     rescue Exception => e
       begin
         begin
-          if ConcurrentStreamProcessFailed === e
-            s = e.concurrent_stream
-            e.concurrent_stream = nil
-            exception_encoded = Base64.encode64(Marshal.dump(e))
-            e.concurrent_stream = s
-          else
-            exception_encoded = Base64.encode64(Marshal.dump(e))
-          end
+          exception_encoded = Step.encode_exception e
           merge_info :status => :error, :exception => exception_encoded, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
-        rescue Exception
-          exception_encoded = Base64.encode64(Marshal.dump(Exception.new(e.message)))
+        rescue Exception => e
+          exception_encoded = Step.encode_exception e
           merge_info :status => :error, :exception => exception_encoded, :end => Time.now, :backtrace => e.backtrace, :message => "#{e.class}: #{e.message}"
         end
 

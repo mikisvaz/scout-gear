@@ -1,5 +1,7 @@
 require 'time'
 require 'scout/config'
+require "json/add/exception"
+
 class Step
   SERIALIZER = Scout::Config.get(:serializer, :step_info, :info, :step, env: "SCOUT_SERIALIZER", default: :json)
   def info_file
@@ -186,10 +188,14 @@ class Step
     ! (done? && status == :done) && (info[:pid] && Misc.pid_alive?(info[:pid]))
   end
 
+  def self.encode_exception(e)
+    return e.to_json
+  end
+
   def exception
     return nil unless info[:exception]
     begin
-      Marshal.load(Base64.decode64(info[:exception]))
+      JSON.parse(info[:exception], create_additions: true)
     rescue
       Log.exception $!
       return Exception.new messages.last

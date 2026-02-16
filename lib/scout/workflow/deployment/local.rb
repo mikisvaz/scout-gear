@@ -56,6 +56,7 @@ class Workflow::LocalExecutor
         bar.pos batches.select{|b| Workflow::Orchestrator.done_batch?(b) }.length if bar
 
         candidates = Workflow::LocalExecutor.candidates(batches)
+        candidates = candidates.reject{|batch| failed_jobs.include? batch[:top_level] }
         top_level_jobs = candidates.collect{|batch| batch[:top_level] }
 
         raise NoWork, "No candidates and no running jobs #{Log.fingerprint batches}" if resources_used.empty? && top_level_jobs.empty?
