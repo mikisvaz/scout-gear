@@ -44,16 +44,19 @@ class WorkQueue
         str = size_head
       when Annotation::AnnotatedObject
         payload = @serializer.dump(obj)
+        payload.force_encoding("BINARY")
         size_head = [payload.bytesize,"S"].pack 'La'
-        str = size_head << payload
+        str = size_head + payload
       when String
         payload = obj
         size_head = [payload.bytesize,"C"].pack 'La'
-        str = size_head << payload
+        payload.force_encoding("BINARY")
+        str = size_head + payload
       else
         payload = @serializer.dump(obj)
+        payload.force_encoding("BINARY")
         size_head = [payload.bytesize,"S"].pack 'La'
-        str = size_head << payload
+        str = size_head + payload
       end
 
       write_length = str.length
@@ -82,6 +85,7 @@ class WorkQueue
             raise $!
           end
         when "C"
+          payload.force_encoding('UTF-8')
           payload
         end
       rescue TryAgain

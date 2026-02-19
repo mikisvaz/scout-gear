@@ -3,6 +3,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
  README.md
  chats=chats filter="*"{
 
+  purge
+
   update_workflow_doc
 
   job_chains
@@ -182,6 +184,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   alias
   entity
   find
+  purge
   cat
   glob
   log
