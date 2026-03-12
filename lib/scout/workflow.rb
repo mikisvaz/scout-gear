@@ -122,6 +122,7 @@ module Workflow
     file = file.find if Path === file
     $LOAD_PATH.unshift(File.join(File.dirname(file), 'lib'))
     load file
+    Workflow.main || Workflow.workflows.last
   end
 
   def self.require_workflow(workflow_name_orig)
