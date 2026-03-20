@@ -1,0 +1,170 @@
+#!/usr/bin/env ruby
+#
+# scout purge – delete files by their last access time.
+#
+# Supports three operations:
+#   * --before <specifier> – delete all files accessed before the given
+#     timestamp.  The specifier can be a relative description such as
+#     `last_week`, `3_day` or an absolute ISO date.
+#   * --older <file> – delete all files older than the last access time of
+#     the reference file.
+#   * --save <N> – keep the N most‑recently accessed files; delete the
+#     rest.  Can be combined with ``--before`` or ``--older``.
+#
+# The command uses the Scout option parser and prints messages using the
+# standard Log facility.  It works on the working directory when called
+# directly.
+
+require 'scout'
+require 'fileutils'
+require 'time'
+require 'pathname'
+
+# $0 handling used by other Scout commands.
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{File.basename(__FILE__)}" if $previous_commands
+
+# ---- Options ------------------------------------------------------------
+options = SOPT.setup <<EOF
+
+Delete files by last access time.
+
+$ #{$0} <directory> [<options>]
+
+You need to specify the 'directory', at least one of the two parameters
+'before' or 'older'. I will find all the files under 'directory' that match the
+criteria and delete them, but only if the flag 'delete' is set, otherwise it
+will only list them. It only works with files; directories are ignored so that
+the directory structure is preserved. 
+
+-b--before* Delete files accessed for the last time before the given time
+-o--older*  Delete files whose atime is older than the reference file
+-s--save*   Keep the N most recently accessed files, delete the rest
+-d--delete  Delete the files
+-h--help    Print this help
+EOF
+
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+# ---- Validate directory ---------------------------------------------------
+dir = ARGV[0]
+raise MissingParameterException, "'directory' required" if dir.nil?
+
+dir = Path.setup dir.dup
+
+raise ParameterException, "'directory' does not exist" unless dir.exists?
+
+# ---- Helper -------------------------------------------------------------
+def time_from_specifier(spec)
+  case spec
+  when /^last_(day|week|month|year)$/
+    period = $1
+    secs = case period
+           when 'day'   then 24 * 60 * 60
+           when 'week'  then 7 * 24 * 60 * 60
+           when 'month' then 30 * 24 * 60 * 60
+           when 'year' then 335 * 24 * 60 * 60
+           else 24 * 60 * 60
+           end
+    Time.now - secs
+  when /^(\d+)_(day|week|month|year)$/
+    amount = $1.to_i
+    period = $2
+    secs = case period
+           when 'day'   then 24 * 60 * 60
+           when 'week'  then 7 * 24 * 60 * 60
+           when 'month' then 30 * 24 * 60 * 60
+           when 'year'  then 365 * 24 * 60 * 60
+           end
+    Time.now - amount * secs
+  when /^\d+\w+$/
+    Time.now - Misc.timespan(spec)
+  else
+    raise ParameterException, "unable to parse time spec '#{spec}'"
+  end
+end
+
+# ---- Gather files --------------------------------------------------------
+dir = Path.setup(dir.dup)
+dir = dir.find
+Log.info "Purging #{dir}"
+all_files = {}
+# Include dot files, ignore directories
+dir.glob('**/*').each do |p|
+  next if File.directory?(p)
+  all_files[p] = begin
+                   File.atime(p)
+                 rescue
+                   Log.warn $!.message
+                   next
+                 end
+end
+
+if all_files.empty?
+  puts 'no files found'
+  exit 0
+end
+
+# ---- Resolve options -----------------------------------------------------
+if options[:before] && options[:older]
+  Log.warn 'error: --before and --older are mutually exclusive'
+  exit 1
+end
+
+before_threshold = options[:before] ? time_from_specifier(options[:before]) : nil
+older_path      = options[:older]
+keep_count      = options[:save] ? options[:save].to_i : nil
+delete          = options[:delete]
+reference_at    = nil
+if older_path
+  older_path = File.expand_path(older_path)
+  unless File.exist?(older_path)
+    Log.warn "reference file #{older_path.inspect} does not exist"
+    exit 1
+  end
+  reference_at = File.atime(older_path)
+end
+
+# ---- Decide which files to delete ---------------------------------------
+target_files = if before_threshold
+                 all_files.select { |_, at| at < before_threshold }.keys
+               elsif reference_at
+                 all_files.select { |_, at| at < reference_at }.keys
+               else
+                 raise ParameterException, 'no criteria to select files'
+               end
+
+# Apply --save if provided
+if keep_count && keep_count.positive?
+  sorted = all_files.sort_by { |_, at| -at.to_f }
+  keep = sorted.take(keep_count).map(&:first)
+  target_files -= keep
+end
+
+if target_files.empty?
+  Log.warn 'no files matched deletion criteria'
+  exit 0
+end
+
+if delete
+  target_files.each do |file|
+    begin
+      Log.info "Delete #{file} atime: #{File.atime(file)}"
+      FileUtils.rm(file)
+    rescue => e
+      Log.warn "failed to delete #{file}: #{e.message}"
+    end
+  end
+else
+  target_files.each do |file|
+    Log.debug "atime: #{File.atime(file)} #{file}"
+    puts file
+  end
+end
+# ---- Perform or preview -------------------------------------------------
