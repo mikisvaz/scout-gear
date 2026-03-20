@@ -6,10 +6,10 @@ class Workflow::LocalExecutor
     self.new.process(*args)
   end
 
-  def self.produce(jobs, rules = {}, produce_cpus: Etc.nprocessors, produce_timer: 1)
+  def self.produce(jobs, rules = {}, produce_cpus: Etc.nprocessors, produce_timer: 1, bar: nil)
     jobs = [jobs] unless Array === jobs
     orchestrator = self.new produce_timer.to_f, cpus: produce_cpus.to_i
-    orchestrator.process(rules, jobs)
+    orchestrator.process(rules, jobs, bar: bar)
   end
 
   def self.produce_dependencies(jobs, tasks, rules = {}, produce_cpus: Etc.nprocessors, produce_timer: 1)
@@ -146,7 +146,7 @@ class Workflow::LocalExecutor
     }
   end
 
-  def process(rules, jobs = nil)
+  def process(rules, jobs = nil, bar: nil)
     jobs, rules = rules, {} if jobs.nil?
 
     if Step === jobs
@@ -155,11 +155,19 @@ class Workflow::LocalExecutor
 
     batches = Workflow::Orchestrator.job_batches(rules, jobs)
 
-    if jobs.length == 1
-      bar = jobs.first.progress_bar("Processing batches for #{jobs.first.short_path}", max: batches.length)
-    else
-      bar = true
-    end
+    bar = case bar
+          when true
+            true
+          when Log::ProgressBar
+            bar.max = batches.length
+            bar
+          when nil
+            if jobs.length == 1
+              jobs.first.progress_bar("Processing batches for #{jobs.first.short_path}", max: batches.length)
+            else
+              true
+            end
+          end
 
     batches.each do |batch|
       rules = IndiferentHash.setup batch[:rules]
