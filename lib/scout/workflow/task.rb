@@ -98,7 +98,7 @@ module Task
       dependencies = dependencies(id, provided_inputs, non_default_inputs, compute)
 
       #{{{ Overrides
-      override_inputs = provided_input_names.select{|k| (String === k) && k.include?("#")  }
+      override_inputs = provided_input_names.select{|k| k.to_s.include?("#")  }
       overriden = override_inputs.any? && dependencies.select{|dep| dep.overrider? || dep.overriden? }.any?
 
       non_default_inputs.delete_if{|input| override_inputs.include? input }
