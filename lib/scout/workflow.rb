@@ -107,7 +107,7 @@ module Workflow
         Log.warn "Cloning #{ repo }"
         Misc.insist do
           `git clone "#{repo}" #{ Misc.snake_case(workflow) }`
-          raise unless $?.success?
+          raise "Workflow #{workflow} not found and could not install it" unless $?.success?
         end
         Log.warn "Initializing and updating submodules for #{repo}. You might be prompted for passwords."
         Misc.in_dir(Misc.snake_case(workflow)) do
