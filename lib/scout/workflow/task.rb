@@ -142,4 +142,9 @@ module Task
   def alias?
     @extension == :dep_task
   end
+
+  def load_name(name)
+    path = directory[name]
+    Step.load path
+  end
 end
