@@ -114,7 +114,7 @@ module TSV
     end
   end
 
-  def to_list
+  def to_list(&block)
     res = self.annotate({})
     self.with_unnamed do
       transformer = Transformer.new self, res
@@ -124,10 +124,18 @@ module TSV
         when :single
           [k, [v]]
         when :double
-          [k, v.collect{|v| v.first }]
+          if block_given?
+            if block.arity == 1
+              [k, v.collect{|v| block.call v }]
+            else
+              [k, v.collect{|v| block.call k, v }]
+            end
+          else
+            [k, v.collect{|v| v.first }]
+          end
         when :flat
           [k, v.slice(0,1)]
-        end
+          end
       end
     end
     res
