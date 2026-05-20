@@ -145,7 +145,7 @@ class Step
         str.concat(prov_report(dep, offset + 1, task, seen, expand_repeats, input_dependencies[dep], input_dependencies.dup).split("\n"))
       else
         if expand_repeats
-          str << Log.color(Step.status_color(dep.status), Log.uncolor(prov_report(dep, offset+1, task, input_dependencies[dep], input_dependencies.dup)))
+          str.concat(prov_report(dep, offset + 1, task, seen, expand_repeats, input_dependencies[dep], input_dependencies.dup).split("\n"))
         else
           info = dep.info  || {}
           status = info[:status] || :missing
