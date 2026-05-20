@@ -51,7 +51,7 @@ module Task
 
     # Helper function
     filter_dep_non_default_inputs = proc do |dep,definition_options|
-      dep_non_default_inputs = dep.non_default_inputs
+      dep_non_default_inputs = dep.non_default_inputs.dup
       dep_non_default_inputs.reject! do |name|
         definition_options.include?(name)
       end
@@ -130,7 +130,6 @@ module Task
         non_default_inputs.concat(dep_non_default_inputs)
       end
     end
-
     dependencies
   end
 end
