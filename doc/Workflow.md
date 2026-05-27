@@ -157,6 +157,11 @@ These are the failure modes that most often bite first-time workflow authors:
   - `CMD.cmd(:mytool, ...)` only works if that tool symbol is registered in CMD’s tool registry.
   - For details, see the CMD documentation (in scout-essentials: `doc/CMD.md`).
 
+- **TSV::Dumper inside `TSV.traverse` can deadlock if used manually**:
+  - Do not fill a Dumper with `dumper.add` inside a long `TSV.traverse` and then return `dumper.stream` after the traversal. The Dumper stream may block when its buffer fills, but the workflow caller cannot read until the task returns the stream.
+  - In `:tsv` tasks, prefer `TSV.traverse(source, into: dumper)` and return `[key, value]` records from the block.
+  - If one input row produces multiple output rows, return an Array of `[key, value]` pairs extended with `MultipleResult`.
+
 
 Task definitions:
 
@@ -256,6 +261,7 @@ Streaming pipelines:
 - If a dep is marked for streaming (compute includes :stream) and SCOUT_EXPLICIT_STREAMING is set, you can consume child streams while they are produced.
 - `step.stream` returns the next available stream copy; reading to EOF auto-joins producers (ConcurrentStream autojoin if set).
 - `consume_all_streams` drains internal tees when streaming.
+- For tasks returning TSV streams, avoid manually calling `dumper.add` inside a full traversal and only returning `dumper.stream` afterwards. Use `TSV.traverse(source, into: dumper)` so the traversal manages writes and the workflow persistence layer can consume the stream while rows are produced.
 
 Saving and loading inputs:
 - `task.save_inputs(dir, provided_inputs)` writes inputs to files (including file/array/file_array handling).

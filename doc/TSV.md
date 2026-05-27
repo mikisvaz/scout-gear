@@ -119,6 +119,44 @@ Dumper writes TSV streams with preamble and header:
 - dumper.tsv — parse its own stream back to a TSV
 - TSV#dumper_stream(into:, preamble:, keys:, unmerge:, stream:) — generate a stream from a TSV (optionally unmerge :double rows into multiple lines).
 
+Important streaming pattern:
+
+A Dumper is commonly backed by a ConcurrentStream. If code calls `dumper.add` repeatedly before returning `dumper.stream`, the writer can block once the stream buffer fills, because no reader has received the stream yet. This can happen in Workflow tasks returning `:tsv`, and in `TSV.traverse` blocks that manually append to a Dumper.
+
+Avoid this pattern for large outputs:
+
+```ruby
+task :bad_result => :tsv do
+  dumper = TSV::Dumper.new(key_field: "ID", fields: ["Value"], type: :list)
+  dumper.init
+
+  TSV.traverse(input_tsv) do |key, values|
+    dumper.add(key, [values.first])
+  end
+
+  dumper.stream
+end
+```
+
+The task only returns `dumper.stream` after `TSV.traverse` finishes. If `dumper.add` blocks while traverse is still running, the task can deadlock: the writer is waiting for a reader, but the reader cannot start until the task returns the stream.
+
+Prefer passing the Dumper as `into:` to `TSV.traverse` and returning records from the block:
+
+```ruby
+task :good_result => :tsv do
+  dumper = TSV::Dumper.new(key_field: "ID", fields: ["Value"], type: :list)
+  dumper.init
+
+  TSV.traverse(input_tsv, into: dumper) do |key, values|
+    [key, [values.first]]
+  end
+end
+```
+
+When `into: dumper` is used, `TSV.traverse` owns the writing pipeline. For stream-like targets, it can return the readable side promptly and write records as they are produced, allowing the caller or Workflow persistence layer to consume the stream while it is being written.
+
+Use `dumper.add` manually only when the output is known to be small enough not to block, or when the stream is already being consumed concurrently. For normal TSV-producing tasks, prefer `into: dumper`.
+
 Transformer is a pipeline wrapper that reads from a TSV/Parser and writes via a Dumper:
 
 - TSV::Transformer.new(source, dumper=nil, unnamed: nil, namespace: nil)
@@ -139,9 +177,120 @@ Uniform traversal API (works for TSV, Hash, Array, IO, Parser and Step):
   - bar: true or ProgressBar options — handy progress indication.
   - Selection: select can be regex/symbol/string/Hash; invert via select: {invert: true}.
 
+The `into:` option controls where block results are collected or streamed:
+
+- `into: nil` — return the default traversal result for the source and options.
+- `into: []` — append each non-nil block result to an Array.
+- `into: Set.new` — add each non-nil block result to a Set.
+- `into: :stream` — return a stream containing block results.
+- `into: IO` or `into: Path` — write results to that target.
+- `into: TSV::Dumper` — write returned `[key, value]` records as TSV rows.
+
+The block should usually return one of:
+
+- `nil` — skip this input row.
+- `[key, value]` — emit one output row.
+- An Array extended with `MultipleResult` — emit several output rows from one input row.
+
 Examples:
 - TSV.traverse(tsv, into: [], cpus: 2) { |k, v| "#{v[0][0]}-#{Process.pid}" }
 - TSV.traverse(lines, into: :stream) { |line| line.upcase }
+
+One output TSV row per input row:
+
+```ruby
+fields = ["Length"]
+dumper = TSV::Dumper.new(key_field: "Gene", fields: fields, type: :list)
+dumper.init
+
+TSV.traverse(genes, into: dumper) do |gene, sequence|
+  [gene, [sequence.length]]
+end
+```
+
+Zero, one, or many output TSV rows per input row:
+
+```ruby
+fields = ["Gene", "Treatment", "Time", "FC", "Pvalue", "Direction"]
+dumper = TSV::Dumper.new(key_field: "ID", fields: fields, type: :list)
+dumper.init
+
+id = 0
+TSV.traverse(fc_tsv, into: dumper, bar: progress_bar("Finding DE genes")) do |gene, values|
+  values = NamedArray.setup(values, fc_tsv.fields)
+
+  results = fc_tsv.fields.collect do |field|
+    treatment, time = parse_treatment_time_field(field)
+    fc = values[field].to_f
+    pvalue = pvalue_for(gene, treatment, time)
+
+    next unless fc.abs >= 0.3
+    next unless pvalue <= 0.05
+
+    direction = fc > 0 ? "up" : "down"
+    id += 1
+    [id, [gene, treatment, time, fc, pvalue, direction]]
+  end.compact
+
+  results.extend MultipleResult
+  results
+end
+```
+
+`MultipleResult` tells `TSV.traverse` that the returned Array is a collection of output records, not a single output value.
+
+### Streaming safety with `into: TSV::Dumper`
+
+When producing TSV output from a traversal, prefer:
+
+```ruby
+TSV.traverse(source, into: dumper) do |key, values|
+  [new_key, new_values]
+end
+```
+
+over:
+
+```ruby
+TSV.traverse(source) do |key, values|
+  dumper.add(new_key, new_values)
+end
+```
+
+The `into: dumper` form is safer because `TSV.traverse` coordinates the producer and the stream target. This avoids a common deadlock where:
+
+1. A task creates a Dumper.
+2. The task enters `TSV.traverse`.
+3. The traverse block calls `dumper.add` repeatedly.
+4. The Dumper stream buffer fills.
+5. `dumper.add` blocks waiting for a reader.
+6. The task cannot return `dumper.stream` because `TSV.traverse` has not finished.
+7. The caller cannot read because it has not yet received the stream.
+
+With `into: dumper`, traversal writes records through the managed output target and stream consumers can read while rows are being produced.
+
+### Parallel traversal caveats
+
+When using `cpus:`, the traversal block may run in child processes. Avoid mutating outer Ruby objects from inside the block, including:
+
+- counters such as `id += 1`
+- Hashes used as accumulators
+- Arrays used as manual output buffers
+- Dumper instances via `dumper.add`
+
+Instead, return values from the block and let `TSV.traverse` collect or stream them through `into:`.
+
+For example, avoid this in parallel traversal:
+
+```ruby
+id = 0
+TSV.traverse(tsv, cpus: 4, into: dumper) do |key, values|
+  id += 1
+  [id, values]
+end
+```
+
+The counter is local to each process and will not produce globally unique stable IDs. Prefer deterministic keys derived from the input, or run a second sequential pass to assign numeric IDs if stable sequential IDs are required.
 
 Header-aware helpers:
 - TSV.process_stream(stream) { |sin, first_non_header_line| ... } — pass-through header lines, handle the payload.
