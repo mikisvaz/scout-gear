@@ -44,8 +44,9 @@ module TSVAdapter
   end
 
   class StringSerializer
-    def self.dump(str); str.to_s; end
-    def self.load(str); str.dup; end
+    NIL_STR = 'nil'
+    def self.dump(str); str.nil? ? NIL_STR : str.to_s; end
+    def self.load(str); str == NIL_STR ? nil : str.dup; end
   end
 
   class StringArraySerializer
