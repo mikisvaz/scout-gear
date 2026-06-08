@@ -195,10 +195,18 @@ class Step
   def exception
     return nil unless info[:exception]
     begin
-      JSON.parse(info[:exception], create_additions: true)
+      if String === info[:exception]
+        JSON.parse(info[:exception], create_additions: true)
+      else
+        info[:exception]
+      end
     rescue
       Log.exception $!
-      return Exception.new messages.last
+      if messages && messages.any?
+        return Exception.new messages.last
+      else
+        raise "Unknown exception raised"
+      end
     end
   end
 
