@@ -275,6 +275,12 @@ Archiving:
 Relocation:
 - `Step.load(path)` reconstructs a job, relocating to alternative maps if necessary (Path.relocate heuristics, including var/jobs/<wf>/<task>/...).
 
+Cleaning:
+- `step.clean` will remove the job result, file directory and info file. 
+- `step.recursive_clean` will clean this step and ALL the dependencies recursively.
+- Using the CLI you can use --clean and --recursive_clean for this. The flag --clean_task will clean all the dependencies
+that are of the given `task_name`, and force the --update behaviour to flag any downstream steps to be cleaned.
+
 ---
 
 ## Orchestrator: scheduling with resource rules
