@@ -70,7 +70,7 @@ if matches.any?
   else
     matches.each do |match|
       puts Log.color :magenta, (reverse ? match.invert : match)
-      puts index[match].prety_print
+      puts index[match].pretty_print
     end
   end
 else

@@ -59,7 +59,7 @@ else
     paths.each do |path_list|
       path_list.each do |match|
         puts Log.color :magenta, (match.reverse ? match.invert : match)
-        puts IndiferentHash.setup(match.info).prety_print if match.info && match.info.any?
+        puts IndiferentHash.setup(match.info).pretty_print if match.info && match.info.any?
       end
     end
   end
