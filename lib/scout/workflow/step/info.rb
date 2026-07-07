@@ -205,7 +205,7 @@ class Step
       if messages && messages.any?
         return Exception.new messages.last
       else
-        raise "Unknown exception raised"
+        return Exception.new "Unkown exception"
       end
     end
   end
