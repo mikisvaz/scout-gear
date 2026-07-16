@@ -1,6 +1,14 @@
 require 'scout/annotation'
 
 module Workflow
+
+  TYPE_EXTENSIONS = IndiferentHash.setup({
+    tsv: :tsv,
+    yaml: :yaml,
+    json: :json,
+    marshal: :marshal,
+  })
+
   extend Annotation
   annotation :name, :tasks, :helpers
 
@@ -123,19 +131,7 @@ module Workflow
     block = lambda &self.method(name) if block.nil?
     begin
       @annotate_next_task ||= {}
-      @annotate_next_task[:extension] ||=
-        case type
-        when :tsv
-          "tsv"
-        when :yaml
-          "yaml"
-        when :marshal
-          "marshal"
-        when :json
-          "json"
-        else
-          nil
-        end
+      @annotate_next_task[:extension] ||= TYPE_EXTENSIONS[type]
 
       task = Task.setup(block, @annotate_next_task.merge(name: name, type: type, directory: directory[name], workflow: self))
       @tasks[name] = task
