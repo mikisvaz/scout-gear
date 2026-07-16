@@ -24,9 +24,9 @@ class Step
     dir[file]
   end
 
-  def files
+  def files(return_path: false)
     files_dir.glob("**/*").reject{|path| File.directory? path }.collect do |path|
-      Misc.path_relative_to(files_dir, path)
+      return_path ? path : Misc.path_relative_to(files_dir, path)
     end
   end
 
