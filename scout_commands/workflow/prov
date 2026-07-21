@@ -36,7 +36,7 @@ def get_step(file)
   file = File.expand_path(file) if File.exist?(file)
   file = file.sub(/\.(info|files)$/,'')
   $seen << file
-  Step.new file
+  Step.load file
 end
 
 def touch(step)

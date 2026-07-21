@@ -141,6 +141,13 @@ class Step
     merge_info(key => value)
   end
 
+  def update_info(key, value)
+    info = self.info
+    info[key] = value
+    save_info(info)
+  end
+
+
   def report_status(status, message = nil)
     if message.nil?
       Log.info [Log.color(:status, status, true), Log.color(:task, task_name, true), Log.color(:path, path)] * " "

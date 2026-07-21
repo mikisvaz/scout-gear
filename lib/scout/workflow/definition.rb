@@ -18,7 +18,11 @@ module Workflow
     def directory
       @directory ||= Path.setup('var/jobs')
     end
+    
+  end
 
+  def tasks
+    @tasks ||= {}
   end
 
   def to_s
@@ -235,5 +239,6 @@ module Workflow
     self.tasks.merge! workflow.tasks
     self.tasks.each{|_,t| t.workflow = workflow }
     self.helpers.merge! workflow.helpers
+    self.include workflow
   end
 end

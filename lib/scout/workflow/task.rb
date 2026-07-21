@@ -70,7 +70,7 @@ module Task
 
       id = provided_inputs[jobname_input] if jobname_input && id.nil?
       id = DEFAULT_NAME if id.nil?
-      id = Path.sanitize_filename(id, 150)
+      id = Path.sanitize_filename(id.to_s, 150)
 
       #{{{ Missing inputs
       missing_inputs = []

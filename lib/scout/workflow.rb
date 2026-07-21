@@ -125,6 +125,14 @@ module Workflow
     Workflow.main || Workflow.workflows.last
   end
 
+  def self.locate_workflow_file(workflow_name)
+    workflow_file = workflow_name
+    workflow_file = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
+    workflow_file = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
+    workflow_file = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
+    workflow_file
+  end
+
   def self.require_workflow(workflow_name_orig)
     first = nil
     workflow_name_orig.split("+").each do |complete_workflow_name|
@@ -133,10 +141,7 @@ module Workflow
       Persist.memory(complete_workflow_name, prefix: "Workflow") do
         begin
           workflow_name, *subworkflows = complete_workflow_name.split("::")
-          workflow_file = workflow_name
-          workflow_file = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
-          workflow_file = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
-          workflow_file = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
+          workflow_file = locate_workflow_file workflow_name
 
           if Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
             self.main = nil

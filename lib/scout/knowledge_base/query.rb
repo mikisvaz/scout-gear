@@ -67,8 +67,8 @@ class KnowledgeBase
   end
 
   def _parents(name, entity)
-    repo = get_index name
-    repo.reverse.match(entity)
+    repo = get_index(name).reverse
+    repo.match(entity)
   end
 
   def parents(name, entity)

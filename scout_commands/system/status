@@ -77,7 +77,7 @@ def input_msg(file, inputs)
   inputs.each do |input|
     value = job_inputs[input]
     next if  value.nil?
-    value_str = Misc.fingerprint(value)
+    value_str = Log.fingerprint(value)
     str << "\t#{Log.color :magenta, input}=#{value_str}"
   end
   str

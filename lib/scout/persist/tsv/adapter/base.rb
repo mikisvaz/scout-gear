@@ -24,8 +24,12 @@ module TSVAdapter
 
   def save_annotation_hash
     self.close
+    annotation_hash_serialized = ANNOTATION_ATTR_HASH_SERIALIZER.dump(self.annotation_hash)
+    self.with_read do
+      return if self.orig_get(ANNOTATION_ATTR_HASH_KEY) == annotation_hash_serialized
+    end
     self.with_write do
-      self.orig_set(ANNOTATION_ATTR_HASH_KEY, ANNOTATION_ATTR_HASH_SERIALIZER.dump(self.annotation_hash))
+      self.orig_set(ANNOTATION_ATTR_HASH_KEY, annotation_hash_serialized)
     end
   end
 

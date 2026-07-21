@@ -13,8 +13,10 @@ class Step
   end
 
   def self.load(path)
+    complete = Path.setup('var/jobs')[path]
+    path = complete if ! Open.exists?(path) && complete.exists?
     path = relocate(path) unless Open.exists?(path)
-    #raise "Could not load #{path}" unless Open.exists?(path)
+    path = path.find if Path === path
     s = Step.new path
   end
 
