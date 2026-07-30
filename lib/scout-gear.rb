@@ -3,7 +3,6 @@ require_relative 'scout/tsv'
 
 Path.path_maps[:scout_gear_lib] = File.join(Path.caller_lib_dir(__FILE__), "{TOPLEVEL}/{SUBPATH}")
 
-Persist.cache_dir     = Scout.var.cache.persistence
-TmpFile.tmpdir        = Scout.tmp.find :user
 Resource.default_resource = Scout
-
+Persist.cache_dir     = Path.setup('var').cache.persistence
+TmpFile.tmpdir        = Path.setup('tmp').find :user
