@@ -28,6 +28,9 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   doc=doc{
    documenter.rb
   }
+
+  documentation
+
  }
  bin=bin filter="*"{
   scout
