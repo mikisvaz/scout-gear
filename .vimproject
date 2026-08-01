@@ -322,13 +322,25 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   }
  }
  doc=doc filter="*"{
-  Association.md
-  Entity.md
-  KnowledgeBase.md
-  Persist.md
-  Semaphore.md
-  TSV.md
-  WorkQueue.md
-  Workflow.md
+  Improvements.md
+  StartHere.md
+  user=user{
+   BuildingWorkflows.md
+   CachingData.md
+   Cookbook.md
+   ManagingRelationships.md
+   ProcessingTabularData.md
+   RunningParallelWork.md
+   WorkingWithEntities.md
+  }
+  developer=developer{
+   Architecture.md
+   ConcurrencyModel.md
+   DesignPrinciples.md
+   EntitySystem.md
+   PersistenceEngines.md
+   TSVInternals.md
+   WorkflowEngine.md
+  }
  }
 }
