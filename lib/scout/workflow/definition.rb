@@ -18,7 +18,6 @@ module Workflow
     def directory
       @directory ||= Path.setup('var/jobs')
     end
-    
   end
 
   def tasks

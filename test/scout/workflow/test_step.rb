@@ -394,5 +394,36 @@ class TestWorkflowStep < Test::Unit::TestCase
     end
 
   end
+  
+  def test_cmd_stream
 
+    sss 0
+    tmpfile = tmpdir.test_step
+    step1 = Step.new tmpfile.step1 do |s|
+      CMD.cmd('echo hola; echo adio; sleep 1; cp adsfasdf fasdfasdfa', pipe: true, save_stderr: false)
+    end
+
+    assert_raise ConcurrentStreamProcessFailed do
+      step1.run(true)
+      step1.join
+    end
+
+    assert_raise ConcurrentStreamProcessFailed do
+      step1.run(true)
+      begin
+        Open.consume_stream(step1.stream)
+      ensure
+        step1.stream.join
+      end
+    end
+
+    assert_raise ConcurrentStreamProcessFailed do
+      step1.run(true)
+      begin
+        Open.consume_stream(step1.stream, false, StringIO.new, false)
+      ensure
+        step1.stream.join
+      end
+    end
+  end
 end
