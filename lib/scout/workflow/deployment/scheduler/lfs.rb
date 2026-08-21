@@ -26,7 +26,7 @@ export BATCH_SYSTEM=#{system}
     queue          = IndiferentHash.process_options options, :queue
     task_cpus      = IndiferentHash.process_options options, :task_cpus
     time           = IndiferentHash.process_options options, :time
-    nodes          = IndiferentHash.process_options options, :nodes
+    #nodes          = IndiferentHash.process_options options, :nodes
     workdir        = IndiferentHash.process_options options, :workdir
     exclusive      = IndiferentHash.process_options options, :exclusive
 
