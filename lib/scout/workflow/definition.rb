@@ -16,7 +16,7 @@ module Workflow
     attr_accessor :directory
 
     def directory
-      @directory ||= Path.setup('var/jobs')
+      @directory ||= Path.setup(Scout::Config.get(:directory, :workflow_jobs, :workflow, :jobs, default: 'var/jobs'))
     end
   end
 
