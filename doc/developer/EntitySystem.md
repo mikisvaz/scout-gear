@@ -119,9 +119,8 @@ order.
 type identifier files and translation:
 
 - `add_identifiers(file, default = nil, name = nil, description = nil)`
-  (identifiers.rb:81) includes the mixin, records `format =` for every
-  column of the file (or of every file matched by the `NAMESPACE` glob),
-  and appends the file to `identifier_files`.
+  (identifiers.rb:84) includes the mixin, records `format =` for every
+  column of the file, and appends the file to `identifier_files`.
 - `identifier_files` (identifiers.rb:48) resolves the `NAMESPACE` tag
   against the receiver's `namespace` annotation and **rejects** files that
   still contain an unresolved tag.
@@ -136,15 +135,20 @@ translated identifiers, annotated with the target format; `to(:name)` /
 `default` are thin wrappers over `to`.
 
 ```ruby
-Gene.add_identifiers "var/Research/identifiers/Ensembl Gene ID%toAssociated Gene Name",
+# The identifier file is a plain TSV; its header field names are the
+# formats it registers:
+#   #Ensembl Gene ID,Associated Gene Name
+Gene.add_identifiers "var/Research/identifiers",
                      "Ensembl Gene ID", "Associated Gene Name"
 
-g = Gene.setup("ENSG1")
+g = Gene.setup("ENSG1", format: "Ensembl Gene ID")
 g.to("Associated Gene Name")   # => "GENE1" (annotated, format set)
 g.name                         # => "GENE1"
 ```
 
-Identifier files themselves are TSV files that map one format to another;
+Identifier files are TSVs whose header field names are the identifier
+formats; the source/target pair is chosen at translation time from the
+file's columns, not when the file is defined.
 `TSV.translation_index` builds the index, so the identifier-file machinery
 lives on the TSV layer (see [Processing Tabular
 Data](../user/ProcessingTabularData.md)).

@@ -32,6 +32,8 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   documentation
 
   README_doc
+
+  documentation_fix
  }
  bin=bin filter="*"{
   scout

@@ -146,12 +146,17 @@ Configuration documentation.
 **Recommendation**: Cross-link from configuration docs.
 **Effort**: Low.
 
-### M3. Identifier file convention needs a user-level home
+### M3. Identifier translation semantics need a dedicated section
 
-**Location**: convention `var/<namespace>/identifiers/<source>%to<target>`
-**Issue**: The convention is described in developer docs but not in the
-entity user guide.
-**Recommendation**: Add a section to WorkingWithEntities.md.
+**Location**: `lib/scout/tsv/change_id/translate.rb`
+**Issue**: Identifier files are ordinary TSVs whose header field names are
+the identifier formats (no per-pair file naming). The translate/index
+chain mechanics (`translation_path`, `translation_index`, parenthesized
+header rewriting) were only partly covered and were previously described
+with a nonexistent `<source>%to<target>` file-naming convention.
+**Recommendation**: The mechanism is now documented in
+ProcessingTabularData.md and WorkingWithEntities.md; keep those two
+descriptions consistent.
 **Effort**: Low.
 
 ### M4. Entity `:both` dispatch type is non-intuitive

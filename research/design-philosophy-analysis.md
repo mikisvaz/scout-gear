@@ -155,11 +155,15 @@ configuration.
 
 ### Identifier derivation
 
-Entity formats, identifier translation files, and namespace files all
-follow predictable path conventions:
+Entity formats and identifier translation are driven by the **contents**
+of identifier files, not by path naming: an identifier file is a plain TSV
+whose header field names are the formats it maps between, and the
+source/target pair is selected at translation time from those columns
+(one file can serve any pair of its columns). Workflow/job files, in
+contrast, follow predictable path conventions:
 
 ```
-var/<namespace>/identifiers/<format>%to<format>
+var/jobs/<Workflow>/<task>/<digest>.<ext>
 var/<namespace>/mappings/<type>
 ```
 

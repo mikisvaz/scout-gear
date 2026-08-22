@@ -229,18 +229,50 @@ result = tsv.attach(protein_tsv, fields: ["Protein"],
 - `one2one:` (default true) discards ambiguous joins unless disabled;
   `complete:` adds an empty row for unmatched keys.
 
-## Translating identifiers — `change_id`
+## Translating identifiers — `translate`, `change_id`
+
+An **identifier file** is an ordinary TSV whose header field names are the
+identifier formats it maps between — `#Associated Gene Name,Ensembl Gene
+ID` maps between those two formats, in either direction. A single file can
+serve any pair of its columns; the pair is chosen at translation time.
+
+`tsv.translate(field, format)` (tsv/change_id/translate.rb:116) rewrites
+one column (or the key) into the target format:
 
 ```ruby
-new = TSV.change_id(tsv, "Ensembl Gene ID", "Associated Gene Name")
+# Identifier file: #Name,Alias,ID
+identifiers = TSV.open("test/data/person/identifiers")
+
+marriages = TSV.open("test/data/person/marriages", identifiers: identifiers)
+# key_field "Husband (ID)", fields ["Wife (ID)", "Date"]
+
+names = marriages.translate("Husband (ID)", "Husband (Name)")
+# key_field "Husband (Name)", values translated 001 -> Miguel
 ```
 
-`change_id` (tsv/change_id.rb:33) rewrites keys or a field using
-identifier files following the
-`var/<namespace>/identifiers/<source>%to<target>` convention. The
-instance method `tsv.change_id(...)` is a thin wrapper. Identifier file
-naming and namespaces are described in
-[Working With Entities](WorkingWithEntities.md).
+A parenthesized header keeps its label and swaps its format:
+`Husband (ID)` becomes `Husband (Name)`; a plain header such as `ID`
+becomes simply the target format name.
+
+Mechanics, all in `tsv/change_id/translate.rb`:
+
+- `TSV.translation_path(files, source, target)` (line 20) picks the chain
+  of files: a single file containing both formats, else two files sharing
+  a field, else three; `nil` when no path exists.
+- `TSV.translation_index(files, source, target)` (line 49) builds and
+  persists (`HDB` engine) a lookup TSV from source to target, attaching
+  the files of the chain in sequence. The data TSV itself may participate
+  in the chain.
+- `TSV.translate` rewrites the header (see above) and applies the index
+  row by row; `stream: true` returns a `TSV::Transformer` instead of a
+  materialized TSV.
+
+`change_id(tsv, source_id, new_id)` (tsv/change_id.rb:33) is a thin
+wrapper that swaps one field via `attach`; `change_key` (line 5) re-keys
+the table via the identifier files when the new key field is not already
+present. Files are located from the `identifiers:` option, both tables'
+own fields, and an `identifiers` entry next to the file's directory; see
+[Working With Entities](WorkingWithEntities.md) for entity-declared files.
 
 ## Indexing
 

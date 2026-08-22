@@ -216,17 +216,27 @@ options (prefix includes the target/fields, `index.rb:48-53`).
 
 ## Identifier translation
 
-The TSV system supports identifier translation. Identifier files are
-registered on entity modules via `add_identifiers`
-(`entity/identifiers.rb:85`) or located through the entity's
-`identifier_files` list; there is no implicit `var/<namespace>/identifiers/`
-directory scan.
+Identifier files are ordinary TSVs whose **header field names are the
+identifier formats** they map between (`#Name,Alias,ID` maps between all
+three). The source/target pair is chosen at translation time from the
+file's columns — there is no per-pair file naming and no implicit
+directory scan. Files reach the TSV layer from the `identifiers:` option,
+entity-declared files (`add_identifiers`, `entity/identifiers.rb:84`), or
+auto-discovery of an `identifiers` entry next to the TSV's file
+(`tsv/path.rb:14-21`).
 
-The `change_id` method (`tsv/change_id.rb:43`) translates keys or field
-values using these identifier files.
+The core is `TSV.translation_index(files, source, target)`
+(`tsv/change_id/translate.rb:49`): `translation_path` (line 20) picks a
+chain of up to three files whose columns bridge source to target, the
+first is keyed on `source`, the rest are attached in sequence, and the
+result is sliced to the target column and persisted (`HDB`). The data TSV
+itself may participate in the chain. `TSV.translate` (line 116) applies
+the index and rewrites headers; parenthesized headers
+`Label (Format)` keep the label and swap the format.
 
-The `attach` method can use identifier files to join tables with
-incompatible keys.
+`change_id`/`change_key` (`tsv/change_id.rb`) are attach-based wrappers,
+and `attach` itself builds such an index automatically when the two
+tables' keys do not match (`tsv/attach.rb:79-87`).
 
 ## Attach / Join
 

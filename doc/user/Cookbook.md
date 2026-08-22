@@ -82,28 +82,43 @@ end
 
 ## Join two datasets and translate identifiers
 
-**Goal**: Attach gene names to a dataset that uses Ensembl IDs, using a
-separate identifier file.
+**Goal**: Attach gene names to a dataset that uses Ensembl IDs, using an
+identifier file.
+
+An identifier file is an ordinary TSV whose **header field names are the
+identifier formats** it maps between — for instance a file whose header is
+`#Ensembl Gene ID,Associated Gene Name`. The pair of formats served is
+decided when the translation happens, not when the file is named: one file
+can serve any direction between its columns.
 
 ```ruby
+# Identifier file: header field names ARE the formats
+#   #Ensembl Gene ID,Associated Gene Name
+#   ENSG00000141510,GENE1
+ids = TSV.open("identifiers")
+
 # Main dataset: Ensembl Gene IDs with expression values
-main = TSV.open("expression_ensembl.tsv", type: :list)
+main = TSV.open("expression_ensembl.tsv")
 
-# Identifier file: Ensembl ID → Gene Symbol
-id_file = "var/Research/identifiers/Ensembl Gene ID%toAssociated Gene Name"
-
-# Attach gene names by translating identifiers
-result = main.attach(
-  TSV.open(id_file, type: :single),
-  fields: ["Associated Gene Name"]
-)
+# Attach gene names; keys do not overlap, so `attach` builds a
+# translation index from the identifier file
+result = main.attach(ids, fields: ["Associated Gene Name"])
 ```
 
 **Key points**:
-- `attach` auto-detects the matching key if column names overlap.
-- If keys don't match directly, provide identifier files to enable
-  translation.
-- The result is a new TSV with the gene name column appended.
+- When the tables' keys do not match, `attach` builds a translation index
+  from the `identifiers:` option, both tables, and their identifier files
+  (including an `identifiers` entry next to the file's directory).
+- To translate an existing column instead, use
+  `tsv.translate("Source Gene (Associated Gene Name)", "Ensembl Gene ID")`.
+  A parenthesized header keeps its label and swaps its format:
+  `Source Gene (Associated Gene Name)` becomes
+  `Source Gene (Ensembl Gene ID)`.
+- The result is a new TSV with the requested column appended.
+
+See [Working with Entities](WorkingWithEntities.md) for how entity types
+declare identifier files, and [Processing Tabular
+Data](ProcessingTabularData.md) for the full translation mechanics.
 
 ---
 

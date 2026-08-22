@@ -82,10 +82,13 @@ gene.to("Associated Gene Name")   # => "GENE1", annotated with the target format
 gene.name                         # => "GENE1" (the name format, if registered)
 ```
 
-Identifier files are TSV files that map one format to another, and are
-declared explicitly per entity type — there is no automatic directory
-scan. The conventional layout used by the resource layer is
-`var/<namespace>/identifiers/<source>%to<target>`.
+Identifier files are ordinary TSV files whose **header field names are
+the identifier formats** they map between — for instance a file with the
+header `#Name,Alias,ID` maps between all three formats, in either
+direction, and new format pairs become available by adding columns. The
+source and target formats are chosen at translation time from the file's
+columns; there is no per-pair naming convention. Files are declared
+explicitly per entity type (see below).
 
 ## Defining an entity type
 
@@ -116,10 +119,14 @@ module Research
     # Entity::Identified is included automatically by add_identifiers
     # (or explicitly: `include Entity::Identified`).
 
-    add_identifiers "var/Research/identifiers/Ensembl Gene ID%toAssociated Gene Name",
+    add_identifiers "var/Research/identifiers",
                     "Ensembl Gene ID", "Associated Gene Name"
   end
 end
+
+# The identifier file is a plain TSV whose header names are the formats:
+#   #Ensembl Gene ID,Associated Gene Name,Entrez Gene ID
+#   ENSG00000141510,GENE1,7157
 ```
 
 `add_identifiers` registers every field of the file as a known format,
