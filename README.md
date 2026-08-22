@@ -132,6 +132,8 @@ The entry point for all documentation is
   knowledge bases and query relationships.
 - [Running Parallel Work](doc/user/RunningParallelWork.md) — distribute
   work across multiple processes.
+- [HPC / Batch Execution](doc/user/HPCBatchExecution.md) — run workflows on
+  SLURM, PBS, or LSF clusters.
 - [Caching Data](doc/user/CachingData.md) — persist results to avoid
   redundant computation.
 - [Cookbook](doc/user/Cookbook.md) — practical recipes combining

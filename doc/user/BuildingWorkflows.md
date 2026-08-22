@@ -10,15 +10,15 @@ automate multi-step computations.
 ## What problem does this solve?
 
 A workflow is a graph of computational tasks with dependencies. You need
-to define what each task does, what inputs it requires, what it depends on,
-and how results are stored. Without a framework, you end up writing custom
-scripts for dependency resolution, result caching, provenance tracking, and
-error handling.
+to define what each task does, what inputs it requires, what it depends
+on, and how results are stored. Without a framework, you end up writing
+custom scripts for dependency resolution, result caching, provenance
+tracking, and error handling.
 
-The scout-gear workflow engine handles all of this declaratively. You define
-tasks with a Ruby DSL, declare their dependencies, and the engine resolves
-the dependency graph, runs tasks in the right order, streams results
-between tasks, persists outputs, and tracks full provenance.
+The scout-gear workflow engine handles all of this declaratively. You
+define tasks with a Ruby DSL, declare their dependencies, and the engine
+resolves the dependency graph, runs tasks in the right order, streams
+results between tasks, persists outputs, and tracks full provenance.
 
 ## When do I use it?
 
@@ -72,7 +72,9 @@ job = Baking.job(:mix_ingredients, flour: "100g", sugar: "50g")
 
 Each job has a unique path derived from its inputs, so results are cached
 automatically. Running the same job twice returns the cached result
-without re-executing.
+without re-execution. Job objects are themselves `Step` objects and are
+memoized per task/id/inputs, so repeated `.job` calls return the same
+object.
 
 ### Dependency
 
@@ -101,19 +103,29 @@ task :recipe => :string do
 end
 ```
 
-Supported input types: `:string`, `:integer`, `:float`, `:boolean`,
-`:tsv`, `:array`, `:file`, `:select` (with options).
+Input types are used for CLI rendering and for value coercion when a
+String is provided: `:integer` and `:float` strings are converted
+(`format_input`), and filename-like Strings for loadable types are loaded
+or deserialized (unless the input is a `:path`/`:file`/`:folder`/
+`:binary`/`:tsv` or has `noload:`/`stream:`/`asfile:` options). Any
+`:<type>_array` type maps each element individually.
 
-### Return types
+### Return types and file extensions
 
-Declare what a task returns with `returns`:
+Declare what a task returns with `returns` (or inline on `task`). Types
+with a default file extension get one automatically (`:tsv` → `.tsv`,
+`:yaml` → `.yaml`, `:json` → `.json`, `:marshal` → `.marshal`);
+everything else defaults to `.binary`. Override with `extension`:
 
 ```ruby
-returns :tsv
-task :process => :tsv do
-  # Must return a TSV
+extension :csv
+task :export => :tsv do
+  # Result file will be named <digest>.csv
 end
 ```
+
+A task declared with a bare Symbol/String name (no `=>`) defaults to
+`:binary` type.
 
 ### Helpers
 
@@ -128,17 +140,6 @@ end
 
 task :proportions => :array do
   normalize([1, 2, 3])
-end
-```
-
-### Extensions
-
-Set the file extension for results:
-
-```ruby
-extension :csv
-task :export => :tsv do
-  # Result file will be named <digest>.csv
 end
 ```
 
@@ -189,13 +190,15 @@ end
 
 ### Dependency options
 
-Control how dependencies are computed:
+Control how dependencies are computed with `compute:`:
 
-```ruby
-dep :risky, compute: :canfail    # Don't fail this task if dependency fails
-dep :large, compute: :produce    # Only produce (don't load into memory)
-dep :streaming, compute: :stream # Force streaming
-```
+- `dep :risky, compute: :canfail` — the task continues if the dependency
+  fails (the failure is logged, and the task still runs).
+- `dep :large, compute: :produce` — run the dependency to completion but
+  do not load its result into memory.
+- `dep :streaming, compute: :stream` — force streaming (the default
+  behavior unless `SCOUT_EXPLICIT_STREAMING=true`).
+- `dep :big, compute: false` — do not run this dependency at all.
 
 ## Creating and running jobs
 
@@ -206,8 +209,10 @@ job = MyWorkflow.job(:task_name, "job_id", input_one: "value", input_two: 42)
 ```
 
 - The first argument is the task name.
-- The second (optional) argument is the job ID (defaults to "Default").
+- The second (optional) argument is the job ID (defaults to `"Default"`).
 - The keyword arguments are the input values.
+- If the first argument is a Hash/Array of inputs instead of an ID, it is
+  used as the provided inputs (both orders are accepted).
 
 ### Running a job
 
@@ -221,22 +226,23 @@ result = job.run.load
 # Produce (compute and persist, without loading the result)
 job.produce
 
-# Run in a forked process
+# Run in a forked child process (job.fork, step.rb:291)
 job.fork
-job.join
+job.join                       # join: step.rb:382
 
-# Force streaming
-job.run(true)  # true = stream
+# Run with a specific no-load/streaming mode (job.run, step.rb:171)
+job.run(true)   # or :stream — no_load = :stream
+job.run(:no_load) # do not load the result into memory
 ```
 
 ### Checking status
 
 ```ruby
-job.done?       # Has the result been computed?
-job.running?    # Is it currently running?
-job.error?      # Did it raise an error?
-job.aborted?    # Was it aborted?
-job.updated?    # Is the result newer than all dependencies?
+job.done?       # status == :done (step.rb:312)
+job.running?    # info[:status] == :running (info.rb:194)
+job.error?      # info[:status] == :error or :aborted (info.rb:186)
+job.aborted?    # info[:status] == :aborted (info.rb:190)
+job.updated?    # result newer than all dependencies (status.rb:42)
 ```
 
 ### Cleaning (re-running)
@@ -255,9 +261,11 @@ convention:
 var/jobs/<Workflow>/<task>/<digest>.<ext>
 ```
 
-The digest is computed from the job's inputs and dependency signatures.
-If you run the same job again with the same inputs, the cached result is
-returned. If inputs change, a new path is generated.
+The base directory defaults to `var/jobs` (configurable through the
+`directory` / `workflow_jobs` config key). The digest is computed from
+the job's inputs and dependency signatures. If you run the same job
+again with the same inputs, the cached result is returned. If inputs
+change, a new path is generated.
 
 ### Provenance (info file)
 
@@ -274,16 +282,20 @@ Each job has a `.info` sidecar file recording:
 ### Auxiliary files
 
 Jobs that produce files (not just single result files) store them in a
-`.files/` directory next to the result file. Use the `file` method inside
-a task:
+`<path>.files/` directory next to the result file. Use the `file` method
+inside a task:
 
 ```ruby
 task :multi_output => :file do
   f = file("extra_data.txt")
-  File.write(f, "some data")
-  # The result path is the main output; extra_data.txt is in .files/
+  Open.write(f, "some data")
+  # The result path is the main output; extra_data.txt is in <path>.files/
 end
 ```
+
+`files` lists them; `files_dir` is the directory itself. Job objects can
+be passed where a path is expected and resolve to the result file, while
+`file("name")` resolves inside `.files/`.
 
 ## Including workflows
 
@@ -299,31 +311,45 @@ module Combined
 end
 ```
 
+`include_workflow` copies the tasks (each keeping its own job directory
+and namespace) and makes its helpers available.
+
 ## Running on HPC clusters
 
 The workflow engine supports deployment to SLURM, PBS, and LSF schedulers,
-with optional Singularity container isolation.
+with optional Singularity container isolation. Batch rules are provided
+as scout configuration (YAML under `~/.scout/etc/batch`), not as
+in-process Hashes:
 
-```ruby
-The `produce` method submits jobs to the cluster using scheduler rules.
+```yaml
+MyWorkflow:
+  defaults:
+    time: 1h
+  task_name:
+    task_cpus: 4
+    queue: normal
 ```
 
-Where `rules` is a hash specifying resource requirements (time, memory,
-CPUs, queue, container settings, etc.) per task or workflow.
-
-For details on batch configuration, see the developer documentation on the
-[Workflow Engine](../developer/WorkflowEngine.md).
+`Workflow::Scheduler.process_job` submits the job with those batch
+options (engine from `system` / `BATCH_SYSTEM`). See
+[HPC / Batch Execution](HPCBatchExecution.md) for the full option list
+and the `scout batch` CLI.
 
 ## Common patterns
 
 ### Pass-through tasks (aliases)
 
-Create a task that simply forwards a dependency's result:
+Create a task that simply forwards another workflow's result:
 
 ```ruby
-dep :upstream_task
-task_alias :downstream_view
+task_alias :downstream_view, OtherWorkflow, :upstream_task
 ```
+
+`task_alias` takes the new name, the source workflow, and the source
+task; it declares the dependency, inherits type/returns, joins the
+dependency before finishing, and merges its info. `forget_dep_tasks`
+config (or `SCOUT_FORGET_DEP_TASKS=true`) keeps or drops the dependency
+results from disk when the alias completes.
 
 ### Task that depends on all upstream results
 
@@ -344,21 +370,25 @@ end
 - **Forgetting `.load`**: `step(:name)` returns a Step object, not the
   result. Call `.load` (or `.path` for the file path).
 - **Using `task` before declaring inputs**: `input`, `desc`, `dep`, and
-  `returns` must be called before the `task` definition.
+  `returns` are "annotate next task" declarations and must be called
+  before the `task` definition; anything declared after the task applies
+  to the following task instead.
 - **Expecting cached results after code changes**: If you change the task
   block code, the old cached result is still used because the path is
   derived from inputs, not code. Use `job.clean` to force re-execution.
-- **Passing non-serializable objects as inputs**: Job inputs are serialized
-  for the info file. Avoid Procs, file handles, or other non-serializable
-  objects.
-- **Not handling streaming dependencies**: By default, dependencies stream
-  their results. If your task reads the dependency result multiple times,
-  call `.load` to materialize it first.
+- **Passing non-serializable objects as inputs**: Job inputs are
+  serialized for the info file. Avoid Procs, file handles, or other
+  non-serializable objects.
+- **Not handling streaming dependencies**: By default, dependencies
+  stream their results (pass `compute: :produce` to avoid loading, or
+  set `SCOUT_EXPLICIT_STREAMING=true` and opt in per-dependency with
+  `compute: :stream`). If your task reads the dependency result multiple
+  times, call `.load` to materialize it first.
 
 ## See also
 
-- [scout-essentials: Annotating Data](https://github.com/mikisvaz/scout-essentials/blob/main/doc/user/AnnotatingData.md)
-- [scout-essentials: Caching Results](https://github.com/mikisvaz/scout-essentials/blob/main/doc/user/CachingResults.md)
 - [Processing Tabular Data](ProcessingTabularData.md)
 - [Caching Data](CachingData.md)
+- [HPC / Batch Execution](HPCBatchExecution.md)
 - [Cookbook](Cookbook.md)
+- [Workflow Engine](../developer/WorkflowEngine.md) — internals.

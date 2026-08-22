@@ -1,83 +1,80 @@
 # Managing Relationships
 
 This document explains how to represent and query relationships between
-entities using the Association and KnowledgeBase systems.
+entities using the Association and KnowledgeBase subsystems.
 
-It is intended for workflow authors and data analysts who need to model and
-query complex relationships between entities (e.g., gene-protein
-interactions, drug-target associations, pathway memberships).
+It covers: registering associations, declaring source/target entity types
+and formats, building persisted indexes, and querying related entities.
 
-## What problem does this solve?
-
-When analyzing data, you often need to answer questions like:
-
-- What proteins are produced by this gene?
-- Which drugs target this protein?
-- What pathways is this gene part of?
-- List all genes that interact with this set of genes.
-
-These are relationship queries over a graph of entities. Without a
-framework, you'd write custom code for each relationship type, manage
-indexes manually, and reimplement traversal logic.
-
-The KnowledgeBase system lets you:
-
-- Register relationship datasets (associations) by name.
-- Query relationships by source, target, or both.
-- Traverse the graph (find all entities reachable from a starting point).
-- Use the same query API regardless of the underlying data format.
-
-## When do I use it?
-
-- When you have multiple relationship datasets (interaction files, pathway
-  files, etc.) and need a unified query API.
-- When you need to traverse relationships (find all genes connected to a
-  given drug through any path).
-- When you want to attach relationship data to Entity properties (e.g.,
-  `gene.interactions`).
-- When you want to build reports or summaries across multiple relationship
-  types.
-
-## Core concepts
+## Overview
 
 ### Association
 
-An Association is a dataset describing relationships between two entity
-types. It's defined by:
-
-- A **source** entity type and field
-- A **target** entity type and field
-- Additional **fields** (e.g., interaction type, score)
-
-An association is typically loaded from a TSV file where the source and
-target identifiers are in specific columns.
+An association is a TSV file (or TSV object, or block that produces one)
+that links two entity types. Registering it builds a lookup index — a
+two-way TSV (`type: :double`) whose key is `source~target` pairs.
 
 ### KnowledgeBase
 
-A KnowledgeBase is a registry of associations. You register associations
-by name, and then query them using a consistent API.
+A KnowledgeBase is a registry of associations under a directory. Register
+associations by name, then query them.
 
 ```ruby
-kb = KnowledgeBase.new("MyStudy")
+kb = KnowledgeBase.new("var/MyStudy")   # dir for kb + entity/identifiers
 kb.register :geneprotein, "gene_protein.tsv",
-            :source => "Ensembl Gene ID=~Gene", :target => "Ensembl Protein ID=~Protein"
-
-kb.register :pathway, "pathway_membership.tsv",
-            :source => "Pathway ID=~Pathway", :target => "Ensembl Gene ID=~Gene"
+            source: "Ensembl Gene ID=~Gene", target: "Ensembl Protein ID=~Protein"
 ```
+
+`KnowledgeBase.new(dir)` stores its state under `dir` (knowledge_base.rb:16);
+`kb.register(name, file=nil, options={}, &block)` accepts a file path, a
+TSV, or a block returning a TSV (registry.rb:5).
+
+### Field specifications
+
+Source/target use the syntax `"Format name=~Entity type"`:
+
+- `"Ensembl Gene ID=~Gene"` — Ensembl-format Gene entities.
+- `"Uniprot Accession=~Protein"` — Uniprot-format Protein entities.
+
+The format part is used for identifier translation; the entity-type part
+(what follows `=~`) selects the Entity module used to annotate results
+(association/fields.rb). Entity types must be registered for the KB
+namespace via the Entity registry (see
+[Working with Entities](WorkingWithEntities.md)) before they can be used
+in field specifications.
+
+The keyword form without `=~` — `"Field name (Format)"` — and the plain
+`source:`/`target:` option form (`source: '=>Initials'`) are legacy rbbt
+syntax; scout-gear's own field parser handles the `=~` form. Downstream
+workflows (e.g. AGS) still written against rbbt use the legacy forms.
 
 ### Traverser
 
-The Traverser is the query engine for the KnowledgeBase. It lets you find
-related entities by following associations.
+The Traverser (`kb.traverse`) is the query engine that follows
+associations. It understands a rule language of the form
+`SOURCE DATABASE TARGET`, e.g.:
 
 ```ruby
-# Find all proteins for a gene
-kb.traverser(:geneprotein, "ENSG00000141510", :p)
+kb.traverse ["Clei~Guille brothers Isa~Miki"]
 ```
 
-The traverser knows about the direction (source to target or target to
-source) and can combine multiple associations into paths.
+Rule element forms (traverse.rb:13-28, 60-66):
+
+- literal entity `"Clei~Guille"` — a single `source~target` key;
+- `?name` — wildcard, bound by earlier rules and carried forward;
+- `:name` — named list, resolved with `kb.load_list(name)`;
+- `DATABASE@kb` / wildcards in the database name — select across
+  registered databases (traverse.rb:166-186);
+- trailing `- conditions` — AssociationItem field conditions
+  (traverse.rb:197-200).
+
+`kb.traverse(rules, true)` skips path reconstruction
+(traverse.rb:280-285).
+
+The Traverser is exercised by scout-gear's own tests
+(test/scout/knowledge_base/test_traverse.rb) but is **not used by any of
+the four audited downstream workflows**; treat it as an advanced
+engine-level API.
 
 ## Defining associations
 
@@ -87,93 +84,87 @@ source) and can combine multiple associations into paths.
 kb.register :name, "data.tsv", **options
 ```
 
-Options:
-
 | Option | Purpose |
 |--------|---------|
-| `:source` | Source field specification (see below) |
-| `:target` | Target field specification (see below) |
-| `:fields` | Additional fields to include |
-| `:namespace` | Namespace for identifier translation |
-| `:persist` | Persist the index for reuse |
+| `:source` / `:target` | Field specification (see above) |
+| `:fields` | Additional fields to include in the index |
+| `:undirected` | Treat the association as undirected |
+| `:persist` | Persist the index (engine, e.g. `true`, `:HDB`) |
 
-### Field specifications
+`:persist` delegates to the Persist engine list; see
+[Persistence Engines](../developer/PersistenceEngines.md).
 
-Source and target are specified using the syntax:
-```
-"Format name=~Entity type"
-```
+### What registration builds
 
-For example:
-- `"Ensembl Gene ID=~Gene"` — The field uses Ensembl Gene ID format and
-  maps to the `Gene` entity.
-- `"Uniprot Accession=~Protein"` — Uniprot format, `Protein` entity.
-
-This tells the KnowledgeBase which entity type each column represents and
-what identifier format it uses, enabling identifier translation and entity
-property integration.
+`kb.register` normalises the source data through `Association.index`
+(association/index.rb), producing a `type: :double` TSV keyed by
+`source~target` strings, with the key field split into
+`source_entity`/`target_entity` fields for query convenience
+(`kb.get_index(name)` returns this TSV; registry.rb:71).
 
 ## Querying relationships
 
-### Find related entities
+### Direct lookups
 
 ```ruby
-# Source to Target
-kb.find(:geneprotein, "ENSG00000141510", :p)
+# children/parents for a node (query.rb)
+kb.children(:geneprotein, "ENSG00000141510")  # source -> target
+kb.parents(:geneprotein, "ENSP00001")         # target -> source
+kb.neighbours(:geneprotein, "ENSG00000141510") # => {parents: [...], children: [...]}
 
-# Target to Source
-kb.find(:geneprotein, :p, "ENSP00001")
+# subset: all matches for a node or set of nodes; returns an AnnotatedArray
+# of AssociationItem (query.rb:15)
+kb.subset(:geneprotein, "ENSG00000141510")
 
-# All relationships for a set of entities
-kb.find(:geneprotein, ["ENSG00001", "ENSG00002"], :p)
+# count is NOT a KB method; use subset(...).length or traverse matches
 ```
+
+`kb.source(name)` / `kb.target(name)` return the *field names* of the
+index (`pair(name)[0]/[1]` from `get_index(name).key_field.split("~")`,
+registry.rb:53-60) — not entity lists.
 
 ### Using Entity properties
 
-Once associations are registered, you can define entity properties that
-query the KnowledgeBase:
+Association results are annotated with the entity types declared in the
+field specifications, so entity properties apply:
 
 ```ruby
 module Research
   module Gene
     extend Entity
     property :proteins do
-      kb = KnowledgeBase.new("Research")
-      kb.find(:geneprotein, self, :p)
+      kb = KnowledgeBase.new("var/Research/knowledge_base")
+      kb.children(:geneprotein, self).target_entity
     end
   end
 end
 
 gene = Research::Gene.setup("ENSG00000141510")
-gene.proteins  # => list of proteins associated with this gene
+gene.proteins  # => annotated Protein entities
 ```
 
-### Counting and summarizing
-
-```ruby
-count = kb.count(:geneprotein, "ENSG00000141510", :p)
-```
+`KnowledgeBase.get_kb` does **not exist** in scout-gear; construct the kb
+with `KnowledgeBase.new(dir)` where you need it (knowledge_base.rb:16).
 
 ### Using the index directly
 
 ```ruby
-index = kb.get_index(:geneprotein)
-index["ENSG00000141510"]  # => all rows for this gene
+index = kb.get_index(:geneprotein)   # TSV, type: :double
+index.keys.sample                    # => "ENSG00000141510~ENSP00001"
+index["ENSG00000141510~ENSP00001"]   # => {"source_entity" => [...], "target_entity" => [...]}
 ```
 
-## Traversing the graph
+## AssociationItem
 
-The Traverser can follow multiple associations to find indirectly related
-entities:
+`kb.subset` / `kb.children` / `kb.parents` return AssociationItems — the
+`source~target` string annotated with `knowledge_base`, `database` and
+`reverse` (association/item.rb:4-8). Useful properties:
 
-```ruby
-# Find all drugs that target proteins of this gene
-path = kb.subset(:geneprotein, :drugtarget)
-result = kb.traverse(path, "ENSG00000141510")
-```
-
-The traverse path is a sequence of association names. The Traverser
-follows each association in order, collecting entities at each step.
+- `source_entity` / `target_entity` — annotated entities at each end
+  (array2single);
+- `info` / `name` / `full_name`;
+- `invert` — swap ends and flip `reverse` (:both, item.rb:20-35);
+- `part` — `[[source, target], ...]` partitions (:array2single).
 
 ## Persistence
 
@@ -184,29 +175,33 @@ kb.register :geneprotein, "data.tsv", persist: true
 ```
 
 This builds a database index on first load and reuses it on subsequent
-loads. See [Caching Data](CachingData.md) for details on persistence
-engines.
+loads. See [Caching Data](CachingData.md) for persistence engines.
 
 ## Common mistakes
 
-- **Wrong field specification format**: The `=~` syntax must separate the
-  identifier format from the entity type. Check that formats match your
-  data.
-- **Not persisting large associations**: Building an index for a large
-  association file is expensive. Use `persist: true` to avoid rebuilding.
-- **Confusing source and target direction**: `find(name, source, target)`
-  expects specific directions. If you get empty results, try swapping the
-  arguments or using `:p` (positive direction) vs `:n` (negative direction).
-- **Expecting KnowledgeBase to be thread-safe**: The KnowledgeBase and its
-  indexes are not designed for concurrent writes. Use them from a single
-  thread, or build indexes in advance and share read-only.
-- **Not registering all associations before traversing**: The Traverser
-  needs all associations in its path to be registered. Register everything
-  you need before querying.
+- **Wrong field specification format**: the `=~` syntax must separate the
+  identifier format from the entity type. The legacy `field (Format)`
+  syntax belongs to rbbt KnowledgeBase; scout-gear parses `=~`.
+- **Not persisting large associations**: building an index over a large
+  association file is expensive; use `persist:` to avoid rebuilding.
+- **Confusing source and target direction**: `children` follow
+  source→target, `parents` the reverse. `kb.source`/`kb.target` return
+  field *names*, not entities.
+- **Expecting `kb.find`/`kb.count`**: these are not scout-gear KnowledgeBase
+  methods. Use `subset`/`children`/`parents`/`neighbours`, or the
+  Traverser.
+- **Expecting KnowledgeBase to be thread-safe**: indexes are built once and
+  shared; concurrent writes are not part of the design. Build indexes in
+  advance or serialize writes.
+- **Not registering all associations before traversing**: the Traverser
+  needs every database named in its rules to be registered first.
 
 ## See also
 
-- [Working with Entities](WorkingWithEntities.md)
-- [Processing Tabular Data](ProcessingTabularData.md)
-- [Caching Data](CachingData.md)
+- [Working with Entities](WorkingWithEntities.md) — entity modules and
+  annotation of results.
+- [Processing Tabular Data](ProcessingTabularData.md) — the TSV layer
+  underneath association files.
+- [Caching Data](CachingData.md) — persistence usage.
+- [Persistence Engines](../developer/PersistenceEngines.md) — engine list.
 - [Cookbook](Cookbook.md)

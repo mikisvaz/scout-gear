@@ -1,8 +1,8 @@
 # Caching Data
 
 This document explains how to persist computed results to avoid redundant
-computation. It covers choosing the right persistence engine, managing
-cache invalidation, and using persistence within workflows.
+computation: choosing a persistence engine, controlling cache
+invalidation, and using persistence inside workflows.
 
 It is intended for workflow authors who process large datasets and need
 reliable caching.
@@ -10,25 +10,38 @@ reliable caching.
 ## What problem does this solve?
 
 When you process large datasets, recomputing results on every run is
-expensive. You need to cache results so that subsequent runs reuse them.
-But caching introduces questions:
+expensive. You want to cache results so that subsequent runs reuse them.
+That raises questions:
 
-- What storage format is best for my data? (In-memory hash? A persistent database?
-  database? Custom binary format?)
-- How do I know if the cache is still valid?
-- Where should cached data be stored?
+- What storage format fits my data? (in-memory hash, key-value database,
+  custom binary format)
+- How do I know whether a cache is still valid?
+- Where is cached data stored?
 - What if the data is too large for memory?
 
-Scout-gear's persistence system handles all of these. It provides multiple
-storage engines, automatic cache invalidation based on the source data,
-and integration with the workflow system.
+Scout-gear's persistence layer answers these by combining the generic
+`Persist` machinery from the scout-essentials dependency with a set of
+storage engines implemented in this repository.
+
+## Where persistence lives (ecosystem split)
+
+- **scout-essentials** (dependency) defines the core `Persist.persist`
+  mechanism: path resolution, the `:update`/`:check` invalidation
+  controls, `Persist.memory` in-process caching, and the `save_drivers` /
+  `load_drivers` registries.
+- **scout-gear** (this repository) adds the heavy storage **engines**
+  (`lib/scout/persist/engine/`) and the TSV-to-engine integration
+  (`lib/scout/persist/tsv.rb`, `TSVAdapter`) that lets whole TSV objects
+  live inside a database.
+
+If a claim below is about `Persist.persist` itself, its authoritative
+description lives in the scout-essentials documentation.
 
 ## When do I use it?
 
-- When you process large TSV files and want to avoid re-parsing them on
-  every run.
-- When building indexes that are expensive to compute.
-- When you want workflow results to be cached automatically.
+- When you parse large TSV files and want to skip re-parsing.
+- When you build expensive indexes.
+- When you want workflow results cached automatically.
 - When you need range or position indexes for coordinate-based lookups.
 
 ## Core concepts
@@ -36,140 +49,141 @@ and integration with the workflow system.
 ### Automatic persistence in workflows
 
 Every workflow job result is persisted automatically. The result path is
-derived from the job's inputs and dependency signatures, so:
+derived from the job's inputs and dependency signatures:
 
-- If you run the same job again, the cached result is returned.
-- If inputs change, a new path is generated (new result).
-- If you clean the job (`job.clean`), the result is recomputed.
+- Running the same job again returns the cached result.
+- Changed inputs generate a new path (a new result).
+- `job.clean` removes the result so it is recomputed.
 
-You don't need to do anything special to get workflow caching — it's built
-in.
+You do not need to do anything special to get workflow caching — it is
+built in. (See [Building Workflows](BuildingWorkflows.md).)
 
 ### Explicit persistence with Persist
 
-For data that isn't a workflow result, use the `Persist.persist` method:
+For data that is not a workflow result, use `Persist.persist`:
 
 ```ruby
-result = Persist.persist("data_identifier", :HDB, prefix: "MyIndex") do |filename|
-  # This block only runs if the cache is invalid or doesn't exist
+result = Persist.persist("data_identifier", :HDB) do |filename|
+  # Runs only when the cache is missing or :update / :check demand it
   expensive_computation
 end
 ```
 
-`Persist.persist` checks if a valid cache exists. If it does, the cached
-result is loaded. If not, the block is executed, and the result is saved
-to `filename`.
+`Persist.persist` (implemented in scout-essentials) resolves `filename`
+under the persistence directory, checks whether a valid database is
+already there, and either loads it or runs the block to build it. When
+the block receives `filename`, the result is the engine object opened on
+that path (this is what `Persist.tsv` does).
 
-### Persistence for TSV
+### TSV persistence
 
-When opening a TSV, use the `persist: true` option to store it in a
-database:
+To persist a TSV, use `Persist.tsv` (or `Persist.persist_tsv`, which is
+its option-parsing wrapper):
 
 ```ruby
-tsv = TSV.open("large_file.tsv", persist: true, engine: :HDB)
+db = Persist.tsv("my_table", engine: :HDB) do |data|
+  TSV.traverse("large_file.tsv") do |key, values|
+    data[key] = values
+  end
+end
 ```
 
-First load populates the database; subsequent loads read from it directly,
-skipping the parser.
+The block receives the opened database (a `TSVAdapter`), which behaves
+like a TSV: it supports `[]`, `keys`, `through`, field and type
+metadata, and persistence annotations. Opening a TSV **from** a database
+file uses the same drivers:
 
-## Choosing a persistence engine
+```ruby
+tsv = TSV.open("var/databases/my_table")   # TokyoCabinet database path
+```
 
-Different engines suit different use cases:
+`TSV.open` detects an existing database and uses `TSVAdapter` instead of
+parsing text.
 
-| Code | Best for |
-|------|----------|
-| `:HDB` | General-purpose key-value storage, fast lookups (default) |
-| `:BDB` | Range queries, ordered access on the key |
-| `:tkrzw` | Modern alternative to the default engine |
-| `:fwt` | Coordinate-based range queries (e.g., genomic positions) |
-| `:pi` | Compact integer-to-integer indexes |
-| `:sharder` | Splitting a large database across multiple files |
+## Engines implemented here
 
-### When to use which engine
+Engines live in `lib/scout/persist/engine/` and are opened through
+`Persist.open_database(path, write, serializer, engine, options)`
+(`lib/scout/persist/tsv.rb:27`). The dispatch is narrower than the file list
+suggests:
 
-- **`:HDB`** is the default for most TSV data. It provides O(1) lookups
-  and handles large datasets well.
-- **`:BDB`** is for when you need ordered access or range queries on the
-  key itself.
-- **`:fwt`** is used for genomic coordinate lookups. It's built
-  automatically by `TSV.range_index`.
-- **`:sharder`** splits a large database into multiple files (shards) based
-  on a shard function. Useful when a single database file would be too large.
+- `"HDB"` (default; `:HDB` also accepted) and `"BDB"`/`:BDB` open TokyoCabinet
+  databases; a `":big"` suffix (e.g. `"BDB:big"`) tunes them with
+  `TLARGE|TDEFLATE`.
+- `"fwt"` (String) opens a FixWidthTable — it needs `value_size` and `range`
+  options; `TSV.range_index` supplies them for you.
+- `"pki"` (String) opens a PackedIndex — it needs a `pattern` mask array such
+  as `%w(i i 23s f f f f f)`.
+- **Anything else raises** (`NoMethodError: undefined method 'new' for an
+  instance of String`), including `"tkrzw"` and the Symbol `:fwt` (the case
+  arms match Strings only).
+
+### Choosing an engine
+
+- **`"HDB"`** is the default (`Persist.tsv` defaults `engine: :HDB`).
+  O(1) key lookups, good general choice.
+- **`"BDB"`** when you need ordered key access or range scans over keys.
+- **`"fwt"`** for genomic-coordinate lookups; `TSV.range_index` builds it
+  for you.
+- **`"pki"`** for compact integer-position indexes.
+- **Sharding** is not an engine name: `Persist.tsv` builds a Sharder
+  automatically when you pass `persist_options[:shard_function]`
+  (`persist/tsv.rb:55-58`), wrapping per-shard engines such as `'pki'` or
+  `'HDB'`.
+- Tkrzw adapter code exists (`engine/tkrzw.rb`) but is not loaded by the
+  framework and cannot be selected through `open_database`; see
+  [Persistence Engines](../developer/PersistenceEngines.md).
 
 ## Cache invalidation
 
-Cache invalidation is based on the source data and the persistence prefix.
+`Persist.persist` decides whether to rebuild the block result using the
+persistence options (`:update`, `:check` — defined in scout-essentials),
+plus how the data was saved.
 
-### Prefix-based invalidation
+### Changing the identifier (versioning)
 
-Each persisted result has a prefix that identifies the operation:
+Cache identity is the `id` (the first argument) combined with any
+`:prefix`-style options and the engine type. Change the identifier (or
+bump the prefix) to force a rebuild when your processing code changes:
 
 ```ruby
-Persist.persist("my_data", :HDB, prefix: "Step1") { ... }
+Persist.persist("my_data:v2", :HDB) { ... }   # new cache entry
 ```
 
-If the prefix changes, a new cache is created. This lets you version your
-processing pipeline: changing the prefix forces recomputation.
+Code changes alone do **not** invalidate a cache: the cached value is
+keyed by identifier, not by the block body.
 
 ### Source-based invalidation
 
-For TSV persistence, the cache is invalidated when the source file changes:
-
-```ruby
-tsv = TSV.open("data.tsv", persist: true)
-# If data.tsv is modified, the cache is rebuilt on next load
-```
-
-This uses file modification time and size to detect changes.
+Data-flow helpers that read from files (for example TSV index helpers)
+pass the source file as the identifier or include it in the cache
+options, so a changed source produces a different cache identity.
+Inspect each helper's implementation for exactly what it includes.
 
 ### Manual invalidation
 
-Force recomputation by cleaning the cache:
-
-```ruby
-# Remove all persisted data for a workflow
-job.clean
-
-# Remove persisted TSV
-FileUtils.rm_rf(Persist.persistence_path("my_data", :HDB, prefix: "MyIndex"))
-```
-
-## Persistence within TSV operations
-
-Many TSV operations accept persistence options:
-
-```ruby
-# Persist the result of an index operation
-index = TSV.index(tsv, target: "GeneName", persist: true)
-
-# Persist the result of a range index
-index = TSV.range_index(tsv, "start", "end", persist: true)
-
-# Persist attach results
-result = tsv.attach(other_tsv, persist: true)
-```
+- `job.clean` for workflow results.
+- Delete the database directory for a `Persist.persist`/`Persist.tsv`
+  identifier (under the persistence directory).
+- `Persist::CONNECTIONS` caches open databases per path; deleting files
+  while a process holds a connection affects only later opens.
 
 ## Common mistakes
 
-- **Choosing the wrong engine**: If you need range queries, don't use
-  `:HDB`. Use `:BDB` or `:fwt`. If your data is small, an in-memory hash is
-  fine (no persistence needed).
-- **Forgetting to persist indexes**: Building an index over a large file is
-  expensive. Always use `persist: true` for indexes you'll reuse.
-- **Stale caches after code changes**: If you change the processing logic
-  inside a `Persist.persist` block, the old cache is still used. Change the
-  prefix or clean the cache to force recomputation.
-- **Using persistence for one-off computations**: If you're only computing
-  something once, persistence adds overhead. Use it for data you'll reload
-  repeatedly.
-- **Not cleaning test caches**: During development, old cache files can
-  accumulate in `var/`. Periodically clean with `rm -rf var/jobs/` and
-  `rm -rf var/databases/` to start fresh.
+- **Choosing the wrong engine**: range queries need `:BDB` or `:fwt`,
+  not `:HDB`.
+- **Forgetting to persist indexes**: index construction over large files
+  is expensive; persist indexes you will reuse.
+- **Stale caches after code changes**: caches are keyed by identifier,
+  not by code. Bump the identifier/prefix or delete the database.
+- **Expecting persistence to make results immutable**: engines open in
+  write mode by default; treat the returned object as a live database.
 
 ## See also
 
-- [scout-essentials: Caching Results](https://github.com/mikisvaz/scout-essentials/blob/main/doc/user/CachingResults.md)
-- [scout-essentials: Producing Resources](https://github.com/mikisvaz/scout-essentials/blob/main/doc/user/ProducingResources.md)
-- [Building Workflows](BuildingWorkflows.md)
-- [Processing Tabular Data](ProcessingTabularData.md)
+- [Processing Tabular Data](ProcessingTabularData.md) — `persist: true`
+  in TSV operations.
+- [Persistence Engines](../developer/PersistenceEngines.md) — engine
+  internals.
+- [Building Workflows](BuildingWorkflows.md) — automatic job caching.
 - [Cookbook](Cookbook.md)

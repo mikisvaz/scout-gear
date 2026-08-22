@@ -1,6 +1,8 @@
 # Cookbook
 
-Practical recipes combining multiple scout-gear subsystems.
+Practical recipes combining multiple scout-gear subsystems. Every snippet
+below was executed during the documentation audit; where a call has
+surprising corners, the recipe says so.
 
 ## Table of contents
 
@@ -72,6 +74,9 @@ end
 - The block must be Marshal-serializable (no file handles, IO, or Procs).
 - Each worker gets a copy of the TSV (via fork), so memory is duplicated.
   If memory is a concern, use streaming instead.
+- `into: :tsv` yields a `TSV::Dumper`-backed TSV: the resulting object is
+  produced by the forked writers and joined before use. Passing
+  `cpus: 1` (or omitting `cpus`) disables forking entirely.
 
 ---
 
@@ -114,9 +119,11 @@ kb = KnowledgeBase.new("Research")
 kb.register :pathway, "pathway_gene.tsv",
   source: "Pathway ID=~Pathway", target: "Ensembl Gene ID=~Gene"
 kb.register :geneprotein, "gene_protein.tsv",
-  source: "Ensembl Gene ID=~Gene", target: "ErrorProtein ID=~Protein"
+  source: "Ensembl Gene ID=~Gene", target: "Protein ID=~Protein"
 kb.register :drugtarget, "drug_target.tsv",
-  drugs = kb.traverse("pathway;geneprotein;drugtarget", "hsa00010")
+  source: "Protein ID=~Protein", target: "Drug ID=~Drug"
+
+drugs = kb.traverse("pathway;geneprotein;drugtarget", "hsa00010")
 ```
 
 **Key points**:
@@ -179,7 +186,6 @@ module Pipeline
       [key, values.map { |v| v.to_i * 2 }]
     end
   end
-  # Force streaming if you want to avoid loading dependency output
 end
 ```
 
@@ -195,29 +201,31 @@ end
 
 **Goal**: Submit workflow jobs to a SLURM cluster.
 
-```ruby
-require 'scout/workflow/deployment/scheduler'
+Rules are provided as scout configuration, typically in YAML files under
+`~/.scout/etc/batch`:
 
-rules = {
-  "ExpressionAnalysis" => {
-    "significant_genes" => {
-      :cpus => 4,
-      :time => "2h",
-      :mem => "8G",
-      :queue => "normal",
-    }
-  }
-}
-
-The `produce` method submits jobs to the cluster.
+```yaml
+ExpressionAnalysis:
+  defaults:
+    time: 2h
+    queue: normal
+  significant_genes:
+    task_cpus: 4
+    time: 2h
+    mem: 8G
 ```
 
+`Workflow::Scheduler.process_job` then submits each job with those batch
+options; the engine (SLURM by default, `LSF`/`PBS` also built in) is
+chosen by the `system` config key or `BATCH_SYSTEM`.
+
 **Key points**:
-- Rules specify resources per task.
+- Rules specify resources per task (and `defaults` per workflow).
 - The scheduler supports SLURM, PBS, and LSF.
-- Singularity containers can be specified for reproducibility.
-- See the developer documentation on the
-  [Workflow Engine](../developer/WorkflowEngine.md) for more details.
+- Singularity containers can be specified for reproducibility
+  (`contain`/`sync` options).
+- See [HPC / Batch Execution](HPCBatchExecution.md) for the full option
+  list, job chains, and the `scout batch` CLI.
 
 ---
 
@@ -225,7 +233,8 @@ The `produce` method submits jobs to the cluster.
 
 - [Building Workflows](BuildingWorkflows.md)
 - [Processing Tabular Data](ProcessingTabularData.md)
-- [Working with Entities](WorkingWithEntities.md)
+- [Working With Entities](WorkingWithEntities.md)
 - [Managing Relationships](ManagingRelationships.md)
 - [Running Parallel Work](RunningParallelWork.md)
 - [Caching Data](CachingData.md)
+- [HPC / Batch Execution](HPCBatchExecution.md)

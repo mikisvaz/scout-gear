@@ -9,16 +9,34 @@ engines.
 ## Overview
 
 The persistence layer provides multiple storage engines behind a unified
-API. The key entry point is `Persist.persist`, which checks for a valid
-cache, loads it if present, or runs a block and stores the result.
+API. `Persist.persist` itself lives in
+[scout-essentials](https://github.com/mikisvaz/scout-essentials) — it
+resolves the cache path, takes a lock, checks cache validity, loads, or
+runs the block. Scout-gear contributes the **engines** and the TSV
+serialization chain on top of that machinery:
 
-Persistence builds on
-[scout-essentials' persistence](https://github.com/mikisvaz/scout-essentials/blob/main/doc/developer/PersistenceAndResources.md),
-which provides the path conventions and file locking.
+- `Persist.save_drivers[:tsv]` / `Persist.load_drivers[:tsv]`
+  (`persist/tsv.rb:5-28`) teach essentials' `Persist.persist` to write
+  and read TSV-shaped content.
+- `Persist.open_database(path, write, serializer, type, options)`
+  (`persist/tsv.rb:31-52`) dispatches to concrete engines.
+- `Persist.tsv(id, options, engine:, persist_options:)` (`persist/tsv.rb:55`)
+  is the convenience wrapper used by `TSV.open(..., persist: true)`.
+- `Persist::TSVAdapter` (`persist/tsv/adapter.rb` + `adapter/`) bridges
+  TSV objects and engines.
+
+Where engine classes come from (`persist/engine.rb` requires):
+
+- TokyoCabinet (`engine/tokyocabinet.rb`, via the `tokyocabinet` gem —
+  `ScoutCabinet.open`) — HDB and BDB.
+- FixWidthTable (`engine/fix_width_table.rb`).
+- PackedIndex (`engine/packed_index.rb`).
+- Sharder (`engine/sharder.rb`).
+- Tkrzw (`engine/tkrzw.rb`, optional).
 
 ## Persist.persist
 
-The core API:
+The core API (implemented in scout-essentials, used here):
 
 ```ruby
 Persist.persist(identifier, engine, prefix: nil, **opts) do |filename|
@@ -34,13 +52,22 @@ Flow:
 4. If invalid or missing: run the block, passing the database filename.
 5. The block writes to `filename` and returns the database object.
 
+Engine-specific caveat: the `:HDB` **save driver** expects the block to
+return an engine object (`ScoutCabinet`-like or something with a
+`persistence_path`); returning a plain Hash fails to save and silently
+re-runs on subsequent calls. Return an engine object or use `Persist.tsv`
+for TSV content. Cache-hit detection here is also sensitive to the
+`:dir` option — a relative custom `:dir` is not "located", so
+cross-process reuse needs the default cache dir or an absolute `:path`.
+Both behaviors are demonstrated in [Caching Data](../user/CachingData.md).
+
 ### Path resolution
 
 The persistence path is derived from:
-- The `identifier` (can be a string, a file path, or a TSV object).
+- The `identifier` (a string, a file path, or an object with
+  `persistence_path`).
 - The `prefix` (a versioning tag).
 - The `engine` type (determines file extension).
-- For TSV persistence, the source file's path and mtime.
 
 This follows the scout-essentials
 [path conventions](https://github.com/mikisvaz/scout-essentials/blob/main/doc/developer/PathResolution.md).
@@ -51,141 +78,86 @@ Each engine is a Ruby class (or set of classes) that implements a
 key-value store with serialization. Engines implement the `TSVAdapter`
 interface for TSV serialization, but can also be used standalone.
 
+`Persist.open_database(path, write, serializer, engine, options)`
+(`persist/tsv.rb:27-47`) recognizes exactly three engine *case arms*, all as
+Strings: `'fwt'` and `'pki'`, plus an `else` branch that hands the engine name
+to `Persist.open_tokyocabinet`. Inside `ScoutCabinet.open`
+(`persist/engine/tokyocabinet.rb:25-27`) the names `"HDB"`/`:HDB` and
+`"BDB"`/`:BDB` are normalized to TokyoCabinet classes, and a `":big"`
+suffix (e.g. `"BDB:big"`) applies large/deflate tuning. **Any other name is
+passed through as the database class and fails** (`NoMethodError: undefined
+method 'new' for an instance of String`) — this includes `"tkrzw"`, which is
+*not* reachable through `open_database` at all.
+
+Two consequences worth knowing:
+
+- `'fwt'` requires `value_size` and `range` in options; `'pki'` requires
+  `pattern` (a `pack`-style mask array of Strings such as
+  `%w(i i 23s f f f f f)`, see `test_packed_index.rb`) and accepts an optional
+  `pos_function`. Missing options raise deep errors, not clean ones.
+- Symbol engine names only work for `:HDB`/`:BDB`: the `case` in
+  `open_database` matches Strings, so `:fwt` silently falls through to the
+  TokyoCabinet branch and fails.
+
 ### TokyoCabinet Hash Database (HDB)
 
-- **Code**: `:HDB`
-- **Files**: `lib/scout/persist/tsv_adapter.rb` (TSVAdapter), `lib/scout/persist/tokyocabinet.rb`
+- **Code**: `"HDB"` (default in `Persist.tsv` and `TSV.index`)
+- **Files**: `persist/engine/tokyocabinet.rb`, `persist/tsv.rb`
 - **Best for**: General-purpose key-value storage, fast O(1) lookups.
-- **Characteristics**: Hash-based, no ordering, handles large datasets well.
+- **Characteristics**: Hash-based, no ordering, handles large datasets
+  well. Opened via `ScoutCabinet.open(path, write, "HDB")`.
 
 ### TokyoCabinet B-Tree Database (BDB)
 
-- **Code**: `:BDB`
+- **Code**: `"BDB"`
 - **Best for**: Range queries, ordered access on the key.
 - **Characteristics**: B-tree, ordered keys, supports range queries.
 
-### Tkrzw
-
-- **Code**: `:tkrzw`
-- **Best for**: Modern alternative to TokyoCabinet with better performance
-  in some scenarios.
-- **Characteristics**: Successor to TokyoCabinet, mixed hybrid database.
-
 ### FixWidthTable (FWT)
 
-- **Code**: `:fwt`
-- **Files**: `lib/scout/persist/fix_width_table.rb`
+- **Code**: `"fwt"`
+- **Files**: `persist/engine/fix_width_table.rb`
 - **Best for**: Coordinate-based range queries (e.g., genomic positions).
 - **Characteristics**: Fixed-width records, sorted by position, binary
-  search. Used by `TSV.range_index`.
+  search. Used by `TSV.range_index`. Opened with
+  `Persist.open_fwt(path, value_size, range, serializer, update,
+  in_memory)`; supports a custom `pos_function` via options
+  (`persist/tsv.rb:35-40`).
 
-### PackedIndex (PI)
+### PackedIndex (PKI)
 
-- **Code**: `:pi`
+- **Code**: `"pki"`
 - **Best for**: Compact integer-to-integer indexes.
-- **Characteristics**: Very compact format for mapping integers to integers.
+- **Characteristics**: Very compact binary index built around `Array#pack`
+  masks. Opened with `Persist.open_pki(path, write, pattern)`
+  (`persist/tsv/adapter/packed_index.rb:85`), where `pattern` is a mask array
+  of Strings such as `%w(i i 23s f f f f f)`; element codes come from
+  `PackedIndex::ELEMS` (`i`→`l`/4, `I`→`q`/8, `f`→`f`/4, `F`→`d`/8) plus
+  `"Ns"` fixed-width string and `"code:N"` forms. An optional block is the
+  `pos_function`. Symbol masks (`[:md5, "4s"]`) are not supported and raise
+  `NoMethodError`.
 
 ### Sharder
 
-- **Code**: `:sharder`
-- **Best for**: Splitting a large database into multiple files based on a
-  shard function.
-- **Characteristics**: Wraps another engine (e.g., HDB), distributing keys
-  across multiple files to avoid single-file size limits.
+- **Files**: `persist/engine/sharder.rb`, `persist/tsv/adapter/sharder.rb`
+- **Best for**: Splitting a large database into multiple shard files using a
+  custom shard function.
+- **Characteristics**: Wraps another engine (per-shard `db_type`), distributing
+  keys across files under one directory. Not selectable through
+  `Persist.open_database`; it is used by `Persist.tsv(...)` when
+  `persist_options[:shard_function]` is given
+  (`persist/tsv.rb:55-58`), which calls `Persist.open_sharder`
+  (`tsv/adapter/sharder.rb:47`). Shard engines may themselves be `'pki'`,
+  `'fwt'`, `'HDB'`, etc. (see `test_sharder.rb`).
 
-## TSVAdapter serialization
+### Tkrzw (optional, not wired into `open_database`)
 
-The `TSVAdapter` is the serialization layer between TSV objects and
-storage engines. It converts a TSV (an annotated Hash) into a format
-suitable for storage and back.
+- **Files**: `persist/engine/tkrzw.rb`, `persist/tsv/adapter/tkrzw.rb`
+  (both `require 'tkrzw'`, an optional gem)
+- **Status**: adapter code exists and registers `:tkh` save/load drivers, but
+  neither file is required by `scout.rb`, `persist/engine.rb`, or
+  `persist/tsv/adapter.rb`, and the engine name `'tkrzw'` is not recognized by
+  `Persist.open_database` (it raises NoMethodError as described above). Treat
+  it as dormant code pending an explicit require; do not document it as a
+  selectable engine.
 
-### Serialization chain
-
-```
-TSV (annotated Hash)
-       │
-       ▼
-TSVAdapter.open(filename, type)
-       │
-       ▼
-Engine (HDB, BDB, etc.)
-       │  write key => serialized_value
-       │
-       ▼
-```
-
-For each key-value pair in the TSV:
-1. The value (which can be a scalar, array, or nested array depending on
-   type) is serialized.
-2. The serialized value is stored in the engine.
-
-On read:
-1. The engine returns the serialized values.
-2. TSVAdapter deserializes them back into the correct Ruby types.
-3. The TSV annotations (key_field, fields, type) are restored from a
-   metadata header.
-
-### Metadata persistence
-
-TSVAdapter stores metadata (key_field, fields, type, namespace) in a
-special key (typically the header line). On load, this metadata is
-restored to the TSV annotation.
-
-## Engine selection
-
-The engine is selected via the `engine:` option (or the second argument to
-`Persist.persist`). If no engine is specified, a default is chosen based on
-the data type:
-
-- TSV data → HDB (hash database)
-- Range indexes → FixWidthTable
-- Custom data → caller's choice
-
-## Caching and invalidation
-
-### Cache validity
-
-Cache validity is determined by:
-
-1. **File existence**: The cache file must exist.
-2. **Source modification time**: For TSV persistence, the source file's
-   mtime is stored. If the source is newer than the cache, the cache is
-   invalid.
-3. **Prefix**: Changing the prefix creates a new path (effectively
-   invalidating the old cache).
-
-### Concurrent access
-
-Persistence uses scout-essentials'
-[file locking](https://github.com/mikisvaz/scout-essentials/blob/main/doc/developer/PersistenceAndResources.md)
-to prevent concurrent writes to the same cache file. When a process is
-writing to a cache, others wait for the lock.
-
-## Extension points
-
-### Adding a new engine
-
-To add a new storage engine:
-
-1. Create `lib/scout/persist/<engine_name>.rb`.
-2. Implement the key-value interface: `[]`, `[]=` (or `write`), `read`,
-   `open`, `close`.
-3. Implement `TSVAdapter` compatibility (or wrap an existing adapter).
-4. Register the engine in the engine dispatch table.
-
-## Known issues
-
-- TokyoCabinet and Tkrzw require native extensions. If not available, only
-  in-memory (unpersisted) storage works.
-- FixWidthTable is limited to fixed-width keys. Long keys may be truncated.
-- The Sharder's shard function is hash-based, so data distribution may be
-  uneven.
-- Some engines don't support concurrent writes well; use file locking.
-
-## See also
-
-- [Architecture](Architecture.md)
-- [TSV Internals](TSVInternals.md)
-- [Research: Persistence and Concurrency Analysis](../../research/persistence-concurrency-analysis.md)
-- [scout-essentials: Persistence and Resources](https://github.com/mikisvaz/scout-essentials/blob/main/doc/developer/PersistenceAndResources.md)
-- [scout-essentials: Path Resolution](https://github.com/mikisvaz/scout-essentials/blob/main/doc/developer/PathResolution.md)

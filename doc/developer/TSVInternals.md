@@ -35,8 +35,9 @@ A TSV carries these annotations:
 - `fields` — Array of field names.
 - `namespace` — Namespace for identifier translation.
 - `type` — Value type (`:single`, `:list`, `:flat`, `:double`).
-- `identifier_files` — List of identifier translation files.
 - `entity_options` — Entity type options.
+- `identifiers` — Identifier translation files (set via `TSV#identifiers=`
+  / `Entity::Identified` conventions; see `Entity System`).
 
 ## Parsing pipeline
 
@@ -71,23 +72,25 @@ type:
 - `:single` — First column is key, second column is value.
 - `:list` — First column is key, remaining columns form an array.
 - `:flat` — First column is key, remaining columns form a flat array.
-- `:double` — Columns are split on `sep2` (";" by default) into sub-arrays.
+- `:double` — Columns are split on `sep2` (`","` by default) into
+  sub-arrays.
 
 ## Streaming: Dumper and Transformer
 
 ### Dumper
 
-The `Dumper` is the output side of a streaming TSV operation. It wraps a
-target object (a pipe, a file, an array) and provides a `<<` method that
-serializes rows in TSV format.
+The `Dumper` (`lib/scout/tsv/dumper.rb:30-46`) is the output side of a
+streaming TSV operation. It creates an `Open.pipe` pair, annotates both
+ends as ConcurrentStreams, and provides `add(key, value)` (:88) plus
+`init(preamble: true)` (:80) which writes the header line.
 
 A Dumper maintains:
 - A `key_field` and `fields` (for the header line).
-- An `out` target (the pipe or file).
-- A `sep` (field separator, default `\t`).
+- An `@sout/@sin` pipe pair (replaced if `set_stream` is called).
+- A `sep` (field separator, default `\t`) and `type` (default `:double`).
 
 When you call `dumper.add(key, values)`, it serializes the row and writes
-it to `out` via `<<`. The header is written first.
+it to the pipe. The header is written first.
 
 ### Transformer
 
@@ -119,40 +122,42 @@ IPC between threads and processes. The key safety guarantees:
 
 ## Traverse
 
-The `traverse` method is the primary data processing abstraction. It
-iterates over rows with field selection, type conversion, filtering, and
-parallel processing.
+There are two traverse APIs, and they differ:
+
+### Instance method: `TSV#traverse`
+
+`lib/scout/tsv/traverse.rb:3`:
 
 ```ruby
-tsv.traverse(
-  key_field, fields,
-  type: :list,
-  one2one: false,
-  unnamed: nil,
-  select: nil,
-  cpus: nil,
-  into: nil,
-  bar: false,
-  cast: nil,
-  &block
-)
+tsv.traverse(key_field_pos = :key, fields_pos = nil,
+             type: nil, one2one: false, unnamed: nil,
+             key_field: nil, fields: nil, bar: false,
+             cast: nil, select: nil, uniq: false, &block)
 ```
 
-Key parameters:
-- `key_field` / `fields` — Select specific columns; enables column
-  re-selection without loading the full TSV.
-- `type` — Convert value type during iteration.
-- `one2one` — If true, the block must return exactly one row per input
-  row (used for one-to-one transforms).
-- `select` — Hash of field => [values] to filter rows.
-- `cpus` — Fork N worker processes for parallel processing.
-- `into` — Target for results (`:tsv`, `:dumper`, `:array`, `:hash`, or
-  any object responding to `<<`).
+Iterates rows of an already-loaded TSV with field selection, type
+conversion, filtering, and `one2one` checking (with `:strict` mode for
+error-on-duplicate keys, `traverse.rb:90-91`). It has **no** `cpus:` or
+`into:` keywords.
 
-### Parallel traverse
+### Class method: `TSV.traverse`
 
-When `cpus:` is specified, traverse uses WorkQueue to distribute rows
-across forked worker processes:
+`lib/scout/tsv/open.rb:36`:
+
+```ruby
+TSV.traverse(obj, into: nil, cpus: nil, bar: nil, callback: nil,
+             unnamed: true, keep_open: false, **options, &block)
+```
+
+The parallel/streaming workhorse. `obj` can be a TSV, a filename, a
+stream, or a `Parser`. `into` accepts a wide range of targets — Hash,
+Array, Set, IO, `TSV::Dumper`, a `Parser`/stream to chain, `:tsv`/`:flat`
+shorthands — and results are added via `traverse_add`
+(`tsv/open.rb:12-34`), which handles `MultipleResult` unwrapping (a row
+yielding `MultipleResult.setup([...])` produces several rows).
+
+When `cpus:` is specified (and > 1), traverse uses WorkQueue to
+distribute rows across forked worker processes:
 
 1. The main process reads rows from the source.
 2. Rows are distributed to workers via IPC sockets.
@@ -160,8 +165,9 @@ across forked worker processes:
 4. Results flow through the output socket back to the main process.
 5. The `into:` target receives results from the main process.
 
-The block must be Marshal-serializable. Each worker is a forked process
-with its own memory space.
+Work items and results must be Marshal-serializable. (The *block* itself
+is not marshalled — workers are forked and inherit it.) Each worker is a
+forked process with its own memory space.
 
 ## Indexing
 
@@ -173,8 +179,16 @@ A point index maps a key to a single value. Built with:
 TSV.index(tsv, target: "GeneName")
 ```
 
-Internally, the index is a TSV with a single field. It's typically
-persisted to a database (HDB) for fast lookups.
+`TSV.index` (`tsv/index.rb:40`) accepts `target:` (default `:key`),
+`fields:`, `order:`, `bar:`, plus persistence options. The index prefix
+is `Index[fields->target]` (or `Index[target]` when `fields: :all`), and
+it is persisted through `Persist.persist` with engine `:HDB` by default
+(`persist => false` unless explicitly requested) — the built index is a
+`ScoutCabinet` extended with `TSVAdapter`, or a plain annotated Hash when
+no filename is given (`index.rb:60-68`).
+
+The instance method `tsv.index` delegates to the class method
+(`tsv/index.rb:111`).
 
 ### Range index
 
@@ -185,8 +199,10 @@ range. Built with:
 TSV.range_index(tsv, "Start", "End")
 ```
 
-This creates a `FixWidthTable` that stores start/end positions for each
-key, allowing fast range queries. Used for genomic coordinate lookups.
+`TSV.range_index` (`tsv/index.rb:115`) takes `start_field`, `end_field`
+positionally plus `key_field: :key`. This creates a `FixWidthTable` that
+stores start/end positions for each key, allowing fast range queries.
+Used for genomic coordinate lookups.
 
 ### Index persistence
 
@@ -196,39 +212,40 @@ TSV.index(tsv, target: "GeneName", persist: true, engine: :HDB)
 ```
 
 The persistence path is derived from the source file path and the index
-options.
+options (prefix includes the target/fields, `index.rb:48-53`).
 
 ## Identifier translation
 
-The TSV system supports identifier translation via convention-based files:
+The TSV system supports identifier translation. Identifier files are
+registered on entity modules via `add_identifiers`
+(`entity/identifiers.rb:85`) or located through the entity's
+`identifier_files` list; there is no implicit `var/<namespace>/identifiers/`
+directory scan.
 
-```
-var/<namespace>/identifiers/<source>%to<target>
-```
+The `change_id` method (`tsv/change_id.rb:43`) translates keys or field
+values using these identifier files.
 
-These are TSV files mapping one identifier format to another. The
-`change_id` method translates keys or field values using these files.
-
-The `attach` method can automatically use identifier files to join tables
-with incompatible keys.
+The `attach` method can use identifier files to join tables with
+incompatible keys.
 
 ## Attach / Join
 
-The `attach` method adds columns from one TSV to another by matching on a
-key. The matching key is auto-detected:
+The `attach` method (`tsv/attach.rb:228`) adds columns from one TSV to
+another by matching on a key. The matching key is auto-detected:
 
-1. If `match_key` is specified, use it.
+1. If a matching field is specified, use it.
 2. Otherwise, look for a common field name between the source and target.
 3. If no common field is found, look for identifier files that can
    translate.
 
 Attach uses indexes to avoid full scans. The result is a new TSV with the
-attached columns.
+attached columns. `attach` streams: the attached TSV is traversed and
+merged via a Dumper rather than materialized wholesale.
 
 ## Serialization and persistence
 
-TSV data is serialized via `TSVAdapter` (in `lib/scout/persist/tsv`). The
-adapter:
+TSV data is serialized via `TSVAdapter` (in `lib/scout/persist/tsv/`).
+The adapter:
 
 1. Serializes the TSV to a text format (TSV with header).
 2. Stores it in a persistence engine (HDB, BDB, etc.).
@@ -249,7 +266,8 @@ To add a new value type (e.g., `:triple`):
 
 ### Custom traverse targets
 
-To use a custom object as an `into:` target, implement `<<`:
+To use a custom object as an `into:` target for the class method, make it
+respond to `<<` (and optionally `close`/`abort`):
 
 ```ruby
 class MyCollector
@@ -258,7 +276,7 @@ class MyCollector
   end
 end
 
-result = tsv.traverse(:key, into: MyCollector.new) { |k, v| [k, v] }
+result = TSV.traverse(tsv, into: MyCollector.new) { |k, v| [k, v] }
 ```
 
 ## Known issues
@@ -266,8 +284,8 @@ result = tsv.traverse(:key, into: MyCollector.new) { |k, v| [k, v] }
 - The `attach` auto-detection of match keys can produce surprising results
   when multiple fields could match.
 - Large `:double`-type TSVs with deeply nested values can have slow parsing.
-- Parallel traverse with non-Marshal-serializable blocks fails silently in
-  some edge cases.
+- `sep2` is `,` by default here, while some scout-essentials data uses `;`
+  — watch for this when sharing files between repositories.
 - The `namespace` annotation is used inconsistently — sometimes it's a
   module name, sometimes it's a path.
 
@@ -276,6 +294,7 @@ result = tsv.traverse(:key, into: MyCollector.new) { |k, v| [k, v] }
 - [Architecture](Architecture.md)
 - [Persistence Engines](PersistenceEngines.md)
 - [Concurrency Model](ConcurrencyModel.md)
-- [Research: TSV Internals Analysis](../../research/tsv-internals-analysis.md)
+- [Processing Tabular Data](../user/ProcessingTabularData.md)
+- [Entity System](EntitySystem.md)
 - [scout-essentials: Streaming Model](https://github.com/mikisvaz/scout-essentials/blob/main/doc/developer/StreamingModel.md)
 - [scout-essentials: Annotation System](https://github.com/mikisvaz/scout-essentials/blob/main/doc/developer/AnnotationSystem.md)

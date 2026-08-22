@@ -1,49 +1,48 @@
 # Processing Tabular Data
 
-This document explains how to work with tabular data in scout-gear. It
-covers opening existing data, creating new tables, transforming rows,
-filtering, restructuring, and streaming large datasets.
+This document explains scout-gear's TSV layer: opening existing data,
+creating tables, transforming, filtering, restructuring, joining, and
+persisting results.
 
-It is intended for workflow authors and data analysts who need to process
-structured data.
+It is intended for workflow authors and analysts processing structured data.
+
+> **Ownership note.** The TSV data structure itself — parser, dumper,
+> persist integration, `IndiferentHash`, `Log`, `Path` — comes from the
+> **scout-essentials** dependency. scout-gear layers on top of it the
+> persistence *engines* (TokyoCabinet/ KyotoCabinet adapters), the
+> entity/annotation integration, and the workflow machinery that produces
+> TSVs. This page documents the TSV behavior as you actually get it from
+> `require 'scout'` in this repo, but deep internals (lock semantics,
+> stream plumbing) live in scout-essentials and are documented there.
 
 ## What problem does this solve?
 
-Tabular data — keyed rows with typed columns — is the most common data
-format in bioinformatics and data analysis. You need to:
+Tabular data — keyed rows with typed columns — is the most common format in
+bioinformatics and data analysis. You need to:
 
-- Parse TSV/CSV files efficiently, including headers and type annotations.
-- Process data row by row without loading everything into memory.
-- Join tables, filter rows, translate identifiers, and restructure columns.
-- Persist processed data to disk for reuse.
-
-The TSV system in scout-gear provides all of this with a streaming-first
-architecture. Operations like join, filter, and transform are
-**deadlock-safe** — they use pipes and threads, not recursion, to move data.
-
-## When do I use it?
-
-- When you have TSV or CSV data that needs processing.
-- When you need to join or attach columns from one table to another.
-- When your data is too large to fit in memory and you need streaming.
-- When you need type-aware operations (integer columns, float columns, etc.).
+- Parse TSV/CSV efficiently, with typed columns.
+- Process rows without loading everything into memory.
+- Join tables, filter rows, translate identifiers, restructure columns.
+- Persist intermediate results so recomputation is cheap.
 
 ## Core concepts
 
 ### TSV
 
 A TSV is a Hash-like object where each key maps to one or more values. The
-"value type" determines how columns are structured:
+**value type** determines the shape of the values:
 
 | Value type | Structure | Example value for one key |
 |------------|-----------|---------------------------|
 | `:single` | One value per key | `"42"` |
 | `:list` | Array of values per key | `["42", "yes"]` |
-| `:flat` | Flat array (no field names) | `["a", "b", "c"]` |
+| `:flat` | Flat array, no per-field nesting | `["a", "b", "c"]` |
 | `:double` | Array of arrays | `[["a"], ["b"]]` |
 
-A TSV also carries metadata: key field name, field names, namespace, and
-data type. This metadata is preserved through operations.
+A TSV carries metadata: key field name, field names, namespace, cast, and
+serializer. Operations preserve this metadata, so pipelines stay
+self-describing (verified: reopening a persisted `:list` TSV gives
+`a => ["1"]`, P031).
 
 ### Opening a file
 
@@ -51,18 +50,41 @@ data type. This metadata is preserved through operations.
 tsv = TSV.open("data.tsv", type: :list, sep: "\t")
 ```
 
-Options include:
+Common options (tsv.rb:75-131; scout-essentials parser):
 
 | Option | Purpose |
 |--------|---------|
 | `type:` | Value type (`:single`, `:list`, `:flat`, `:double`) |
-| `sep:` | Field separator (default: `\t`) |
+| `sep:` | Field separator (default `\t`) |
 | `key_field:` | Which column is the key (name or index) |
 | `fields:` | Which columns to load (names or indices) |
 | `cast:` | Convert values (`:to_i`, `:to_f`) |
 | `select:` | Filter rows by field values |
-| `persist:` | Persist to a database for reuse |
-| `engine:` | Persistence engine (see [Caching Data](CachingData.md)) |
+| `grep:` / `invert_grep:` | Pre-parse line filtering |
+| `persist:` | Persist parsed data (see [Caching Data](CachingData.md)) |
+| `engine:` | Persistence engine (`"HDB"` default; `"BDB"`, `"fwt"`, `"pki"` — see below) |
+
+With `persist: true`, the parsed TSV is stored in a database keyed by the
+source path; re-`open` calls reuse it and the block does not run again
+(probe P031: `re-open block runs: 0`). The type is preserved across
+persistence (P031).
+
+#### Header directives — a pitfall
+
+Files may declare their own type/separator with `#:` comment headers, e.g.
+`#: :type=:double`. **Placement matters** (P031b/P031d):
+
+- `#::type=:double` (or `#: :type=:double` alone) works — the directive is
+  applied and the following header line defines fields.
+- `#: :sep=/t#:type=:double` **breaks parsing**: the whole string is
+  treated as one directive value, so `sep` becomes `"/t#:type=...double"`,
+  the field line is consumed as data, and you get key `"ID\tVal"` with no
+  fields. Keep each directive on its own `#:` line, and put `:sep=` either
+  alone or last.
+
+(This is because the directive string is split on `#` before `key=value`
+parsing — see `IndiferentHash.string2hash` in scout-essentials and
+`TSV::Parser.parse_header`, parser.rb:257-300.)
 
 ### Creating a TSV from scratch
 
@@ -79,8 +101,8 @@ TSV.setup(data, type: :list, key_field: "Gene", fields: ["Expression", "Change"]
 
 ### Traverse
 
-The `traverse` method iterates over rows with optional field selection,
-type conversion, and filtering. It is the primary way to process rows.
+`traverse` iterates over rows with optional field selection, type
+conversion, and filtering (traverse.rb):
 
 ```ruby
 # Iterate over rows
@@ -94,159 +116,168 @@ tsv.traverse(key_field: "Gene", fields: ["Expression"], type: :single) do |gene,
 end
 ```
 
-### Streaming transform with `into:`
+`tsv.traverse` (the instance method) yields rows to the block. For
+parallel/streaming control use the module method `TSV.traverse` (below).
 
-Use `into:` to direct the output of a traverse into a new TSV, a file,
-or any object that accepts `<<`:
+### Streaming collection with `into:`
+
+`TSV.traverse(obj, into: target, ...)` collects block results into the
+target (tsv/open.rb:36-30):
 
 ```ruby
-# Create a new TSV by transforming rows
-result = tsv.traverse(:key, :into => :tsv) do |key, values|
+result = {}
+TSV.traverse tsv, into: result do |key, values|
   [key, values.map { |v| v.to_i * 2 }]
 end
 ```
 
-The `into:` target can be:
+The `into:` target is an **object**, not a symbol:
 
 | Target | Result |
 |--------|--------|
-| `:tsv` | A new TSV object |
-| `:dumper` | A TSV stream (can be piped to other operations) |
-| `:array` | An array of `[key, values]` pairs |
-| `:hash` | A hash of `key => values` |
-| Any object with `<<` | Results are written via `<<` |
+| `Hash` / `TSV` | Merged by key |
+| `Array` / `Set` | Appended |
+| `TSV::Dumper` | Written as rows (streaming) |
+| `IO` / `StringIO` | Written as lines |
+| `nil` | Nothing collected; block runs for effect |
+
+(`:tsv` / `:dumper` / `:array` symbols are **not** accepted — passing one
+raises, as P031f first attempt showed. That's scout-essentials-era
+shorthand that gear does not implement.)
 
 ### Parallel processing
 
-Use `cpus:` to distribute work across multiple processes:
+Use `cpus:` with `TSV.traverse` to fork workers (open.rb:92):
 
 ```ruby
-result = tsv.traverse(:key, into: :tsv, cpus: 4) do |key, values|
+result = {}
+TSV.traverse tsv, cpus: 4, into: result do |key, values|
   [key, expensive_compute(values)]
 end
 ```
 
-This forks N worker processes and distributes rows across them. Results
-are collected automatically.
+This creates a `WorkQueue` with N workers, streams rows through it, and
+merges results into `result` (probe P031f). Rows are distributed as they
+are read; ordering is per-worker, not global. See
+[Running Parallel Work](RunningParallelWork.md).
 
 ## Filtering
 
-### Select and reject
-
 ```ruby
-# Filter by specific field values
-filtered = tsv.select("Change" => ["up"])
+# Keep only rows whose key or values are in the collection (select.rb)
+filtered = tsv.select(["gene1"])
 
-# Reject specific values
-rejected = tsv.reject("Change" => ["down"])
-```
+# Regex over key/values
+filtered = tsv.select(/up$/)
 
-### Filtering within traverse
+# Block predicate over a field
+up = tsv.select("Change") do |change|
+  change == "up"
+end
 
-```ruby
-tsv.traverse(select: {"Change" => ["up"]}) do |key, values|
-  # Only rows where Change == "up"
+# Invert any of the above
+not_up = tsv.select("Change", true) do |change|
+  change == "up"
 end
 ```
 
+`select(method = nil, invert = false, &block)` keeps rows whose key or
+value intersects `method` when it is an Array/Set/Range, matches when it is
+a Regexp, or for which the (field-aware) block returns true; `invert:`
+flips the test. It builds a fresh TSV carrying the same metadata.
+
+There is **no `tsv.reject`** — use `select(..., true)` to invert. For very
+large tables there is also the on-disk `filter` machinery
+(tsv/util/filter.rb) used by the KnowledgeBase.
+
 ## Restructuring
 
-### Slice (select columns)
-
 ```ruby
-subset = tsv.slice(fields: ["Gene", "Expression"])
-```
+# Select columns (reorder.rb)
+subset = tsv.slice(["Expression"])
 
-### Reorder (change key column)
-
-```ruby
+# Change the key column, merging values by default
 by_expression = tsv.reorder("Expression")
-```
 
-### Merge duplicate keys
-
-```ruby
+# Add columns from another TSV
 merged = tsv.attach(other_tsv, fields: ["NewColumn"])
 ```
 
-## Joining tables (attach)
+- `slice(fields)` keeps only the named fields.
+- `reorder(key_field, fields: nil, merge: true, ...)` re-keys the table;
+  when several rows share a new key, values are merged unless
+  `merge: false`.
+- `unzip`/`melt` split or reshape tables (tsv/util/unzip.rb, melt.rb).
 
-The `attach` operation adds columns from one TSV to another, joining on a
-common key. It automatically detects the matching key.
+## Joining tables — `attach`
+
+`attach` (tsv/attach.rb:45) joins columns from `other` into `self`:
 
 ```ruby
-# Add "Protein" column from another TSV
 result = tsv.attach(protein_tsv, fields: ["Protein"])
-
-# Explicit match keys
-result = tsv.attach(protein_tsv, fields: ["Protein"], match_key: "GeneID", other_key: "EnsemblID")
+result = tsv.attach(protein_tsv, fields: ["Protein"],
+                    match_key: "GeneID", other_key: "EnsemblID")
 ```
 
-If the tables don't share a common key field, attach can use identifier
-translation files automatically. Provide `identifiers:` to specify a
-translation file.
+- If `match_key`/`other_key` are not given, they are **auto-detected**
+  (attach.rb:3-42): a shared field name, then a key-field match, then
+  identifier files, falling back to the source key. Auto-detection is
+  heuristic — pass explicit keys in pipelines (this heuristic is the
+  subject of improvement item A1 in [Improvements](../Improvements.md)).
+- If the two tables have no direct match, `identifiers:` files are used to
+  build a translation index (attach.rb:81-87).
+- `one2one:` (default true) discards ambiguous joins unless disabled;
+  `complete:` adds an empty row for unmatched keys.
 
-## Translating identifiers
+## Translating identifiers — `change_id`
 
 ```ruby
-# Translate gene IDs to gene names
-file_with_translated_ids = FileExchanger.translate_identifiers(tsv, "GeneID", "GeneName")
+new = TSV.change_id(tsv, "Ensembl Gene ID", "Associated Gene Name")
 ```
 
-The `change_id` operation translates keys or field values using identifier
-files that follow the convention:
-```
-var/<namespace>/identifiers/<source_format>%to<target_format>
-```
+`change_id` (tsv/change_id.rb:33) rewrites keys or a field using
+identifier files following the
+`var/<namespace>/identifiers/<source>%to<target>` convention. The
+instance method `tsv.change_id(...)` is a thin wrapper. Identifier file
+naming and namespaces are described in
+[Working With Entities](WorkingWithEntities.md).
 
 ## Indexing
 
-Build an index for fast lookups:
+`TSV.index` (tsv/index.rb:40) builds a lookup TSV mapping one field's
+values to another (or to keys). It underlies identifier translation and
+KnowledgeBase joins, and supports `persist:` like any TSV operation.
+
+## Persistence and caching
+
+Pass `persist: true` (or a path) plus an `engine:` to cache parsed or
+intermediate data:
 
 ```ruby
-# Point index (key → single value)
-index = TSV.index(tsv, target: "GeneName")
-index["ENSG00000141510"]  # => "TP53"
-
-# Range index (for coordinate-based lookups)
-index = TSV.range_index(tsv, "start", "end")
-index.range("chr1", 100000, 200000)  # => all entries overlapping this range
+tsv = TSV.open("data.tsv", type: :double, persist: true, engine: :HDB)
 ```
 
-## Persisting processed data
-
-For large datasets, persist processed data to a database:
-
-```ruby
-tsv = TSV.open("huge_file.tsv", persist: true, engine: :HDB)
-# First load populates the database; subsequent loads read from it
-```
-
-See [Caching Data](CachingData.md) for details on engine selection and
-persistence options.
-
-## Common mistakes
-
-- **Loading everything into memory**: For large files, use `persist: true`
-  or process with `traverse` and `into:` instead of loading the whole TSV.
-- **Wrong value type**: If your data has multiple values per cell, use
-  `:list` or `:double`, not `:single`. Check with `tsv.type`.
-- **Expecting `traverse` to modify in place**: `traverse` iterates; it
-  doesn't change the original. Use `into: :tsv` to produce a new TSV.
-- **Forgetting to close streams**: When using `into: :dumper` or a custom
-  IO target, the stream must be closed (usually by consuming it or calling
-  `.join` on the result).
-- **Non-serializable blocks in parallel traverse**: When using `cpus:`,
-  the block is serialized to worker processes. Avoid capturing non-Marshal-
-  serializable objects.
-- **Attach with incompatible keys**: If `attach` can't find a matching key,
-  it may silently produce empty results. Always check the output.
+- Engine names reach `Persist.open_database`: `"HDB"`/`:HDB` (default) and
+  `"BDB"`/`:BDB` open TokyoCabinet databases; `"fwt"` and `"pki"` (Strings
+  only) open FixWidthTable/PackedIndex. Any other name raises. See
+  [Caching Data](CachingData.md) and
+  [Persistence Engines](../developer/PersistenceEngines.md).
+- Separately, `serializer:` picks a value serialization:
+  `TSVAdapter::SERIALIZER_ALIAS` defines `:single`, `:list`, `:flat`,
+  `:double`, `:clean`, `:integer`, `:float`, `:integer_array`,
+  `:float_array`, `:strict_integer_array`, `:strict_float_array`,
+  `:marshal`, `:json`, `:string`, `:binary`, `:tsv`, `:marshal_tsv`
+  (`persist/tsv/serialize.rb:99`).
+- Automatic cache files land under `var/cache/persistence` (project-local)
+  or `~/.scout/var/cache/persistence` depending on `Scout.var` resolution,
+  named after the source, e.g. `TSV:data·d.tsv:<md5>` — nested paths are
+  flattened with `·` (probe P031e).
+- Reuse is keyed by source path and options, so changing `type:` changes
+  the cache entry; `:update` forces regeneration (CachingData).
 
 ## See also
 
-- [scout-essentials: Handling Streams](https://github.com/mikisvaz/scout-essentials/blob/main/doc/user/HandlingStreams.md)
-- [scout-essentials: Caching Results](https://github.com/mikisvaz/scout-essentials/blob/main/doc/user/CachingResults.md)
-- [Building Workflows](BuildingWorkflows.md)
-- [Caching Data](CachingData.md)
-- [Working with Entities](WorkingWithEntities.md)
-- [Cookbook](Cookbook.md)
+- [Running Parallel Work](RunningParallelWork.md) — `cpus:`, WorkQueue.
+- [Caching Data](CachingData.md) — persistence usage.
+- [Persistence Engines](../developer/PersistenceEngines.md) — engine list.
+- [Working With Entities](WorkingWithEntities.md) — annotations, `unnamed:`.

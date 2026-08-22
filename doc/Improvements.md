@@ -1,11 +1,10 @@
-# Improvements
+Truncated (9624): # Improvements
 
-This document lists actionable recommendations for code improvements, bug
-fixes, and architectural refinements discovered during the documentation
-effort.
+Actionable recommendations for code improvements, bug fixes, and
+architectural refinements discovered during the documentation audit.
 
-These are based on the research artifacts in `research/`. They are
-prioritized by impact and effort.
+These are based on research artifacts in `research/`. They are
+prioritized by impact and effort. Each item cites its source evidence.
 
 ## Summary
 
@@ -19,213 +18,217 @@ prioritized by impact and effort.
 
 ---
 
-## High priority
+## High priority — Bugs / Correctness
 
 ### H1. Dead code: `cleaned_dependencies` always returns `[]`
 
-**Location**: `lib/scout/workflow/step.rb`
-**Issue**: The `cleaned_dependencies` method always returns an empty
-array, which may mask dependency cleanup bugs.
-**Recommendation**: Either implement the intended behavior (detecting
-dependencies that have been cleaned) or remove the method and its callers.
+**Location**: `lib/scout/workflow/step/status.rb:33-39`
+**Evidence**: The method body starts with `return []` (line 34); the
+subsequent selection logic is unreachable.
+**Issue**: Callers cannot observe cleaned dependencies; the guard may
+mask dependency cleanup bugs.
+**Recommendation**: Either restore the intended behavior or remove the
+method and its callers.
 **Effort**: Low.
 
 ### H2. `REMOVE_TASK_ALIAS` behavior is subtle and error-prone
 
-**Location**: `lib/scout/workflow.rb`, task alias resolution
-**Issue**: The `REMOVE_TASK_ALIAS` environment variable alters task name
-resolution in ways that are not intuitive. Task names may silently differ
-from their declared names.
-**Recommendation**: Document the behavior clearly or replace with an
-explicit API (e.g., `task :name, alias: false`).
+**Location**: `lib/scout/workflow/definition.rb:151-179`
+**Evidence**: `REMOVE_TASK_ALIAS` is derived from
+`SCOUT_REMOVE_TASK_ALIAS` / `SCOUT_REMOVE_DEP_TASKS` /
+`RBBT_REMOVE_DEP_TASKS` env tokens, and `remove_dep_tasks` config
+overrides it per call site.
+**Issue**: These settings gate whether `task_alias` jobs keep their
+dependency sub-jobs in the final tree (`task_alias` runs the last
+dependency and may drop the alias job itself); the effects depend on
+env/config in ways that are easy to get wrong (the flag names talk about
+"removing" tasks but they actually control forgetting/alias-collapsing).
+**Recommendation**: Document the gating explicitly in
+WorkflowEngine.md or replace with an explicit task option.
 **Effort**: Medium.
 
-### H3. Semaphore no-op fallback can cause silent race conditions
+### H3. Missing `inline` gem makes `Semaphore` methods undefined
 
-**Location**: `lib/scout/semaphore.rb`
-**Issue**: When the C compiler is unavailable, Semaphore operations become
-no-ops. Code that depends on locking will silently fail to synchronize,
-leading to race conditions.
-**Recommendation**: Raise an error (or log a warning) when Semaphore is
-used but C extensions are not available. Consider providing a pure-Ruby
-fallback using `flock`.
+**Location**: `lib/scout/semaphore.rb:1-10`
+**Evidence**: P032. When the `inline` gem cannot be used, the module logs
+"semaphore synchronization will not work" and is not defined, so any
+later `Semaphore.*` call raises `NoMethodError` — it fails loudly, not
+silently, and there is no no-op fallback.
+**Issue**: The failure point is far from the missing gem (any first
+semaphore use), and the error is a bare `NoMethodError` on
+`Semaphore`.
+**Recommendation**: Fail at load time (or wrap semaphore entry points
+with a descriptive error naming the missing `inline` dependency); a
+`flock`-based fallback would also remove the hard dependency.
 **Effort**: Low.
 
-### H4. WorkQueue non-serializable blocks fail silently in some cases
+### H4. WorkQueue non-serializable blocks fail late
 
-**Location**: `lib/scout/work_queue.rb`
-**Issue**: If the worker block or captured variables are not
-Marshal-serializable, the error may not surface immediately, leading to
-confusing debugging.
-**Recommendation**: Add a pre-flight check that attempts to Marshal the
-block and inputs before forking workers. Raise a descriptive error if it
-fails.
+**Location**: `lib/scout/work_queue.rb` (worker fork + Marshal)
+**Issue**: Blocks or captured variables that are not
+Marshal-serializable raise inside the forked worker, which surfaces as a
+confusing worker-side error rather than a clear pre-flight failure.
+**Recommendation**: Pre-flight Marshal check with a descriptive error.
 **Effort**: Medium.
 
-### H5. Info file serialization format change breaks backward compatibility
+### H5. Info serializer change may break old info files
 
-**Location**: `lib/scout/workflow/step.rb` (info file read/write)
-**Issue**: The info file serialization changed from Marshal to JSON. Old
-info files may not be readable by newer versions.
-**Recommendation**: Add a format detection step that reads the first few
-bytes to determine whether the info file is JSON or Marshal, and parse
-accordingly. Log a warning when encountering an old format.
+**Location**: `lib/scout/workflow/step/info.rb:6`
+**Evidence**: `SERIALIZER` is read from scout config
+(`:serializer`/`:step_info`/`:info`/`:step`, env `SCOUT_SERIALIZER`)
+with default `:json`; values are dumped per-key with the selected
+serializer.
+**Issue**: Reading info written by an older default with a different
+serializer setting may fail or produce opaque values.
+**Recommendation**: Detect the per-file format before parsing and warn
+on legacy formats.
 **Effort**: Medium.
 
 ## High priority — Architecture
 
-### A1. TSV `attach` auto-detection of match keys is unreliable
+### A1. TSV `attach` match-key auto-detection can surprise
 
 **Location**: `lib/scout/tsv/attach.rb`
-**Issue**: When `match_key` is not explicitly specified, `attach`
-auto-detects the matching key by looking for common field names. This can
-produce surprising results when multiple fields could match.
-**Recommendation**: When multiple candidates exist, warn the user and
-require explicit `match_key:`. Consider making auto-detection opt-in.
+**Issue**: When the match key is not explicit, `attach` infers it from
+shared field names; multiple candidates resolve by convention rather
+than by error.
+**Recommendation**: Warn (or require explicit `match_key`) when more
+than one candidate exists.
 **Effort**: Medium.
 
-### A2. Workflow Step path derivation is complex
+### A2. Step path derivation is complex
 
-**Location**: `lib/scout/workflow/step.rb`
-**Issue**: The path derivation logic (computing the digest from inputs and
-dependencies) has many special cases and configuration-dependent branches.
-This makes it hard to predict the resulting path.
-**Recommendation**: Document the path derivation algorithm explicitly in
-the developer docs. Consider extracting it into a separate, testable
-class.
+**Location**: `lib/scout/workflow/step.rb` (path/digest computation)
+**Issue**: The job path derives from a digest of inputs,
+non-default inputs and dependencies, with configuration-dependent
+branches; the result is hard to predict.
+**Recommendation**: Document the derivation in WorkflowEngine.md and
+consider extracting it into a testable unit.
 **Effort**: Medium.
 
-### A3. Property dispatch types are complex
+### A3. Property dispatch types have many edge cases
 
-**Location**: `lib/scout/entity.rb`
-**Issue**: The five property dispatch types (`:single`, `:array`,
-`:multiple`, `:both`) have many edge cases and interact in non-obvious
-ways, especially for collections.
-**Recommendation**: Document each type with examples. Consider deprecating
-`:both` in favor of explicit dispatch.
+**Location**: `lib/scout/entity/property.rb:42-97`
+**Issue**: Dispatch types (`:single`, `:array`, `:multiple`, `:both`,
+plus `MultipleEntityProperty`) interact non-obviously, particularly for
+array receivers.
+**Recommendation**: Keep the dispatch table in EntitySystem.md current;
+consider deprecating `:both`.
 **Effort**: Medium.
 
-### A4. Namespace annotation is used inconsistently
+### A4. Namespace handling is inconsistent
 
-**Location**: `lib/scout/tsv.rb`, `lib/scout/entity.rb`,
+**Location**: `lib/scout/tsv.rb`, `lib/scout/entity/*`,
 `lib/scout/knowledge_base.rb`
-**Issue**: The `namespace` annotation is sometimes a String (module name),
-sometimes a Symbol, and sometimes a path. This causes ambiguity in
-identifier file resolution.
-**Recommendation**: Standardize namespace as a String (module name) across
-the codebase. Validate on `setup`.
+**Issue**: Namespaces appear as String module names, Symbols, or path
+fragments depending on context, complicating identifier-file resolution.
+**Recommendation**: Standardize on String module names and validate on
+`setup`.
 **Effort**: Low.
 
 ## Medium priority — Missing features / Documentation
 
-### M1. No explicit documentation for TSV `unnamed` parameter
+### M1. `unnamed` parameter is under-documented
 
-**Location**: `lib/scout/tsv.rb`
-**Issue**: The `unnamed` parameter (when true, fields are accessible by
-position but not by name) is not documented anywhere.
-**Recommendation**: Document `unnamed` in the user docs (Processing
-Tabular Data) and in the TSVInternals developer doc.
+**Location**: `lib/scout/tsv.rb` (parser options)
+**Issue**: `unnamed: true` (fields accessible by position, not name) is
+a common performance option but is only documented in passing.
+**Recommendation**: Document in ProcessingTabularData.md and
+TSVInternals.md.
 **Effort**: Low.
 
-### M2. Scheduler rules format is not documented
+### M2. Scheduler rules format is only in one page
 
-**Location**: `lib/scout/workflow/deployment/scheduler/`
-**Issue**: The scheduler rules hash format is not documented anywhere.
-Users must read the source to understand it.
-**Recommendation**: Document the rules format, including all supported
-keys (cpus, time, mem, queue, container) with examples.
+**Location**: `lib/scout/workflow/deployment/orchestrator/rules.rb`
+**Issue**: The rules hash (defaults/skip/chains and per-job batch
+options) is documented in HPCBatchExecution.md but not referenced from
+Configuration documentation.
+**Recommendation**: Cross-link from configuration docs.
 **Effort**: Low.
 
-### M3. Identifier file convention is not documented
+### M3. Identifier file convention needs a user-level home
 
-**Location**: Convention: `var/<namespace>/identifiers/<source>%to<target>`
-**Issue**: The identifier file naming convention is critical for entity
-identifier translation but is not documented in user-facing docs.
-**Recommendation**: Add a section to WorkingWithEntities user doc
-explaining the convention and how to create identifier files.
+**Location**: convention `var/<namespace>/identifiers/<source>%to<target>`
+**Issue**: The convention is described in developer docs but not in the
+entity user guide.
+**Recommendation**: Add a section to WorkingWithEntities.md.
 **Effort**: Low.
 
-### M4. Entity `:both` dispatch type behavior is non-intuitive
+### M4. Entity `:both` dispatch type is non-intuitive
 
-**Location**: `lib/scout/entity.rb`
-**Issue**: The `:both` dispatch type is difficult to understand and may
-not behave as expected for collections.
-**Recommendation**: Add examples to the developer docs showing when to use
-each dispatch type.
+**Location**: `lib/scout/entity/property.rb`
+**Issue**: `:both` makes one property serve String and Array receivers
+with different block arities; easy to misuse.
+**Recommendation**: Include worked examples (EntitySystem.md already
+carries a dispatch table).
 **Effort**: Low.
 
-### M5. Association/KnowledgeBase traversal path syntax is not documented
+### M5. KnowledgeBase traverse rules syntax is barely documented
 
-**Location**: `lib/scout/knowledge_base.rb`
-**Issue**: The traversal path syntax (e.g., `"pathway;geneprotein"`) is
-not documented in user-facing docs.
-**Recommendation**: Document the path syntax in the ManagingRelationships
-user doc with examples.
+**Location**: `lib/scout/knowledge_base/traverse.rb`
+**Issue**: The rules DSL (association names with directions and
+conditions) is documented only briefly.
+**Recommendation**: Expand ManagingRelationships.md with real rule
+examples from the test-suite.
 **Effort**: Low.
 
 ## Low priority — Code quality
 
-### L1. `TSV::Parser` has duplicated parsing logic
+### L1. `TSV::Parser` duplicates per-type parsing logic
 
 **Location**: `lib/scout/tsv/parser.rb`
-**Issue**: The parsing logic for different value types (`:single`,
-`:list`, `:flat`, `:double`) has significant duplication.
-**Recommendation**: Refactor to extract common patterns into a shared
-method.
+**Issue**: Value-type parsing (`:single`, `:list`, `:flat`, `:double`)
+shares structure but is duplicated.
+**Recommendation**: Factor common logic.
 **Effort**: Medium.
 
 ### L2. Info file writes are not atomic
 
-**Location**: `lib/scout/workflow/step.rb`
-**Issue**: Reading the info file may see a partially-written file if it's
-being updated concurrently.
-**Recommendation**: Write to a temporary file and rename atomically.
+**Location**: `lib/scout/workflow/step/info.rb`
+**Issue**: Concurrent readers can observe partially-written info files.
+**Recommendation**: Write-then-rename.
 **Effort**: Low.
 
-### L3. ConcurrentStream close semantics are fragile
+### L3. ConcurrentStream cleanup belongs upstream
 
-**Location**: scout-essentials (ConcurrentStream)
-**Issue**: If a process exits abnormally, stream cleanup may not happen,
-leaving zombie processes or pipes.
-**Recommendation**: Ensure `at_exit` hooks clean up streams. Consider a
-heartbeat mechanism for long-running streams.
-**Effort**: Medium.
+**Location**: scout-essentials (`ConcurrentStream`)
+**Issue**: Abnormal exits may leave zombie processes or pipes.
+**Recommendation**: Fix upstream; scout-gear only consumes
+ConcurrentStream.
+**Effort**: Medium (upstream).
 
 ### L4. Persist path resolution has many edge cases
 
-**Location**: `lib/scout/persist.rb`
-**Issue**: Path resolution has many special cases for different identifier
-types (strings, files, TSV objects).
-**Recommendation**: Extract path resolution into a separate class for
-testability and documentation.
+**Location**: scout-essentials (`lib/scout/persist.rb`) plus scout-gear
+engine wrappers
+**Issue**: Identifier → persistence-path conversion special-cases
+strings, files and TSV objects.
+**Recommendation**: Extract and test as a unit.
 **Effort**: Medium.
 
 ### L5. Scheduler job state tracking can be fragile
 
 **Location**: `lib/scout/workflow/deployment/scheduler/`
-**Issue**: Scheduler job state tracking can be fragile if the batch
-directory is corrupted or modified manually.
-**Recommendation**: Add validation for batch directory state. Provide a
-`--repair` CLI option.
+**Issue**: Corrupted or manually edited batch directories produce
+confusing states.
+**Recommendation**: Validate batch directories; add a repair option.
 **Effort**: Medium.
 
-### L6. RubyInline C compilation cache is not self-cleaning
+### L6. RubyInline build cache is not self-cleaning
 
-**Location**: `lib/scout/semaphore.rb` (RubyInline compilation)
-**Issue**: The C extension cache in `~/.scout/tmp` is never cleaned up and
-can accumulate stale builds.
-**Recommendation**: Add a cache cleanup mechanism (e.g., version-based
-invalidation).
+**Location**: `lib/scout/semaphore.rb`
+**Issue**: Compiled semaphore extensions accumulate under the user temp
+directory.
+**Recommendation**: Version-stamp and prune stale builds.
 **Effort**: Low.
 
 ---
 
 ## How to use this document
 
-1. **Review the high-priority items first** (H1–H5, A1–A4). These represent
-   correctness issues and architectural concerns that may cause silent
-   failures or confusion.
-2. **Use the research artifacts** for deeper understanding of any issue.
-   Each item references the relevant source files.
-3. **Track resolution status** by marking items as resolved, partially
-   resolved, or won't-fix.
+1. Review high-priority items first (H1–H5, A1–A4): they represent
+   correctness and architectural concerns that can cause silent
+   failures.
+2. Consult `research/` artifacts for the underlying evidence; each item
+   cites its source location.
+3. Track resolution status per item (resolved / partial / won't-fix).

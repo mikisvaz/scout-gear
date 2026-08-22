@@ -39,7 +39,8 @@ end
 ```
 
 Similarly, an Entity is a plain String with annotations. A Step is a
-Pathname with annotations. A Task is a Module with annotations.
+String path with annotations. A Task is a Module with annotations
+(`Workflow` modules extend `Annotation`, `workflow/definition.rb:12`).
 
 **Why?** Because annotation preserves duck-typing. A TSV can be passed to
 any function that expects a Hash. An Entity can be passed to any function
@@ -52,17 +53,22 @@ Instead, use the traverse API to process rows one at a time, streaming
 results through pipes.
 
 ```ruby
-# Idiomatic: streaming transform
-result = tsv.traverse(:key, into: :tsv) do |key, values|
+# Idiomatic: streaming transform (class method, supports cpus:/into:)
+result = TSV.traverse(tsv, into: {}) do |key, values|
   [key, transform(values)]
 end
 
 # Non-idiomatic: load everything, then transform
 new_hash = {}
-tsv.each do |key, values|          # WRONG: loads everything
+tsv.each do |key, values|          # materializes everything
   new_hash[key] = transform(values)
 end
 ```
+
+Note the distinction: the **instance** method `tsv.traverse(:key,
+into: :tsv)` has no `cpus:` parameter; parallel streaming is the
+**class** method `TSV.traverse(obj, cpus: N, into: target)`
+(`tsv/open.rb:36`). See [TSV Internals](TSVInternals.md).
 
 The traverse API uses a Dumper/Transformer pair that writes to a pipe in
 one thread and reads from it in another. This is **deadlock-safe**: you
@@ -74,13 +80,20 @@ The streaming model is inherited from
 
 ## Persist as cache
 
-Every workflow result is persisted automatically. For explicit caching,
-wrap expensive computations in `Persist.persist`:
+Every workflow job result is saved as a file under `var/jobs/...`
+automatically, so re-running a job reuses its previous output. For
+explicit caching of in-memory computations, scout-essentials provides
+`Persist.persist`/`Persist.memory`.
+
+In scout-gear, the typical caching entry points are:
 
 ```ruby
-# Idiomatic: cache the result
-index = Persist.persist("gene_index", :HDB, prefix: "v1") do
-  TSV.open("genes.tsv").index
+# Idiomatic: TSV.open with persist (routes through Persist.tsv → HDB engine)
+index = TSV.open("genes.tsv", persist: true).index(target: "GeneName")
+
+# Idiomatic: explicit engine object, runs once across processes
+index = Persist.persist("gene_index", :HDB, prefix: "v1") do |filename|
+  Persist.open_database(filename, true, :marshal, "HDB")
 end
 
 # Non-idiomatic: recompute every time
@@ -92,12 +105,23 @@ end
 The persistence key includes the prefix, which lets you version caches.
 Change the prefix when the logic changes.
 
+Two footguns documented in [Caching Data](../user/CachingData.md):
+
+- `Persist.persist(name, :HDB)` with a block returning a plain Hash does
+  **not** cache across calls: the `:HDB` save driver expects an engine
+  object, the save fails, and the block re-runs every time. Return an
+  engine object (`Persist.open_database`) or use `Persist.tsv`.
+- A relative custom `:dir` for `Persist.persist` is not located, so
+  cross-process cache hits require the default (located) cache dir or an
+  absolute `:path`.
+
 ## Convention over configuration
 
 Paths are derived from conventions, not configured. For example:
-- Job results: `var/jobs/<Workflow>/<task>/<digest>.<ext>`
-- Persisted databases: `var/databases/...`
-- Identifier files: `var/<namespace>/identifiers/<source>%to<target>`
+- Job results: `var/jobs/<Workflow>/<task>/<name>_<md5>.<ext>`
+- Persisted caches: `~/.scout/var/cache/persistence/...`
+- Identifier files: resolved from the entity's `identifier_files`
+  annotations
 
 This eliminates boilerplate. The convention is: if you follow the naming
 convention, things work automatically. If you fight the convention, you
@@ -115,15 +139,21 @@ helper :normalize do |values|
 end
 
 task :normalized => :tsv do
-  data = TSV.open(input[:file])
-  data.traverse(:key, annotate_into: :tsv) do |key, values|
+  data = TSV.open(inputs[:file])
+  TSV.traverse(data, into: :tsv) do |key, values|
     [key, normalize(values)]
   end
 end
 ```
 
-Helpers can be defined in the workflow module or in `helpers` directory.
-They are shared across all tasks in the workflow.
+Helpers are defined with `helper(name, &block)` in the workflow module
+(`workflow/definition.rb:39-44`) and stored in the workflow's `helpers`
+annotation. Calling an undefined helper raises `ScoutException`
+("helper … unknown in … workflow"). Helpers are shared across all tasks
+in the workflow and merged into including workflows by
+`include_workflow` (`workflow/definition.rb:240`). There is no
+`helpers/` directory convention — helpers are defined in the workflow
+file itself.
 
 ## Idiomatic vs non-idiomatic patterns
 
@@ -131,8 +161,8 @@ They are shared across all tasks in the workflow.
 
 ```ruby
 # Idiomatic
-data = {"a" => [1]}
-TSV.setup(data, type: :list)
+data = {"a" => [["1"]]}
+TSV.setup(data, type: :double)
 
 # Non-idiomatic
 tsv = TSV.new                       # WRONG: TSV.new doesn't exist
@@ -141,8 +171,10 @@ tsv = TSV.new                       # WRONG: TSV.new doesn't exist
 ### Indexing a TSV
 
 ```ruby
-# Idiomatic
+# Idiomatic (instance method delegates to class method, tsv/index.rb:111)
 index = TSV.index(tsv, target: "GeneName")
+# or
+index = tsv.index(target: "GeneName")
 
 # Non-idiomatic
 index = {}
@@ -169,13 +201,13 @@ end
 # Idiomatic
 dep :upstream, compute: :stream
 task :downstream => :tsv do
-  step(:upstream).load.traverse(:key, into: :tsv) { |k, v| ... }
+  TSV.traverse(step(:upstream).load, into: :tsv) { |k, v| ... }
 end
 
 # Non-idiomatic
 dep :upstream
 task :downstream => :task
-  data = step(:upstream).load   # WRONG: materializes the entire result
+  data = step(:upstream).load   # materializes the entire result
   # ... then process
 end
 ```
@@ -186,23 +218,29 @@ end
    you need custom behavior, add methods via `TSV.setup` or reopen the TSV
    module.
 
-2. **Loading data to process it** — Always use `traverse` with `into:`. If
-   you find yourself writing `tsv.each` in new code, consider whether
+2. **Loading data to process it** — Always use `traverse` with `into:`.
+   If you find yourself writing `tsv.each` in new code, consider whether
    `traverse` would be more appropriate.
 
 3. **Manual cache management** — Don't write custom caching logic. Use
-   `Persist.persist` or the `persist:` option on TSV operations.
+   `Persist.persist`, `Persist.tsv`, or the `persist:` option on TSV
+   operations.
 
 4. **Subclassing instead of annotating** — If you need to attach behavior
-   to an object, use `Annotation.annotate` or `Entity.extend`. Don't
-   create new classes.
+   to an object, use annotations (`TSV.setup`, `Entity`, `Annotation`).
+   Don't create new classes.
 
 5. **Ignoring streaming dependencies** — When a task depends on another,
    consider whether the dependency should stream. Use `compute: :stream`
    to avoid materializing large results.
 
+6. **Using instance `tsv.traverse(..., cpus:)`** — the instance method
+   does not accept `cpus:`/`into:`; use the class method
+   `TSV.traverse(tsv, cpus: N, into: target)`.
+
 ## See also
 
 - [Architecture](Architecture.md)
-- [Research: Design Philosophy Analysis](../../research/design-philosophy-analysis.md)
-- [scout-essentials: Design Principles](https://github.com/mikisvaz/scout-essentials/blob/main/doc/research/design-philosophy-analysis.md)
+- [TSV Internals](TSVInternals.md)
+- [Caching Data](../user/CachingData.md)
+- [Building Workflows](../user/BuildingWorkflows.md)
