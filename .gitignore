@@ -4,6 +4,7 @@ sandbox
 coverage
 coverage.data
 chats
+tmp
 
 
 # rdoc generated
