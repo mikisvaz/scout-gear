@@ -78,7 +78,7 @@ module EntityWorkflow
     end
 
     property property_name => property_type do |*args|
-      job = self.send(property_job_name)
+      job = self.send(property_job_name, *args)
 
       job.join if job.running?
 
