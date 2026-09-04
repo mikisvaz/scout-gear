@@ -20,8 +20,7 @@ module Path
           raise $!
         end
         return parts[i-2..-1] * "/"
-      rescue
-        Log.exception $!
+      rescue Exception
       end
     end
 

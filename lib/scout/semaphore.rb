@@ -24,6 +24,8 @@ if continue
   #include <fcntl.h>
       EOF
 
+      builder.add_compile_flags "-Wno-incompatible-pointer-types"
+
       # Create a named semaphore. Return 0 on success, -errno on error.
       builder.c_singleton <<-EOF
   int create_semaphore_c(char* name, int value){
