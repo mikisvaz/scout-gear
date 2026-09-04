@@ -53,7 +53,7 @@ module Workflow
     end
 
     def autoinstall
-      @autoinstall ||= Scout::Config.get(:autoinstall, :workflow, :scout_workflow, :scout, env:"SCOUT_WORKFLOW_AUTOINSTALL", default: 'true').to_s == 'true' if @autoinstall.nil?
+      @autoinstall ||= Scout::Config.get(:autoinstall, :workflow, :scout_workflow, :scout, env:"SCOUT_WORKFLOW_AUTOINSTALL", default: 'false').to_s == 'true' if @autoinstall.nil?
       @autoinstall
     end
 
