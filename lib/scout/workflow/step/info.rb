@@ -42,7 +42,14 @@ class Step
   end
 
   def init_info(status=:waiting)
-    log status unless info_file.nil? || Open.exists?(info_file)
+    return if info_file.nil? || Open.exists?(info_file)
+    input_names = (task.respond_to?(:inputs) && task.inputs) ? task.inputs.collect{|name,_| name} : []
+    reset_info :status => status,
+      :task_name => task_name, :workflow => workflow.to_s,
+      :provided_inputs => IndiferentHash.serializable(provided_inputs),
+      :non_default_inputs => non_default_inputs,
+      :inputs => IndiferentHash.serializable(inputs), :input_names => input_names, :type => type,
+      :dependencies => (dependencies || []).collect{|d| d.path }
   end
 
   def info

@@ -233,7 +233,7 @@ class Step
           Open.sensible_write(self.path, @exec_result)
           @exec_result = nil
         else
-          @exec_result
+          (@exec_result.nil? && ! Open.exists?(self.path)) ? '' : @exec_result
         end
       end
 
