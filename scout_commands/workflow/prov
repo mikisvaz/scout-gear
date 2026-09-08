@@ -51,7 +51,7 @@ def touch(step)
   end if step.dependencies
 end
 
-step = get_step file
+step = Step.load Path.setup(file)
 $main_mtime = Open.exist?(step.path) ? Open.mtime(step.path) : nil
 
 def adjacency(step)
