@@ -51,3 +51,5 @@ pkg
 
 # For rubinius:
 #*.rbc
+cortex_path_map.yaml
+var

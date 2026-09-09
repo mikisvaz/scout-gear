@@ -1,11 +1,13 @@
 # scout-gear — canonical repository map
 
 > Concise, seedable map. All paths relative to repo root
-> (`/bulk/mvazque2/git/scout-gear`). Baseline rev `794cc7b`.
+> (`/bulk/mvazque2/git/scout-gear`). Baseline rev `8a3a514` (campaign
+> HEAD; doc-promotion commits 3d9c26b..HEAD).
 > **Rule:** source is authoritative; use `lib/scout/tsv/.save/**` only as
 > historical reference — the live persistence layer is `lib/scout/persist/**`.
-> **Doc-tree status (audit update):** `doc/` now = 17 files — the original 16
-> plus `user/HPCBatchExecution.md` (new page, HPC/batch execution).
+> **Doc-tree status (audit update):** `doc/` now = 18 files — the original 16
+> plus `user/HPCBatchExecution.md` (HPC/batch execution) and
+> `user/UsingTheCLI.md` (CLI promotion, later batch).
 
 ## 1. Identity & relationships
 
@@ -49,20 +51,25 @@ plus `test/data/**` fixtures. Tests are behavior evidence for subtle semantics.
 ## 4. CLI
 
 - `bin/scout` — single executable; dispatches subcommands.
-- `scout_commands/**` (32 files) define them: top-level `alias, cat, doc, entity,
-  find, glob, kb, log, purge, rbbt, template, update`, `batch/{clean,list,tail}`,
-  `resource/{produce,sync}`, `system/{clean,status}`, `workflow/{cmd,example,
-  info,install,list,process,prov,task,trace,write_info}`.
+- `scout_commands/**` (35 files) define them: 15 top-level entries, five
+  of them subcommand families (`batch`, `kb`, `resource`, `system`,
+  `workflow`) — `batch/{clean,list,tail}`,
+  `kb/{config,entities,list,query,register,show,traverse}`,
+  `resource/{produce,sync}`, `system/{clean,status}`,
+  `workflow/{cmd,example,info,install,list,process,prov,task,trace,
+  write_info}`. See `doc/user/UsingTheCLI.md` for the dispatch contract.
 - `share/templates/workflow.rb` + `share/templates/command` — scaffolding for
   `scout workflow install`/`scout template`.
 
 ## 5. Documentation (audit target)
 
-`doc/` = 17 files (post-audit): `StartHere.md`, `Improvements.md`,
+`doc/` = 18 files (post-audit, post-CLI-promotion): `StartHere.md`,
+`Improvements.md`,
 `developer/{Architecture,ConcurrencyModel,DesignPrinciples,EntitySystem,
-PersistenceEngines,TSVInternals,WorkflowEngine}.md`, `user/{BuildingWorkflows,
-CachingData,Cookbook,HPCBatchExecution,ManagingRelationships,
-ProcessingTabularData,RunningParallelWork,WorkingWithEntities}.md`. Plus root
+PersistenceEngines,TSVInternals,WorkflowEngine}.md` and
+`user/{BuildingWorkflows,CachingData,Cookbook,HPCBatchExecution,
+ManagingRelationships,ProcessingTabularData,RunningParallelWork,UsingTheCLI,
+WorkingWithEntities}.md`. Plus root
 `README.md`, `README.rdoc` (legacy).
 
 ## 6. Configuration / persistence / integrations
@@ -85,6 +92,19 @@ ProcessingTabularData,RunningParallelWork,WorkingWithEntities}.md`. Plus root
 - Extension mechanisms: workflow DSL (`Workflow`, `input`, `dep`, `task`,
   `export`, `helper`, `extend_entity`, `include_workflow`), KB registry,
   persist adapters, scheduler types (`local`/`queue`/`SLURM`/`LSF`/`PBS`).
+
+## 6b. Research artifacts (campaign output)
+
+- `research/*-probes.md` (8 ledgers: association-kb, cli, concurrency,
+  deployment-hpc, entity, persistence, tsv, workflow-engine) —
+  non-normative probe ledgers backing the promoted doc claims. Evidence
+  chains live in Cortex artifacts `scout-gear/<subject>.md` (map
+  `current`); receipts cite `Observation/probe/<name>_<hash>.json` jobs.
+- Pre-campaign analyses (`00_scope_and_themes`, `design-philosophy`,
+  `downstream-usage`, `entity-association-kb-analysis`, `identifiers-
+  mechanism`, `persistence-concurrency-analysis`, `tsv-internals-analysis`,
+  `workflow-engine-analysis`, `synthesis-report`, `validation-report`)
+  — earlier batches, unchanged by the consolidation campaign.
 
 ## 7. Vendored / legacy / non-source
 

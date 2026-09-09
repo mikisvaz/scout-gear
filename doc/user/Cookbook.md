@@ -28,15 +28,21 @@ module ExpressionAnalysis
 
   input :data_file, :file, "Expression data TSV"
   input :threshold, :float, "Significance threshold", 0.05
-  task :significant_genes => :tsv do
-    data = TSV.open(input[:data_file], type: :double, persist: true)
+  task :significant_genes => :tsv do |data_file, threshold|
+    data = TSV.open(data_file, type: :double, persist: true)
 
-    # Use the traverse API for streaming transform
-    data.traverse(:key, into: :tsv) do |gene, values|
+    # Use the traverse API for streaming transform. `into:` takes a
+    # concrete object you prepared, not a symbol; `unnamed: false` keeps
+    # the NamedArray annotation on the values so they can be indexed by
+    # field name.
+    result = TSV.setup({}, type: :double, key_field: data.key_field,
+                       fields: data.fields)
+    TSV.traverse(data, into: result, unnamed: false) do |gene, values|
       pval = values["pvalue"].first.to_f
-      next nil if pval >= input[:threshold]
+      next nil if pval >= threshold
       [gene, values]
     end
+    result
   end
 end
 ```
@@ -49,8 +55,10 @@ job.run.load
 
 **Key points**:
 - `persist: true` avoids re-parsing the TSV on repeated runs.
-- `traverse` with `into: :tsv` produces a new TSV without loading
-  everything into memory.
+- `TSV.traverse` fills the object you pass as `into:` without loading
+  everything into memory — build the result TSV yourself and return it
+  from the task. (A symbol such as `into: :tsv` is *not* a target; see
+  the `into:` note in the parallel-traversal recipe below.)
 - The job result is cached automatically by the workflow engine.
 
 ---
@@ -63,7 +71,8 @@ job.run.load
 ```ruby
 tsv = TSV.open("large_dataset.tsv", type: :list, persist: true)
 
-result = tsv.traverse(:key, into: :tsv, cpus: 4) do |key, values|
+result = {}
+TSV.traverse(tsv, into: result, cpus: 4) do |key, values|
   score = expensive_score_function(values)
   [key, [score]]
 end
@@ -74,9 +83,11 @@ end
 - The block must be Marshal-serializable (no file handles, IO, or Procs).
 - Each worker gets a copy of the TSV (via fork), so memory is duplicated.
   If memory is a concern, use streaming instead.
-- `into: :tsv` yields a `TSV::Dumper`-backed TSV: the resulting object is
-  produced by the forked writers and joined before use. Passing
-  `cpus: 1` (or omitting `cpus`) disables forking entirely.
+- `into:` must be a **concrete object** (`Hash`, `TSV`, `Array`, `Set`,
+  `IO`, a `TSV::Dumper`, a `Path`, or the symbol `:stream`). A symbol
+  such as `:tsv` is *not* a target — nothing is collected and the symbol
+  comes back unchanged, so build the TSV yourself and pass it as `into:`.
+- Passing `cpus: 1` (or omitting `cpus`) disables forking entirely.
 
 ---
 
@@ -138,15 +149,23 @@ kb.register :geneprotein, "gene_protein.tsv",
 kb.register :drugtarget, "drug_target.tsv",
   source: "Protein ID=~Protein", target: "Drug ID=~Drug"
 
-drugs = kb.traverse("pathway;geneprotein;drugtarget", "hsa00010")
+drugs = kb.traverse([
+  "hsa00010 pathway ?gene",
+  "?gene geneprotein ?protein",
+  "?protein drugtarget ?drug"
+])[1].flatten.compact.uniq
 ```
 
 **Key points**:
-- The traversal path `"pathway;geneprotein;drugtarget"` chains three
-  associations.
-- Each step takes the output of the previous step as input.
-- Results are collected at each step. The final result contains all drugs
-  reachable through the path.
+- Each rule is a separate string in the rules array; `kb.traverse` takes
+  an Array of rules (a bare String raises
+  `NoMethodError: undefined method 'each' for an instance of String`),
+  and returns `[assignments, paths]`.
+- `?gene`, `?protein`, `?drug` are wildcards bound by the earlier rule
+  and carried forward, which is what chains the three associations.
+- The assignments Hash gives the bound ids (`result[0]['?drug']`); the
+  paths array gives the per-rule match chains. A rule that matches
+  nothing contributes nothing to `assignments` for its own wildcard.
 
 ---
 
@@ -190,16 +209,19 @@ module Pipeline
   self.name = "Pipeline"
 
   input :source_file, :file, "Source data"
-  task :produce_stream => :tsv do
-    TSV.open(input[:source_file], type: :list)
+  task :produce_stream => :tsv do |source_file|
+    TSV.open(source_file, type: :list)
   end
 
   dep :produce_stream, compute: :stream
   task :consume_stream => :tsv do
     stream = step(:produce_stream).load
-    stream.traverse(:key, into: :tsv) do |key, values|
+    result = TSV.setup({}, type: :list, key_field: stream.key_field,
+                       fields: stream.fields)
+    TSV.traverse(stream, into: result) do |key, values|
       [key, values.map { |v| v.to_i * 2 }]
     end
+    result
   end
 end
 ```
@@ -207,7 +229,10 @@ end
 **Key points**:
 - `compute: :stream` tells the workflow engine to pass the dependency's
   output as a stream rather than materializing it.
-- The downstream task uses `traverse` to process the stream row by row.
+- The streamed dependency is **not** handed to the task block as an
+  argument; load it with `step(:produce_stream).load`.
+- Use the class method `TSV.traverse(stream, into: result)` — the
+  instance method has no `into:` keyword — and pass a concrete target.
 - This is deadlock-safe because the traversal uses pipes and threads.
 
 ---

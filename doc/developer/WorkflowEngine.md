@@ -47,7 +47,10 @@ The metadata is stored as annotations on the task (Task extends
 The `annotate_next_task` mechanism (`workflow/definition.rb`) uses
 class-level instance variables to queue annotations for the next task
 definition. This is how `input`, `dep`, `returns`, and `extension` work —
-they don't create tasks; they annotate the next one.
+they don't create tasks; they annotate the next one. Annotations are
+consumed by the task defined immediately after them: an `input` declared
+between two tasks belongs to the second one only, and a later task gets
+no inputs from it.
 
 `returns` is not a standalone DSL method — the return type is the value
 after `=>` in the `task` declaration (e.g. `task :analyze => :tsv`).
@@ -72,10 +75,11 @@ When you call `workflow.job(:task_name, "job_id", inputs)`:
 3. A job path is built: `var/jobs/<Workflow>/<task>/<name>_<md5>.<ext>`
    where the MD5 is over `{:inputs => input_digest_str,
    :dependencies => dependencies}` (`workflow/task.rb:110`).
-4. The workflow memoizes jobs: the same `workflow.job(...)` call returns
-   the same Step object (`workflow.rb:171`, via `Persist.memory`), and
-   extends it with the workflow's `step_module` so task blocks and
-   helpers run in its context.
+4. The Step is memoized by `Task#job` through `Persist.memory`
+   (`workflow/task.rb:47`): the same task/id/input signature returns the
+   same Step object (`.equal? == true`). `workflow.job`
+   (`workflow.rb:172`) then extends it with the workflow's `step_module`
+   so task blocks and helpers run in its context.
 5. The Step is returned to the caller.
 
 ### Execution (Step.run)
@@ -94,7 +98,13 @@ When `.run` (or `.produce`, `.fork`) is called on a Step:
    input values and from dependencies (via `step(:name)`).
 4. **Execution**: The task block is executed in the context of the Step
    (the workflow's step module). `step(:name)` provides access to
-   dependencies.
+   dependencies. The block's parameters receive **only the task's own
+   declared inputs**, in declaration order with defaults applied — a
+   block with fewer parameters silently drops extras, a one-parameter
+   block gets the first input, a zero-parameter block gets `nil`, and
+   keyword arguments are not supported. Dependency results never arrive
+   as positional arguments; `input[...]` is not an accessor in this
+   context.
 5. **Result persistence**: The result is saved to the Step's path
    (streamed results are written in a background thread;
    `workflow/step.rb:265`).
@@ -108,11 +118,24 @@ var/jobs/<Workflow>/<task>/<name>_<md5>.<ext>
 ```
 
 The digest is an MD5 of the input digest and the dependency signatures
-(`workflow/task.rb:110`). This ensures:
+(`workflow/task.rb:110`). Only **non-default** inputs participate: giving an
+input its own default value yields the same path as omitting it, so an
+all-defaults job is `<id>` (literally `Default`) and a job with any
+non-default input is `<id>_<md5>`. The digest is order-independent: it is
+built from the input array, so two non-default inputs swapped produce the
+same digest. This ensures:
 - Identical inputs and dependencies produce identical paths (cache hit).
 - Different inputs or dependencies produce different paths.
 - Dependency changes change the digest, because dependency signatures
   include their own paths.
+
+The Step is memoized by `Task#job` through `Persist.memory`
+(`workflow/task.rb:47`, keyed on workflow/task/id and the
+non-default inputs of the task's `recursive_inputs`): repeated identical
+calls return the **same Step object** (`.equal? == true`), and different
+input sets return different objects. `workflow.job`
+(`workflow.rb:172`) then extends the Step with the workflow's
+`step_module` before returning it.
 
 The base directory defaults to `var/jobs` and is configurable via
 `Scout::Config.get(:directory, :workflow_jobs, :workflow, :jobs)`
@@ -133,19 +156,48 @@ Dependencies can be:
 - **Static**: `dep :upstream_task`
 - **Dynamic**: `dep do |inputname, inputs| ... end` (block decides at
   runtime)
-- **From another workflow**: `dep OtherWorkflow, :task_name`
+- **From another workflow**: `dep OtherWorkflow, :task_name`. The
+  dependency Step resolves to the **producer workflow's** task directory
+  and records that path in the consumer's `info[:dependencies]`; it is
+  reused in place, not copied or rebranded. The producer's job-path digest
+  participates in the consumer's digest: a different input to the
+  producer's task produces a different producer path and therefore a
+  different consumer path.
 - **Aliased**: `task_alias(name, workflow, oname)` renames a task from
-  another workflow for use in `dep` (`workflow/definition.rb:157`).
+  another workflow for use in `dep` (`workflow/definition.rb:157`). The
+  alias is a distinct task with its own job directory under the alias
+  name (`alias? == true` on both Task and dep Step); it declares the
+  original as its dependency and joins it before finishing, so
+  `alias.load` equals the producer's result while the alias's own path
+  differs from the producer's.
+- **Included**: `include_workflow(workflow)` merges the other workflow's
+  tasks and helpers into the including workflow, but each borrowed task
+  keeps its producer's directory, `task_signature`, `info[:workflow]` and
+  Step `workflow` object — included tasks are not relocated or rebranded
+  (`workflow/definition.rb:232`).
 - **Overriding**: a dependency can override another dependency's result
   if they target the same logical step.
 
 #### Compute options
 
-Dependencies accept `compute:` options (`step/dependencies.rb:114-127`):
+Dependencies accept `compute:` options. They are collected by
+`Task#dependencies` into a map keyed by the dependency's absolute path and
+holding stringified option lists (`["canfail"]`, `["produce"]`), and
+consumed by `run_dependencies`
+(`step/dependencies.rb:109`):
 - `:canfail` — If the dependency fails, the parent task continues
-  (`canfail?`, `step/status.rb:79`).
+  (`canfail?`, `step/status.rb:79`). The dependency stays in the list with
+  `status == :error`; `dep.load` raises the stored exception, and the
+  parent block still receives `nil` for it — the failure is only visible
+  through `step(:name).status` / `.error?`.
 - `:produce` — Only produce the dependency result; don't load it.
 - `:stream` — Stream the dependency result to the parent.
+- `false` — Skip the run/wait loop for that dependency
+  (`next if compute_options.include?(false)`,
+  `step/dependencies.rb:117`). This is "do not force or wait", not "do not
+  run at all": the dependency stays in the dependency list, is consumed
+  normally if its result is already on disk, and is simply left absent if
+  it is not (the parent still completes).
 
 #### Dependency input files
 
@@ -157,7 +209,7 @@ result.
 ## Step lifecycle and status
 
 Step status is stored in the `.info` file and read back with `status`
-(`step/info.rb:182`). The statuses actually written by the code are:
+(`step/info.rb:189`). The statuses actually written by the code are:
 
 - `:waiting` — `init_info` default before execution
   (`step/info.rb:44`).
@@ -175,13 +227,24 @@ waiting → setup → start → done
                   ↘ aborted
 ```
 
-There is no `queued` or `cleaning` status in this implementation.
+The forked child writes one additional status, `:queue`
+(`reset_info status: :queue, pid: Process.pid unless present?`,
+`step.rb:296`); there is no `cleaning` status.
+
+A step with **no `.info` file at all** reports `status == ""` (empty
+string), not `waiting`: most predicates are then false (`waiting?`,
+`started?`, `done?`, `dirty?`, `error?`, `aborted?`) while `updated?` is
+true and `running?` is `nil`. `clean` returns a step to exactly this
+state.
+
 Predicates (`step/status.rb`, `step/info.rb`):
 - `waiting?` — present but not started.
 - `started?` — done, or a live PID is recorded.
-- `running?` — not done-with-`:done` and the recorded PID is alive.
+- `running?` — not done-with-`:done` and the recorded PID is alive
+  (`info.rb:201`). An errored step whose PID is still alive reports both
+  `error? == true` and `running? == true`.
 - `streaming?` — result is an IO/stream not yet consumed (`step.rb:316`).
-- `done?` — the result file exists (`step.rb:312`).
+- `done?` — the result file exists (`step.rb:312`), regardless of status.
 - `dirty?` — done but not `updated?`.
 - `error?`, `aborted?` — status checks.
 - `clean` / `recursive_clean` remove the result, `.info`, temp file, and
@@ -192,13 +255,49 @@ Predicates (`step/status.rb`, `step/info.rb`):
 The `.info` file records provenance:
 - Status and status changes, `issued`, `start`, `end` timestamps.
 - PID (and hostname in deployment contexts).
-- Inputs and their values.
-- Dependencies and their paths.
+- Inputs and their values (`inputs`, `input_names`, `provided_inputs`,
+  `non_default_inputs` are all persisted verbatim).
+- Dependencies and their paths — the **direct** dependencies only. Each
+  `.info` records one level, so a deep chain must be reconstructed by
+  walking the recorded paths; the in-memory `rec_dependencies`
+  (`step/dependencies.rb:3`) resolves the full chain, and a Step reloaded
+  from disk rebuilds only the direct level from its info.
 - Exception details and backtrace if an error occurred.
 - Log messages from the task.
 
 The serializer is configurable via `SCOUT_SERIALIZER` (default: JSON)
 (`step/info.rb:6`).
+
+## Remote steps (scout-camp `OffsiteStep`)
+
+Offsite execution is provided by the `scout-camp` gem, not by scout-gear
+itself. `scout/workflow/deployment/local.rb:254-256` annotates a local job
+with `OffsiteStep.setup(job, server: server, batch: true)` (or
+`server: deploy`): `OffsiteStep` is a **module annotation applied to the
+very same `Step` object**, not a separate class, so an offsite step still
+`is_a?(Step)`. Its API surface on the annotated Step is
+`run`, `done?`, `exec`, `info`, `orchestrate_batch`, `offsite_path`,
+`inputs_directory`, plus the annotations `server`, `workflow_name`,
+`clean_id`, `batch` (scout-camp `offsite/step.rb:8`).
+
+The one scout-gear branch that special-cases remote steps —
+`if defined?(RemoteStep) && RemoteStep === dep` in
+`Workflow#include_workflow` (`workflow/definition.rb:212`) — is **dead
+code in this repository**: no `RemoteStep` class exists in scout-gear or
+in scout-camp (0.2.0), and scout-gear's own `Step` is never a
+`RemoteStep`. Only the `OffsiteStep` annotation is real.
+
+Local/remote interoperability is based on path *identification*, not path
+identity: `Resource.identify(abs)` (scout-essentials
+`resource/util.rb:2`) maps an absolute path to its workflow-relative form
+(`var/...`), and `find(:user)` (or another map) maps it back to the
+concrete file. `Step.load` uses this round-trip
+(`Step.relocate`, `workflow/step/load.rb:1`) to read a result produced
+under one `var` root from another — the denominator between a remote
+host's job tree and the local one. Behaviours that need a reachable
+remote host (result sync-back, `orchestrate_batch`, `hold_dependencies`)
+are documented in scout-camp and are **not** asserted here; verifying
+them requires a live host.
 
 ## Deployment to HPC
 

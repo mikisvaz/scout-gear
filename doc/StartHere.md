@@ -26,6 +26,7 @@ library to solve problems. They are organized around tasks, not classes.
 - [Managing Relationships](user/ManagingRelationships.md) — Build knowledge bases and query relationships.
 - [Running Parallel Work](user/RunningParallelWork.md) — Distribute work across multiple processes.
 - [Caching Data](user/CachingData.md) — Persist results to avoid redundant computation.
+- [Using the CLI](user/UsingTheCLI.md) — The `scout` executable: dispatch, options, help, exit codes.
 - [HPC / Batch Execution](user/HPCBatchExecution.md) — Run jobs on SLURM/PBS/LSF clusters.
 - [Cookbook](user/Cookbook.md) — Practical recipes combining multiple subsystems.
 
@@ -64,8 +65,11 @@ and architectural refinements discovered during the documentation effort.
 
 ### I want to run workflows from the command line
 
-→ Read **[HPC / Batch Execution](user/HPCBatchExecution.md)**
+→ Read **[Using the CLI](user/UsingTheCLI.md)**
 
 The `scout` executable (`scout_commands/`) exposes workflow execution
-(`scout workflow`), batch management (`scout batch`), and utilities.
-`scout workflow --help` lists every registered workflow with its tasks.
+(`scout workflow`), batch management (`scout batch`), and utilities;
+[Using the CLI](user/UsingTheCLI.md) documents the dispatcher, the
+option convention every command shares, and the exit codes. For batch
+submission on a cluster, continue to
+[HPC / Batch Execution](user/HPCBatchExecution.md).

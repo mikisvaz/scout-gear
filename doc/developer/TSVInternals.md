@@ -35,7 +35,11 @@ A TSV carries these annotations:
 - `fields` — Array of field names.
 - `namespace` — Namespace for identifier translation.
 - `type` — Value type (`:single`, `:list`, `:flat`, `:double`).
-- `entity_options` — Entity type options.
+- `entity_options` — Entity type options. Not preserved across
+  dump/reload: `Dumper.header` serializes the option set through
+  `IndiferentHash.hash2string`, which skips non-Scalar values, so a
+  Hash-valued `entity_options` never reaches the `#:` preamble, and
+  nothing on the read side restores it.
 - `identifiers` — Identifier translation files (set via `TSV#identifiers=`
   / `Entity::Identified` conventions; see `Entity System`).
 
@@ -72,8 +76,61 @@ type:
 - `:single` — First column is key, second column is value.
 - `:list` — First column is key, remaining columns form an array.
 - `:flat` — First column is key, remaining columns form a flat array.
-- `:double` — Columns are split on `sep2` (`","` by default) into
-  sub-arrays.
+- `:double` — Each value column is split on `sep2` (`"|"` by default,
+  `parser.rb:29`) into sub-arrays. `sep2` applies to *values* only for
+  `:double`: a `:list` TSV never splits its values on `sep2`, so
+  `"x|y"` survives intact in a `:list` column.
+
+### Entry points
+
+`TSV.open(file, options = {})` (`tsv.rb:75`) is the materializing entry
+point; it accepts a filename/`Path`/`StringIO`/`TSV::Parser` and returns
+an annotated Hash. Note that `TSV.open(tsv)` on an already-loaded TSV
+re-opens its serialized stream and returns a **copy** — identity is lost
+even though keys, fields and type survive; there is no `TSV.get` alias.
+
+The lower-level, stream-first entry points live on `TSV::Parser`
+(`parser.rb`) and are useful when you never want a Hash:
+
+- `TSV::Parser.new(source, options)` — wraps a source without parsing it;
+  the object answers `key_field`/`fields`/`type` immediately (header
+  parsed lazily) and can be handed to `TSV.traverse`, `attach`, or a
+  `TSV::Transformer`.
+- `TSV.parse(stream, **kwargs, &block)` (`parser.rb:471`) — parses into
+  a Hash, or into `data:` if given.
+- `TSV.parse_stream(stream, **kwargs, &block)` (`parser.rb:74`) — yields
+  `key, values` pairs without building a Hash.
+- `TSV.parse_header(stream, fix: true, header_hash: '#', sep: "\t")`
+  (`parser.rb:257`) — returns the parsed header options (including
+  `all_fields`) without touching the data.
+- `TSV.parse_line(line, type: :list, key: 0, positions: nil, sep: "\t",
+  sep2: "|", cast: nil, select: nil, field_names: nil)` (`parser.rb:29`)
+  — the single-row workhorse used by everything above.
+
+### Field resolution and the object-level `identify_field`
+
+Field names resolve through three surface-level helpers that share one
+back-end, `TSV.identify_field(key_field, fields, name, strict: nil)`
+(`tsv/util.rb:47`): `:key` matches literally (or the key field name when
+`strict:` is falsy), everything else goes through
+`NamedArray.identify_name`, which tolerates `Symbol`/`String` and the
+standard header normalization. The wrappers are:
+
+- `TSV#identify_field(name, strict: nil)` (`tsv/util.rb:53`) — on a
+  materialized TSV.
+- `TSV::Parser#identify_field(name)` (`parser.rb:375`) — **one
+  positional argument only**; it delegates to the same back-end without
+  forwarding `strict:`.
+- `TSV::Transformer#identify_field(name)` (`transformer.rb:65`) — same
+  shape as the Parser one.
+- `TSV.identify_field_in_obj(obj, field)` (`change_id/translate.rb:3`)
+  — dispatches on the object kind, accepting a TSV, Parser, Dumper, a
+  path/`String` (whose header is parsed on the fly), or an
+  `[key_field, *fields]` Array.
+
+Because the Parser/Transformer wrappers take a single argument, code
+that needs `strict:` must call the module method with
+`obj.key_field`/`obj.fields` explicitly.
 
 ## Streaming: Dumper and Transformer
 
@@ -90,7 +147,12 @@ A Dumper maintains:
 - A `sep` (field separator, default `\t`) and `type` (default `:double`).
 
 When you call `dumper.add(key, values)`, it serializes the row and writes
-it to the pipe. The header is written first.
+it to the pipe. The header is **not** written at construction: `init`
+(which emits the `#:` preamble and the field-name line) runs at the first
+`add`, so a Dumper that never receives a row produces an empty stream
+(`close` on a fresh Dumper yields EOF with no header). The write API is
+exactly `add`/`init`/`close`/`abort`; `stream` (`dumper.rb:124`) exposes
+the read end.
 
 ### Transformer
 
@@ -107,6 +169,22 @@ by a pipe. This is **deadlock-safe**:
 This threading model means you can chain multiple Transformers without
 worrying about buffer sizes or stack depth. Each Transformer is an
 independent pipe stage.
+
+Consequences worth knowing before you materialize one:
+
+- A **String source is a file path** — `TSV::Transformer.new("a|b")`
+  fails with `Errno::ENOENT`; hand it a `Path`, a filename that exists,
+  a `TSV`, or a `Parser`.
+- Nothing is produced until `traverse`/`each` runs. Calling `.tsv` on a
+  Transformer that was never traversed **blocks forever** reading a pipe
+  whose writer never closes (the Dumper is still `initialized == false`);
+  run `traverse { |k,v| [k,v] }` first.
+- `transformer.traverse` routes block results into the dumper through
+  `traverse_add`, so a block returning `nil` writes nothing.
+- `.tsv` re-parses the dumper stream into a Hash-backed TSV when the
+  target is the built-in Dumper, and returns the target object itself
+  (identity preserved) when the target is a TSV. `.stream` on a Dumper
+  target is the IO pipe carrying the TSV text.
 
 ### Concurrency safety
 
@@ -138,7 +216,11 @@ tsv.traverse(key_field_pos = :key, fields_pos = nil,
 Iterates rows of an already-loaded TSV with field selection, type
 conversion, filtering, and `one2one` checking (with `:strict` mode for
 error-on-duplicate keys, `traverse.rb:90-91`). It has **no** `cpus:` or
-`into:` keywords.
+`into:` keywords. The block yields `(key, values)` — values are a
+`NamedArray` carrying the field names unless the TSV is `unnamed` — and
+the **return value is `[key_name, field_names]`** of the traversal
+(`traverse.rb:164`), not a data structure. A 3-arity block still gets
+`nil` as its third argument (field names are not yielded).
 
 ### Class method: `TSV.traverse`
 
@@ -150,11 +232,32 @@ TSV.traverse(obj, into: nil, cpus: nil, bar: nil, callback: nil,
 ```
 
 The parallel/streaming workhorse. `obj` can be a TSV, a filename, a
-stream, or a `Parser`. `into` accepts a wide range of targets — Hash,
-Array, Set, IO, `TSV::Dumper`, a `Parser`/stream to chain, `:tsv`/`:flat`
-shorthands — and results are added via `traverse_add`
+stream, or a `Parser`. `into` accepts a concrete target object — Hash,
+TSV, Array, Set, IO/`StringIO`, `TSV::Dumper`, a `Path` (written with
+`Open.write`), or the symbol `:stream` (which wraps an `Open.pipe` and
+returns the read end) — and results are added via `traverse_add`
 (`tsv/open.rb:12-34`), which handles `MultipleResult` unwrapping (a row
-yielding `MultipleResult.setup([...])` produces several rows).
+yielding `MultipleResult.setup([...])` produces several rows). Symbols
+are **not** general targets: `into: :tsv` falls through the
+`traverse_add` `case` untouched, so nothing is collected and the symbol
+itself is returned.
+
+`into:` decides the *return value*: with no `into:`, block results are
+discarded and the return is whatever the source branch produced — the
+header pair `[key_field, fields]` for a TSV/`Parser` source
+(`tsv/traverse.rb:164`), or the (empty) parsed container for a
+stream/StringIO (`TSV.parse`, `tsv/open.rb:187`); with `into:`, the call
+returns the target itself (`into || res`, `tsv/open.rb:202`), so the
+result is the very object that was passed in. A Hash target accumulates
+`key => value` (a `:double` TSV target merges with `zip_new`); an
+Array/Set target appends whole `[key, values]` rows (`into << res`); an
+`IO`/StringIO target receives one `puts` per result.
+
+When a `callback:` is supplied alongside `cpus:`, the callback receives
+each worker result **from the main process** as it arrives over the
+output socket — ordering is completion order, not source order. Without
+`cpus:` (single-process traverse) the callback runs per row in source
+order. Ordering under `cpus:` is therefore not contractual.
 
 When `cpus:` is specified (and > 1), traverse uses WorkQueue to
 distribute rows across forked worker processes:
@@ -187,8 +290,29 @@ it is persisted through `Persist.persist` with engine `:HDB` by default
 `ScoutCabinet` extended with `TSVAdapter`, or a plain annotated Hash when
 no filename is given (`index.rb:60-68`).
 
+`fields:` controls which source columns are indexed — it defaults to
+`:all`, so *every* column value of the source becomes an index key even
+when `target:` names a single column (with `target: :key`, the default,
+the key itself, the `GeneName` values and the `V` values all map to the
+row key). An explicit `fields: ["GeneName"]` restricts indexing to that
+column. The index is write-once per value: when a source value appears
+in several rows the **first row seen wins** under both `order:` settings
+— `order: true` (default) collects with `uniq.first` over a `:double`
+traverse, `order: false` uses a flat traverse that skips values already
+present; they differ only in memory layout. The index's `key_field` is
+the comma-joined list of indexed source column names (so `ID,GeneName,V`
+with `fields: :all`) and its single field is the target column name.
+With `persist: true` the returned object is a `TokyoCabinet::HDB`
+(through `ScoutCabinet` + `TSVAdapter`); without it, a plain annotated
+Hash.
+
 The instance method `tsv.index` delegates to the class method
 (`tsv/index.rb:111`).
+
+`TSV.index` also answers for the **key column**: the default target
+`:key` maps every distinct value of the indexed columns to its row key,
+and `fields: :all` (the default) includes the key itself in the indexed
+set. Passing `fields: ["X"]` limits the index to that column.
 
 ### Range index
 
@@ -202,7 +326,8 @@ TSV.range_index(tsv, "Start", "End")
 `TSV.range_index` (`tsv/index.rb:115`) takes `start_field`, `end_field`
 positionally plus `key_field: :key`. This creates a `FixWidthTable` that
 stores start/end positions for each key, allowing fast range queries.
-Used for genomic coordinate lookups.
+Used for genomic coordinate lookups. `TSV.pos_index` (`tsv/index.rb:159`)
+is the single-coordinate analogue.
 
 ### Index persistence
 
@@ -238,6 +363,14 @@ the index and rewrites headers; parenthesized headers
 and `attach` itself builds such an index automatically when the two
 tables' keys do not match (`tsv/attach.rb:79-87`).
 
+Translation handles missing entries by leaving the original value in
+place (the row is not dropped, and unmatched keys survive as
+`nil`-free rows). `TSV.translation_index` caches its result under
+`~/.scout/var/cache/persistence` with a `Translation_index:` prefix, so
+a previously built chain of identifier files is reused without rebuilding.
+`stream: true` on `tsv.translate`/`tsv.change_key` returns a
+`TSV::Transformer` instead of a materialized TSV.
+
 ## Attach / Join
 
 The `attach` method (`tsv/attach.rb:228`) adds columns from one TSV to
@@ -248,9 +381,25 @@ another by matching on a key. The matching key is auto-detected:
 3. If no common field is found, look for identifier files that can
    translate.
 
-Attach uses indexes to avoid full scans. The result is a new TSV with the
-attached columns. `attach` streams: the attached TSV is traversed and
-merged via a Dumper rather than materialized wholesale.
+Attach uses indexes to avoid full scans (it builds a translation index
+from identifier files when the keys do not line up,
+`tsv/attach.rb:78-86`). The receiver decides the result:
+
+- On an in-memory TSV, `tsv.attach(other)` mutates **and returns the
+  receiver** — the attached columns are appended to `tsv.fields` and
+  missing matches produce a `nil` entry in the row.
+- On a `Parser`/filename source, `target:` selects the destination:
+  `target: :stream` returns a `TSV::Dumper`-backed TSV whose `to_s`
+  renders the merged table (consume the stream, then `TSV.open(stream)`
+  to materialize); `target: nil` returns a materialized TSV; any other
+  object is used as the write target.
+- `complete: true` adds rows for keys that exist only in the attached
+  TSV (their source columns are `nil`); `match_key:` names the source
+  column the other TSV's key is matched against; there is no `field:`
+  keyword — column selection is `fields:`.
+
+`attach` streams: the attached TSV is traversed and merged via a Dumper
+rather than materialized wholesale.
 
 ## Serialization and persistence
 
@@ -294,8 +443,14 @@ result = TSV.traverse(tsv, into: MyCollector.new) { |k, v| [k, v] }
 - The `attach` auto-detection of match keys can produce surprising results
   when multiple fields could match.
 - Large `:double`-type TSVs with deeply nested values can have slow parsing.
-- `sep2` is `,` by default here, while some scout-essentials data uses `;`
-  — watch for this when sharing files between repositories.
+- `sep2` defaults to `"|"` in `parse_line` (`parser.rb:29`). Dumping
+  always *rejoins* sub-values with a literal `"|"`, regardless of the
+  `sep2` the TSV was opened with, and the `#: :sep2=` directive is not
+  written into the preamble — so a non-default `sep2` is effectively a
+  read-side option. If you need round-trip fidelity, normalize to `|`
+  on write. (Redeclaring `sep2:` at open does work: a directive value
+  must be quoted — `#: :sep2=':'` — because a bare `:` is read back as
+  a Symbol.)
 - The `namespace` annotation is used inconsistently — sometimes it's a
   module name, sometimes it's a path.
 

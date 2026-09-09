@@ -47,6 +47,17 @@ gene.protein_ids  # => ["ENSP00001", "ENSP00002"]
 and returns **the same object**. The String keeps its class; entity
 methods are dispatched through the annotation layer.
 
+Setting up a second entity module on the same object **stacks** it: both
+modules annotate the object, `annotation_types` lists both, and
+`all_properties` (the properties of every annotating module) is their
+union. `base_entity` is the module added last.
+
+`Entity.prepare_entity(value, field, options)` is the sibling entry point
+used by the TSV and KnowledgeBase layers: it returns the value unchanged
+unless it is a String, an Array or a Numeric, always duplicates those
+three first, and annotates the copy with the module given by `field` (an
+entity module or a registered format name).
+
 ### Properties
 
 A property is defined on the entity module with `property`; its block runs
@@ -60,10 +71,12 @@ property :at_pos => :both do |pos|           # property with arguments
 end
 ```
 
-The dispatch types (`:single`, `:array`, `:multiple`, `:both`) control how
-the block is invoked when the receiver is a *collection* of entities; see
-the [Entity System](../developer/EntitySystem.md) for the full matrix.
-Two behaviors worth knowing up front:
+The dispatch types (`:single`, `:single2array`, `:array`, `:array2single`,
+`:multiple`, `:both`) control how the block is invoked when the receiver
+is a *collection* of entities; see the [Entity
+System](../developer/EntitySystem.md) for the full matrix. `:single2array`
+and `:array2single` are accepted names that behave exactly like `:single`
+and `:array`. Two behaviors worth knowing up front:
 
 - an `:array` property's block **always** sees an Array — calling it on a
   single String wraps the String in a one-element array first;
@@ -135,6 +148,19 @@ records the default/name formats, and appends the file to
 expanded per entity using the entity's `namespace` annotation; files whose
 tag cannot be resolved are rejected (with a warning) rather than used.
 
+When more than one declared file can translate a source into the target,
+the **first** usable file wins and the others are not consulted; if no
+single file covers the pair, a chained translation through an
+intermediate format is tried before failing. A direct file covering the
+pair wins even when a longer chain is declared first, and a missing
+middle link (no file for either hop) raises `Errno::ENOENT` when it tries
+to produce the absent intermediate, rather than silently passing the
+value through.
+
+Note also that format registration is global and **first-write-wins**: if
+two entity types register the same format string, the second one is
+silently ignored.
+
 Extra files can be appended afterwards:
 
 ```ruby
@@ -173,8 +199,17 @@ persist :expression, :marshal
 ```
 
 `persisted?(name)` tests registration and `unpersist(name)` removes it
-(property.rb:156-164). See [Caching Data](CachingData.md) for the
-persistence API.
+(property.rb:156-164). Two caveats worth knowing:
+
+- the cache file is keyed by the entity's `id` — the digest of its value
+  *plus its annotations* — so the same identifier with a different
+  `format` or `namespace` is a separate cache entry, not a stale one;
+- there is no recompute on age: without a `:check` file the persisted
+  value is served as-is, `unpersist` only removes the registration
+  (the file stays on disk and is read back if the property is
+  re-persisted), and one file is written per argument set.
+
+See [Caching Data](CachingData.md) for the persistence API.
 
 ## Entities in workflows
 
@@ -205,9 +240,18 @@ Research::Gene.setup("ENSG1").tok_job   # the underlying Step
 ## Entities in the KnowledgeBase
 
 The KnowledgeBase uses entity modules to interpret association field
-specifications (`:p1`-style entities) and to set up association items;
-entity types also provide the identifier files used for cross-format
-joins. See [Managing Relationships](ManagingRelationships.md).
+specifications and to set up association items; entity types also
+provide the identifier files used for cross-format joins. `kb.register`
+with `source: "Field=~Type"` annotates the entity *type* on query
+results; the annotation *values* (`entity_options` such as `language:
+'es'`) come from `kb.entity_options` / per-database registration
+options, not from the field specification. `KnowledgeBase`-specific
+helper `kb.define_entity_modules` creates the `Object::<Type>` module
+for every `entity_options` entry that lists `:identifiers` and
+registers every identifier header format into `Entity.formats`; the
+type keys it uses must be bare constant names (`"Kin"`, not
+`"Object::Kin"`). See
+[Managing Relationships](ManagingRelationships.md).
 
 ## Common mistakes
 
@@ -228,6 +272,14 @@ joins. See [Managing Relationships](ManagingRelationships.md).
   directly.
 - **Using `NAMESPACE` paths without a namespace**: unresolved
   `NAMESPACE` tags cause the file to be dropped (warn), not to fail.
+- **Re-using one array with two entity types**: `setup` annotates in
+  place, and the per-container array-property cache is keyed only by the
+  property name and arguments — a second entity type annotating the same
+  array will find the first type's cached results for a same-named
+  property.
+- **Expecting `annotated_array: false` to keep an array plain**:
+  annotated arrays always get `AnnotatedArray` extended; the option has
+  no effect.
 
 ## See also
 

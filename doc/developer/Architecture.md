@@ -116,6 +116,13 @@ scout-essentials; nothing in scout-essentials requires scout-gear.
 - **Key files**: `lib/scout/association.rb`, `lib/scout/knowledge_base.rb`.
 - **Provides**: association parsing/indexing, KnowledgeBase registry,
   `traverse` over association items.
+- **Artifacts**: registration is lazy — `kb.register` only records
+  `[file, options]`; the first `get_index`/query builds two separate
+  artifacts under the kb dir: the pair-keyed index
+  (`<name>`, `type: :list` in a `TokyoCabinet::BDB`) and the database
+  (`<name>.database`, `type: :double`), plus a reverse index
+  (`<name>.reverse`) on the first `parents` query. The storage engine is
+  fixed to BDB; the `:persist` option does not select it.
 - **Depends on**: TSV (association data), Persist (index storage),
   Entity (properties on items). **Association depends on Entity, not the
   other way around** (`association.rb:1` requires TSV;
@@ -145,8 +152,9 @@ scout-essentials; nothing in scout-essentials requires scout-gear.
 ### Concurrency (WorkQueue, ScoutSemaphore)
 
 - **Responsibility**: multi-process parallelism and synchronization.
-- **Key files**: `lib/scout/work_queue.rb` (+ `socket.rb`, `worker.rb`),
-  `lib/scout/semaphore.rb`.
+- **Key files**: `lib/scout/work_queue.rb` (+ `socket.rb`, `worker.rb`,
+  `exceptions.rb`), `lib/scout/semaphore.rb`, and the read-only
+  `lib/scout/monitor.rb` (see below).
 - **WorkQueue**: fork-based worker pool with socket IPC; used by
   `TSV.traverse(cpus:)`.
 - **ScoutSemaphore**: named POSIX semaphores built with RubyInline
@@ -154,6 +162,15 @@ scout-essentials; nothing in scout-essentials requires scout-gear.
   compile (no silent no-op).
 - **See**: [Concurrency Model](ConcurrencyModel.md),
   [Running Parallel Work](../user/RunningParallelWork.md)
+- **Monitor** (`lib/scout/monitor.rb`): not a concurrency primitive but a
+  read-only *introspection* helper for `scout system status`/`clean`. It
+  never takes locks: `Scout.locks/lock_info`, `sensiblewrites/…_info`,
+  `persists/…_info`, `job_info`, `file_time`, `load_lock` and `dump_memory`
+  shell out to `find -L` over the lock/persist/job directory constants
+  (`LOCK_DIRS`, `PERSIST_DIRS`, `JOB_DIRS`, `SENSIBLE_WRITE_DIRS`) and parse
+  what they find. It is loaded explicitly by
+  `scout_commands/system/{status,clean}` — `require 'scout'` alone does not
+  define the `Scout.lock_*` methods.
 
 ## Module dependency graph
 
@@ -206,8 +223,14 @@ Notable corrections to older diagrams:
 
 5. **Fork-based parallelism**: CPU parallelism uses process forking
    (WorkQueue) rather than threads, avoiding GVL contention and giving
-   each worker independent memory. Coordination is by IPC sockets;
-   shared resources use named semaphores.
+   each worker independent memory. Coordination is by IPC sockets
+   (each socket a pair of named semaphores, for frame atomicity); the
+   semaphore consumer list in-tree is small — WorkQueue sockets, the
+   WorkQueue abort path, and the optional `Step#fork(noload, semaphore)`
+   wrapper (`workflow/step.rb:291`), which no in-repo caller currently
+   passes. Deployment resource limits are enforced by the local
+   executor's `check_resources` bookkeeping
+   (`workflow/deployment/local.rb:202-224`), not by semaphores.
 
 ## See also
 

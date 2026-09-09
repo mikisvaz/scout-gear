@@ -60,13 +60,13 @@ smaller than it looks:
 | Method | What it does |
 |---|---|
 | `WorkQueue.new(workers = 0, &block)` | Creates the queue and N worker stubs; the block is the worker body. Workers are **not** started yet. |
-| `write(obj)` / `<<` | Enqueue one item for the workers. |
+| `write(obj)` | Enqueue one item for the workers (there is no `<<`). |
 | `add_worker { \|item\| ... }` | Fork one more worker (optionally with its own block). |
 | `process { \|result\| ... }` | **Fork all workers** and start the reader thread; the block you give receives each *result* in the parent. Also starts the waiter thread that reaps exited workers. |
-| `close` | Signal that no more input is coming (workers drain and exit). |
+| `close` | Signal that no more input is coming: one `DoneProcessing` sentinel per worker; workers drain and exit. |
 | `join(clean = true)` | Wait for reader + waiter threads, then `clean`. |
-| `abort` | Tear the queue down after a failure. |
-| `clean` | Close the socket pair. |
+| `abort` | Kill the workers after a failure (see the warning below). |
+| `clean` | Close both sockets and delete their semaphores. |
 
 So the canonical pattern is:
 
@@ -91,18 +91,60 @@ wq.join
 Notes that matter in practice:
 
 - There is **no `add_inputs`, no `run`, and no `callback`**. `process`
-  *is* the fork-and-run step; feed items with `write`/`<<`; join with
-  `join`. (Older docs describing `wq.add_inputs(...)` / `wq.run` described
-  an API that does not exist in this codebase.)
-- Blocks and anything they capture must be `Marshal`-serializable, because
-  the worker body is marshalled to the forked workers. Avoid lambdas
-  capturing IO objects, Procs over unserializable state, etc.
-- A worker that dies abnormally raises in `join` (`Exception: Worker <pid>
-  ended with status <n>`, work_queue.rb:137); a worker that raises inside
-  the block sends the exception back over the output socket and it is
-  re-raised in the parent's reader.
+  *is* the fork-and-run step; feed items with `write`; join with `join`.
+  (Older docs describing `wq.add_inputs(...)` / `wq.run` described an API
+  that does not exist in this codebase.)
+
+- `abort` **needs `clean` to finish the teardown.** `abort` kills the worker
+  processes but does *not* close the parent's write-end of the output
+  socket, so the reader thread never sees end-of-stream: a bare `wq.join`
+  after `wq.abort` hangs forever. Put `clean` in an `ensure` — that is
+  exactly what `TSV.traverse(cpus:)` does internally:
+
+  ```ruby
+  begin
+    wq.process { |r| sink << r }
+    items.each { |i| wq.write i }
+    wq.close
+    wq.join
+  rescue Exception
+    wq.abort
+    raise
+  ensure
+    wq.clean
+  end
+  ```
+
+- Work *items and results* must be `Marshal`-compatible (unless they are
+  plain Strings or Integers, which take dedicated frames): no file handles,
+  IO objects, Procs or Threads. The worker *block itself* is not
+  marshalled — workers are forked and inherit it, so the block may capture
+  anything, including Procs.
+- Integer items and results are **not** marshalled: they travel inside the
+  4-byte frame header and are truncated to signed 32-bit — `wq.write(-1)`
+  comes back as `4294967295`, and anything at or above `2**31` wraps
+  silently. Keep Integer payloads inside the signed 32-bit range (see
+  [Concurrency Model](../developer/ConcurrencyModel.md)).
+- A worker that dies abnormally raises in join with `Exception: Worker
+  <pid> ended with status <n>` (work_queue.rb:123). A worker that raises
+  inside the block sends the exception back over the output socket and it
+  is re-raised in the parent's reader.
 - `remove_one_worker` sends a `DoneProcessing` sentinel so one worker exits
   cleanly; `remove_worker(pid)` drops it from the reaper's list.
+
+## Ordering
+
+Per worker, results come back in the order that worker consumed its items —
+never reordered within one pid. Across workers there is no cross-item
+ordering contract: the parent's callback interleaves whatever the reader
+thread drains next, so the global sequence depends on worker timing. (With
+two workers over 1..8 the split is usually `[1,3,5,7]` / `[2,4,6,8]`, but
+that is an artifact of the scheduling, not a promise.) If you need a
+deterministic global order, sort or key the results afterwards.
+
+Two further result-suppression details: a worker block that returns the
+symbol `:ignore` has that result dropped, and `WorkQueue#ignore_ouput` (the
+misspelling is the real method name) drops *all* results for a worker.
 
 ## Streaming inputs
 
@@ -144,14 +186,29 @@ The operations, all module functions on `ScoutSemaphore`:
 | `exists?(name)` | Whether the name is live under `/dev/shm`. |
 | `wait_semaphore(name)` / `post_semaphore(name)` | Acquire/release one permit (retry with backoff on transient errno). |
 | `synchronize(name, &block)` | Wait, run block, post (ensured). Accepts either a raw name or a lock path — paths are normalized to a valid POSIX name. |
-| `with_semaphore(size, file = nil, &block)` | Create a fresh semaphore of `size` around one block; safe for nested/subprocess use. |
-| `thread_each_on_semaphore(elems, size, &block)` | Run block on each element with at most `size` concurrent *threads*. |
+| `with_semaphore(size, file = nil, &block)` | Create a fresh semaphore of `size` around one block and delete it afterwards. Subprocesses started inside the block can `synchronize` on the yielded name; **the name is gone when the block ends**, so re-entering the same name later hits the auto-recreate path (see below). |
+| `thread_each_on_semaphore(elems, size, &block)` | Run block on each element with at most `size` concurrent *threads*. **Swallows exceptions** — see below. |
 | `fork_each_on_semaphore(elems, size, file = nil, &block)` | Fork-based variant. **Currently broken** — see below. |
+| `delete_semaphore(name)` | Remove a named semaphore (returns `0` on success). |
 
-Behavior verified by probe (`research/doc_audit/probes/P032*`): creation,
-existence checks, wait/post and `synchronize` all work; retry with jittered
-backoff (up to 6 attempts) is applied on `ENOENT`-class errno; names are
-normalized so lock-file paths map onto valid semaphore names.
+Creation, existence checks, wait/post and `synchronize` all work; retry
+with jittered backoff (up to 6 attempts) applies on `ENOENT`-class errno;
+names are normalized so lock-file paths map onto valid semaphore names
+(probe record: `research/concurrency-probes.md`).
+
+Two more behaviors that are easy to miss:
+
+- **A missing semaphore is silently recreated with value 1.** `wait` on a
+  name that does not exist (typo, or deleted by a previous
+  `with_semaphore`) does not fail — it logs "appears missing", creates the
+  name with 1 permit and proceeds. Check with `ScoutSemaphore.exists?`
+  if you need to detect a stale name; a `wait` will never tell you.
+- **`synchronize` releases the permit even if the block raises**, and
+  `thread_each_on_semaphore` swallows a raising block: it rescues
+  `Exception` itself, logs it, kills the threads ("Ensuring threads are
+  dead: N") and returns the array of (now dead) `Thread` objects — never
+  the block's results, never the error. Do not use it for work that must
+  not be lost.
 
 ### Failure mode — this matters
 
@@ -161,32 +218,45 @@ to the inline cache), `require 'scout/semaphore'` logs
 functions**. Every call then raises `NoMethodError`. It does *not* degrade
 to a no-op, so there are no silent races — but you must rescue the
 `NoMethodError` (or ensure a toolchain is present) if your environment may
-lack one.
+lack one. The file also references scout-essentials' `TryAgain` at load
+time, so `require 'scout/semaphore'` needs both the `inline` gem and
+scout-essentials on the path.
 
 ### Known breakage
 
 `ScoutSemaphore.fork_each_on_semaphore` currently raises
 `NoMethodError: undefined method 'fingerprint' for module Misc` on entry
-(semaphore.rb:337 calls `Misc.fingerprint`, which is defined in neither
-scout-gear nor the scout-essentials it depends on; probe P032b). Use
-`thread_each_on_semaphore`, `with_semaphore`, or a `WorkQueue` until this is
-fixed.
+(semaphore.rb:337 calls `Misc.fingerprint` to build a progress-bar title;
+the fingerprint API now lives on `Log` — `Log.fingerprint` — so the fix is a
+one-line change). Use `thread_each_on_semaphore` (mind its exception
+swallowing), `with_semaphore` with explicit forks, or a `WorkQueue` until
+this is fixed.
 
 ## Common mistakes
 
 - **Calling a nonexistent API**: `add_inputs`, `run`, `callback` do not
   exist. `process` forks and starts collection; `write` enqueues; `join`
   reaps.
+- **`WorkQueue#abort(exception)`**: the queue's `abort` takes no argument;
+  `abort(exception)` is `WorkQueue::Socket#abort`.
 - **Forgetting `close` + `join`**: workers only finish when you signal
   end-of-input and wait. Without `join`, exceptions from dead workers are
   lost.
-- **Non-serializable worker blocks**: the block is marshalled to children;
-  keep it free of IO/Proc/state that can't round-trip.
+- **Non-serializable work items**: items and results must be
+  Marshal-compatible (Strings and Integers excepted); the worker block is
+  forked, not marshalled, so it may capture anything.
 - **Expecting shared state**: workers are forked processes; in-memory state
   is copy-on-write isolated, so results must be returned through the queue
   (`into:` or the `process` callback), never through shared variables.
 - **Assuming semaphores degrade silently**: they fail loudly
   (`NoMethodError`) when the C extension is unavailable.
+- **Relying on `abort` alone**: `abort` does not close the parent's output
+  write-end, so a bare `join` afterwards hangs forever. Always follow
+  `abort` with `clean` (ideally in an `ensure`).
+- **Trusting semaphore names to be unique**: names are global on the host
+  (`/dev/shm/sem.<name>`), are not namespaced per user or process, and a
+  `wait`/`post` on a missing name silently recreates it with one permit —
+  a typo cannot be detected at the call site.
 
 ## See also
 

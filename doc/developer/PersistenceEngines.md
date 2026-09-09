@@ -53,10 +53,11 @@ Flow:
 5. The block writes to `filename` and returns the database object.
 
 Engine-specific caveat: the `:HDB` **save driver** expects the block to
-return an engine object (`ScoutCabinet`-like or something with a
-`persistence_path`); returning a plain Hash fails to save and silently
-re-runs on subsequent calls. Return an engine object or use `Persist.tsv`
-for TSV content. Cache-hit detection here is also sensitive to the
+return an annotated TSV or an engine object (`ScoutCabinet`-like, something
+with a `persistence_path`); returning a plain `Hash` raises
+`NoMethodError: undefined method 'annotate' for an instance of Hash` at save
+time (`persist/tsv/adapter/tokyocabinet.rb`). Return a TSV/engine object or
+use `Persist.tsv` for TSV content. Cache-hit detection here is also sensitive to the
 `:dir` option — a relative custom `:dir` is not "located", so
 cross-process reuse needs the default cache dir or an absolute `:path`.
 Both behaviors are demonstrated in [Caching Data](../user/CachingData.md).
@@ -68,6 +69,20 @@ The persistence path is derived from:
   `persistence_path`).
 - The `prefix` (a versioning tag).
 - The `engine` type (determines file extension).
+
+**The engine type is *not* part of the cache identity.**
+`Persist.persistence_path("probe_id_1", "HDB")`,
+`...("probe_id_1", "BDB")` and `...("probe_id_1", "fwt")` all yield the
+same path: cache identity is the identifier plus any `:other`-namespaced
+options (which are digest-suffixed into the path), never the engine
+string. Switching engines therefore does **not** create a new cache
+entry; to invalidate an engine choice, bump the identifier or a prefix /
+`:other` option.
+
+The same rule makes the block body irrelevant to identity: two
+`Persist.tsv` calls with the same identifier and different blocks resolve
+to the same path, the second does not run its block, and it serves the
+data written by the first.
 
 This follows the scout-essentials
 [path conventions](https://github.com/mikisvaz/scout-essentials/blob/main/doc/developer/PathResolution.md).
@@ -124,6 +139,16 @@ Two consequences worth knowing:
   in_memory)`; supports a custom `pos_function` via options
   (`persist/tsv.rb:35-40`).
 
+FixWidthTable is **not** a TSVAdapter: it has no `key_field`/`fields`
+metadata and no `keys`/`each` enumeration. Its query surface is `[]`,
+`range`, `overlaps`, `get_range`, plus the lifecycle methods
+`read`/`write`/`close`, `size`, and `persistence_path`. `[]` accepts an
+Integer, a `Range`, or an **Array `[start, end]`** of positions; a String
+position such as `'120-180'` is *not* parsed (it reaches the
+`get_range`/`get_point` else-branch with the String used as both start and
+end) and should never be passed. Use `TSV.range_index`, which builds a
+correctly typed table for you.
+
 ### PackedIndex (PKI)
 
 - **Code**: `"pki"`
@@ -134,8 +159,29 @@ Two consequences worth knowing:
   of Strings such as `%w(i i 23s f f f f f)`; element codes come from
   `PackedIndex::ELEMS` (`i`→`l`/4, `I`→`q`/8, `f`→`f`/4, `F`→`d`/8) plus
   `"Ns"` fixed-width string and `"code:N"` forms. An optional block is the
-  `pos_function`. Symbol masks (`[:md5, "4s"]`) are not supported and raise
-  `NoMethodError`.
+  `pos_function`.
+
+The mask grammar fails loudly rather than cleanly:
+
+- Symbol masks (`[:md5, "4s"]`) are not supported and raise `NoMethodError`.
+- Unknown codes and bare `'l'`/`'x'` are not rejected at parse time: they
+  fall into the `code:N` split arm, produce an `item_size` below 3, and
+  raise `ArgumentError: negative argument` from `initialize` (the nil
+  sentinel string is built as `"NIL" + ("-" * (item_size - 3))`).
+- `nil` as the pattern raises `NoMethodError` on `each`.
+- **No `:pki` load driver is registered** (only `:HDB`, `:BDB`, `:fwt` and
+  `:tsv`), so `Persist.load(path, :pki)` raises
+  `RuntimeError: Persist does not know :pki` (scout-essentials'
+  `Persist.deserialize` fallback) instead of reopening the index. Reopen a
+  PackedIndex with `Persist.open_pki(path, write, pattern)` — where `pattern`
+  may be `nil` for a read: the mask is read back from the 8-byte header the
+  writer stores (`mask_length, item_size`, then the mask itself), so the
+  pattern does not need to be repeated. The `pos_function` **does** need to
+  be passed again (it is not persisted); reopening without it and then
+  indexing by a String key fails with
+  `TypeError: no implicit conversion of Integer into String` inside
+  `get_position`. `Persist.persist(id, "pki")` round-trips correctly because
+  the same block reopens it.
 
 ### Sharder
 
@@ -150,6 +196,15 @@ Two consequences worth knowing:
   (`tsv/adapter/sharder.rb:47`). Shard engines may themselves be `'pki'`,
   `'fwt'`, `'HDB'`, etc. (see `test_sharder.rb`).
 
+A sharder directory is not self-describing: it holds `shard-*` files plus a
+`metadata` file, but nothing persists the shard function. Reopened with
+`Persist.open_sharder(path, write, db_type)` and no block or
+`:shard_function`, the object has `shard_function == nil` and any `[]`
+raises `NoMethodError: undefined method 'call' for nil`. Supply the shard
+function again — through `Persist.tsv`'s
+`persist_options[:shard_function]`, or explicitly with
+`Sharder#shard_function=`.
+
 ### Tkrzw (optional, not wired into `open_database`)
 
 - **Files**: `persist/engine/tkrzw.rb`, `persist/tsv/adapter/tkrzw.rb`
@@ -161,3 +216,39 @@ Two consequences worth knowing:
   it as dormant code pending an explicit require; do not document it as a
   selectable engine.
 
+## Load-time availability and silent degradation
+
+`persist/engine/tokyocabinet.rb` probes for the `tokyocabinet` gem with a
+plain `begin/rescue` around `require` at load time and, on failure, only
+emits `Log.warn "The Tokyocabinet gem could not be loaded: TSV persistence
+may not work"`. Nothing else changes: `Persist.open_database` still
+dispatches to `Persist.open_tokyocabinet`, and the failure surfaces later,
+as a `NameError`/`NoMethodError` on the missing constant at the point of
+use. Engine availability is therefore a **load-time, best-effort** check —
+plan for it, and do not rely on an early failure: the HDB/BDB engines
+degrade silently until first use.
+
+## Engine lifetime: `close` is advisory
+
+`close` is best-effort cleanup, not a guarantee of state:
+
+- **TokyoCabinet**: `close` sets `@closed = true`, `@writable = false` and
+  closes the native handle, but the object **stays in
+  `Persist::CONNECTIONS`**, which is never invalidated on close. A
+  subsequent open of the same path (including
+  `ScoutCabinet.open`/`Persist.open_database`) returns the *closed* object
+  rather than re-reading from disk. That object is **not inert**:
+  TokyoCabinet object-level writes keep flowing to disk through it (the
+  Ruby binding re-opens lazily), so `db["k2"] = ...` after `close` still
+  lands in the file. What you lose is a *fresh read* of the path — the
+  cached object serves its own view of the database, so for a guaranteed
+  fresh read within the same process call
+  `Persist::CONNECTIONS.delete(path)` before reopening.
+- **Sharder**: `close` marks `@closed` and delegates to each shard's own
+  `close`; the same connection-cache caveat applies to the per-shard
+  engines.
+- **FixWidthTable**: the data is on disk after `close` and reloads fine
+  (`Persist.load(path, :fwt)` — the `:fwt` load driver *is* registered).
+
+Treat `close` as releasing a resource you are done with, not as a
+synchronization point.

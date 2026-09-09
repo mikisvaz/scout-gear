@@ -90,15 +90,40 @@ end
 
 The block receives the opened database (a `TSVAdapter`), which behaves
 like a TSV: it supports `[]`, `keys`, `through`, field and type
-metadata, and persistence annotations. Opening a TSV **from** a database
-file uses the same drivers:
+metadata, and persistence annotations. Options that the database needs —
+notably `serializer:` — go into `persist_options`, not the top-level
+`options` hash: `Persist.tsv` accepts only `id`, `options`, `engine:`
+and `persist_options:` as keywords, so a top-level `serializer:` raises
+`unknown keyword`. Use it like this:
 
 ```ruby
-tsv = TSV.open("var/databases/my_table")   # TokyoCabinet database path
+db = Persist.tsv("my_table", {}, engine: "HDB",
+                 persist_options: { serializer: :list }) do |data|
+  ...
+end
 ```
 
-`TSV.open` detects an existing database and uses `TSVAdapter` instead of
-parsing text.
+The serializer itself is chosen through the
+`TSVAdapter::SERIALIZER_ALIAS` table (`single`/`string`,
+`list`/`flat`, `double`, `clean`, `integer`, `float`,
+`integer_array`, `float_array`, `strict_integer_array`,
+`strict_float_array`, `binary`, `marshal`, `json`, `tsv`,
+`marshal_tsv`). A default serializer is only attached when the extended
+object is already a `TSV`; a bare `Persist.open_database(path, true)`
+result has `serializer == nil` and `[]=` fails with
+`no implicit conversion of Array into String` if you then assign Ruby
+structures to it as if it were a TSV. Populate such a database through
+`Persist.tsv`, `TSV.open(source, data: db, ...)`, or
+`TSV.setup(db, ...)` + `extend TSVAdapter`.
+
+Opening a TSV **from** a database file uses the same drivers:
+
+```ruby
+tsv = Persist.load("var/databases/my_table", :HDB)   # TokyoCabinet database path
+```
+
+`Persist.load(path, :HDB)` returns the annotated database object with
+its TSV metadata and typed values intact.
 
 ## Engines implemented here
 
@@ -118,6 +143,12 @@ suggests:
   instance of String`), including `"tkrzw"` and the Symbol `:fwt` (the case
   arms match Strings only).
 
+Engine availability is detected at load time and degrades silently:
+`persist/engine/tokyocabinet.rb` wraps `require 'tokyocabinet'` in a
+rescue that only logs a warning when the gem is missing, and the failure
+surfaces later as a `NameError`/`NoMethodError` at the point of use
+rather than at startup.
+
 ### Choosing an engine
 
 - **`"HDB"`** is the default (`Persist.tsv` defaults `engine: :HDB`).
@@ -129,7 +160,8 @@ suggests:
 - **Sharding** is not an engine name: `Persist.tsv` builds a Sharder
   automatically when you pass `persist_options[:shard_function]`
   (`persist/tsv.rb:55-58`), wrapping per-shard engines such as `'pki'` or
-  `'HDB'`.
+  `'HDB'`. The shard function is **not** stored in the database, so a
+  later `Persist.tsv` for the same identifier must pass it again.
 - Tkrzw adapter code exists (`engine/tkrzw.rb`) but is not loaded by the
   framework and cannot be selected through `open_database`; see
   [Persistence Engines](../developer/PersistenceEngines.md).
@@ -142,16 +174,24 @@ plus how the data was saved.
 
 ### Changing the identifier (versioning)
 
-Cache identity is the `id` (the first argument) combined with any
-`:prefix`-style options and the engine type. Change the identifier (or
-bump the prefix) to force a rebuild when your processing code changes:
+Cache identity is the `id` (the first argument) combined with
+`:prefix`-style options and any other `:other`-namespaced options, which
+are digest-suffixed into the path. Change the identifier (or bump the
+prefix) to force a rebuild when your processing code changes:
 
 ```ruby
 Persist.persist("my_data:v2", :HDB) { ... }   # new cache entry
 ```
 
-Code changes alone do **not** invalidate a cache: the cached value is
-keyed by identifier, not by the block body.
+Two things that are *not* part of cache identity:
+
+- **Code changes.** The cached value is keyed by identifier, not by the
+  block body: two `Persist.tsv` calls with the same identifier and
+  completely different blocks resolve to the same path, the second does
+  not run its block, and it serves the data written by the first.
+- **The engine.** `persistence_path` is the same for `"HDB"`, `"BDB"`
+  and `"fwt"` on a given identifier; switching engines does not create a
+  new cache entry.
 
 ### Source-based invalidation
 
@@ -165,8 +205,18 @@ Inspect each helper's implementation for exactly what it includes.
 - `job.clean` for workflow results.
 - Delete the database directory for a `Persist.persist`/`Persist.tsv`
   identifier (under the persistence directory).
-- `Persist::CONNECTIONS` caches open databases per path; deleting files
-  while a process holds a connection affects only later opens.
+- `Persist::CONNECTIONS` caches open databases per path and is never
+  invalidated on `close`; deleting files while a process holds a
+  connection affects only later opens. Note that a cached *closed* object
+  is still returned by later opens and still accepts writes that reach the
+  file (TokyoCabinet re-opens lazily) — what you do not get is a fresh
+  read of data written through another handle. For a guaranteed fresh
+  read of the same path in the same process, drop the connection first:
+  `Persist::CONNECTIONS.delete(path)`.
+
+`close` in general is best-effort cleanup, not a flush guarantee — see
+[Persistence Engines](../developer/PersistenceEngines.md) for the
+per-engine details.
 
 ## Common mistakes
 
@@ -178,6 +228,13 @@ Inspect each helper's implementation for exactly what it includes.
   not by code. Bump the identifier/prefix or delete the database.
 - **Expecting persistence to make results immutable**: engines open in
   write mode by default; treat the returned object as a live database.
+- **Assuming an engine is available**: the TokyoCabinet gem is probed at
+  load time with only a logged warning on failure; a missing gem fails
+  at first use, not at startup.
+- **Passing a database path to `TSV.open`**: a bare `TSV.open(db_path)`
+  parses the binary file as text and returns a near-empty plain `Hash`.
+  Use `Persist.load(db_path, :HDB)`, or `TSV.open(source, persist: true)`
+  on the *source* file whose persisted database exists.
 
 ## See also
 

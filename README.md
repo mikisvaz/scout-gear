@@ -49,8 +49,9 @@ From this one idea follow the properties that make workflows tractable at scale:
 - **Provenance** — what ran, when, and with what inputs is tracked and
   inspectable on every job.
 - **Orchestration** — jobs run under resource rules (multiple
-  processes, bounded by semaphores) and can be deployed to HPC
-  schedulers (SLURM, PBS, LSF) or containers (Singularity).
+  processes, gated by the local executor's resource bookkeeping) and
+  can be deployed to HPC schedulers (SLURM, PBS, LSF) or containers
+  (Singularity).
 
 See [Building Workflows](doc/user/BuildingWorkflows.md) and the
 [Workflow Engine](doc/developer/WorkflowEngine.md) internals.
@@ -69,7 +70,7 @@ resources (WorkQueue/Semaphore).
 | TSV | typed tabular data, streaming, parallel traversal, persistence, indexing |
 | Entity / Association / KnowledgeBase | typed identifiers, properties, relationship indices, traversal queries |
 | Persist | transparent caching of expensive computation |
-| WorkQueue / Semaphore | multi-process parallelism bounded by resources |
+| WorkQueue / Semaphore | multi-process parallelism; ScoutSemaphore provides cross-process locking; the local executor gates resource limits |
 
 This coherence is anchored in three design principles shared across the
 codebase:
@@ -136,6 +137,8 @@ The entry point for all documentation is
   SLURM, PBS, or LSF clusters.
 - [Caching Data](doc/user/CachingData.md) — persist results to avoid
   redundant computation.
+- [Using the CLI](doc/user/UsingTheCLI.md) — the `scout` executable:
+  dispatch, options, help, exit codes.
 - [Cookbook](doc/user/Cookbook.md) — practical recipes combining
   multiple subsystems.
 
