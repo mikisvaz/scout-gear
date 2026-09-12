@@ -212,6 +212,34 @@ task :downstream => :task
 end
 ```
 
+### Raising ScoutException vs plain errors
+
+`ScoutException` and its subclasses mean **non-recoverable**: the same
+call with the same inputs will always fail the same way, so the engine
+neither cleans nor retries the step (`recoverable_error?`,
+`step/status.rb:19-21`). Environmental problems — no read permission, no
+network, a missing key — can be fixed and retried; raise them as plain
+errors so the step stays retryable.
+
+```ruby
+# Idiomatic
+task :sum => :numeric do |values|
+  raise ParameterException, "values must all be numeric" unless values.compact.all?{|v| Numeric === v }   # bad input parameter: ScoutException
+end
+
+# Non-idiomatic
+task :fetch => :string do
+  raise ParameterException, "server_url not in config keys"   # WRONG: missing config key is environmental, recoverable
+end
+```
+
+Input parameters and config keys are distinct: `ParameterException` is
+for invalid task *input parameters* only; a missing *config key* is
+recoverable state — fix the config and retry — which is why the API
+calls them "config keys" and not "parameters". For the full engine
+behavior see [Workflow Engine](WorkflowEngine.md), "Error classes and
+recoverability".
+
 ## Common anti-patterns
 
 1. **Creating wrapper classes around TSV** — Use annotations instead. If

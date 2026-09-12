@@ -250,6 +250,90 @@ Predicates (`step/status.rb`, `step/info.rb`):
 - `clean` / `recursive_clean` remove the result, `.info`, temp file, and
   `.files` directory (`step/status.rb:53-68`).
 
+### Error classes and recoverability
+
+`ScoutException` (scout-essentials, `lib/scout/exceptions.rb:2`) marks
+**controlled and reproducible** failures: the same call with the same
+inputs raises the same exception every time, so the error is
+**non-recoverable** — retrying cannot help. Unexpected exceptions (no
+read permission, no network, a missing environment key) are environmental
+and usually correctable outside the code, so the engine treats them as
+**recoverable**.
+
+| Class | Parent | Defined at |
+|-------|--------|------------|
+| `ScoutException` | `StandardError` | scout-essentials `lib/scout/exceptions.rb:2` |
+| `ParameterException` | `ScoutException` | scout-essentials `lib/scout/exceptions.rb:16` |
+| `MissingParameterException` | `ParameterException` | scout-essentials `lib/scout/exceptions.rb:17` |
+| `ResourceNotFound` | `ScoutException` | scout-essentials `lib/scout/exceptions.rb:77` |
+| `WorkerException` | `ScoutException` | `work_queue/exceptions.rb:12` |
+
+rbbt-util aliases `RbbtException = ScoutException`
+(`rbbt/util/misc/exceptions.rb:4`), so legacy `rescue RbbtException`
+sites (e.g. `deployment/orchestrator/workload.rb:14`) behave as
+`rescue ScoutException`.
+
+One predicate decides the classification:
+
+```ruby
+def recoverable_error?                      # step/status.rb:19-21
+  error? && ! (ENV['SCOUT_NO_RECOVERABLE_ERROR'].to_s.downcase == 'true') &&
+            ! (ScoutException === self.exception)
+end
+```
+
+An errored step is non-recoverable iff its stored exception is a
+`ScoutException` descendant; every other error is recoverable.
+`SCOUT_NO_RECOVERABLE_ERROR=true` makes all errors non-recoverable —
+nothing is auto-cleaned or retried; useful to freeze failed jobs for
+inspection. The variable is consumed nowhere else.
+
+Engine behavior driven by `recoverable_error?`:
+
+| Consumer | Behavior |
+|----------|----------|
+| `Step#produce` (`step.rb:398`) | `clean if error? && recoverable_error?` — only recoverable errors are cleaned so the step re-runs; a `ScoutException` step stays errored. |
+| `prepare_dependencies` (`step/dependencies.rb:74-79`) | Non-recoverable errored dep raises `dep.exception` unless `canfail?`; the raise is recorded as the parent's own error (`step.rb:196-200`) and, being a `ScoutException`, makes the parent non-recoverable too. |
+| `run_dependencies` (`step/dependencies.rb:109`) | `next if dep.error? && ! dep.recoverable_error?` (`:112`) — non-recoverable deps are skipped, not re-run; `dep.run` rescues `ScoutException` and honors only `compute: :canfail` (`step/dependencies.rb:125-130`). |
+| `Step#join` (`step.rb:390`) | Re-raises the stored exception regardless of class. |
+| Orchestrator (`deployment/orchestrator/`) | `workload.rb:12` cleans recoverable errored deps before execution; a batch whose top level errored non-recoverably counts as done (`workload.rb:53`); jobs with non-recoverable errors are reported as batch errors (`batches.rb:161`). |
+| Local deployment (`deployment/local.rb:80-97`) | Recoverable error → `job.clean` plus one retry (`raise TryAgain`), then `failed_jobs`; non-recoverable → `failed_jobs` immediately. `local.rb:186` re-raises non-recoverable top-level errors after `NoWork`. |
+| Entity properties (`workflow/entity.rb:83-90`) | Recoverable → `job.clean` and re-run; non-recoverable → `raise job.exception`. |
+
+The exception class survives persistence:
+
+- Error paths store `Step.encode_exception(e)` — `e.to_json`, which
+  embeds `json_class` (`step/info.rb:205-207`; written at
+  `step.rb:198,251-256`) — and `Step#exception`
+  (`step/info.rb:209-215`) revives it with
+  `JSON.parse(..., create_additions: true)`, so `recoverable_error?`
+  sees the original class in a fresh process. The marshal-replacement
+  branch below is therefore almost never taken on current Scout, since
+  the default serializer is JSON (`step/info.rb:6`), not Marshal.
+- If revival fails (class no longer resolvable), `Step#exception`
+  returns a plain `Exception` built from the recorded messages
+  (`step/info.rb:218-224`); such an error then reads as recoverable even
+  though the original was a `ScoutException`.
+- When a raw `Exception` object is merged into the info (streaming abort
+  callback, `step.rb:269-275`) and cannot be `Marshal.dump`-ed,
+  `merge_info` replaces it with a fresh `ScoutException` (or plain
+  `Exception`) carrying the same message and backtrace
+  (`step/info.rb:117-129`) — the marker is preserved on purpose.
+
+Caveat — `scout clean` does not reproduce this classification
+(`scout_commands/system/clean:118-124`). It reads `exception =
+info[:exception][:class]`, but the stored exception is the encoded
+`String` (see above), so `[:class]` raises into the `rescue` and the
+status stays `error`; the removal regexp
+(`scout_commands/system/clean:138`) then matches, so the job is removed
+even when the engine classifies it as non-recoverable. Even with a class
+in hand, `exception.superclass === ScoutException` (line 122) is false
+for `ScoutException` itself and every descendant — `Module#===` on class
+objects tests instance-of, not subclass-of — while
+`ScoutException >= exception_class` would be the working form. A status
+of `non_recoverable`, had it ever been set, would not match the removal
+regexp; not matching is what keeps such jobs on disk.
+
 ### Info file
 
 The `.info` file records provenance:

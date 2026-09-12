@@ -305,6 +305,15 @@ job.clean              # Remove result, info, and files for this job
 job.recursive_clean    # Also clean all dependencies
 ```
 
+Errors raised inside a task decide whether cleaning helps: a
+`ScoutException` subclass (e.g. `ParameterException` for an invalid
+input parameter) marks the step non-recoverable — the same inputs will
+always fail — while plain errors (missing permission, network, config
+key) are treated as recoverable and re-run after `clean`
+(`recoverable_error?`, step/status.rb:19-21). Raise ScoutException
+subclasses only when the same inputs will always fail;
+`SCOUT_NO_RECOVERABLE_ERROR=true` makes every error non-recoverable.
+
 ## Result persistence
 
 Every job result is persisted to disk automatically. The path follows a
