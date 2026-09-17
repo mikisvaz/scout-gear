@@ -28,6 +28,7 @@ module Workflow
   end
 
   def self.parse_workflow_doc(doc)
+    return {} if doc.nil?
     title = doc_parse_first_line doc
     description, task_info_and_extra = doc_parse_up_to doc, /^# Tasks/i
     task_info, extra = doc_parse_up_to task_info_and_extra, /^#[^#]/i, true
@@ -38,13 +39,13 @@ module Workflow
   end
 
   def documentation_markdown
-    return "" if @libdir.nil?
-    file = @libdir['workflow.md'].find
-    file = @libdir['README.md'].find unless file.exists?
+    return nil if @libdir.nil?
+    file = @libdir['workflow.md'].find(:libdir)
+    file = @libdir['README.md'].find(:libdir) unless file.exists?
     if file.exists?
       file.read
     else
-      ""
+      nil
     end
   end
 
@@ -78,7 +79,7 @@ module Workflow
                            else
                              Log.low "Documentation for #{ task }, but not a #{ workflow.to_s } task"
                            end
-                         end
+                         end if documentation[:tasks]
                          documentation
                        end
   end
