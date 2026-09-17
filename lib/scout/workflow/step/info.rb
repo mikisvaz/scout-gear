@@ -210,7 +210,11 @@ class Step
     return nil unless info[:exception]
     begin
       if String === info[:exception]
-        JSON.parse(info[:exception], create_additions: true)
+        begin
+          JSON.parse(info[:exception], create_additions: true)
+        rescue
+          JSON.parse(info[:exception])
+        end
       else
         info[:exception]
       end
