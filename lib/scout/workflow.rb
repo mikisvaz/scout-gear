@@ -134,12 +134,13 @@ module Workflow
     workflow_file
   end
 
-  def self.require_workflow(workflow_name_orig)
+  def self.require_workflow(workflow_name_orig, update: nil)
     first = nil
+    update = Scout::Config.get(:update, :workflow, workflow_name_orig, env: 'SCOUT_UPDATE_WORKFLOW,UPDATE_WORKFLOW') if update.nil?
     workflow_name_orig.split("+").each do |complete_workflow_name|
       self.main = nil
 
-      Persist.memory(complete_workflow_name, prefix: "Workflow") do
+      Persist.memory(complete_workflow_name, prefix: "Workflow", update: update) do
         begin
           workflow_name, *subworkflows = complete_workflow_name.split("::")
           workflow_file = locate_workflow_file workflow_name
