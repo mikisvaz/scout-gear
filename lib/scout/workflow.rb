@@ -128,9 +128,9 @@ module Workflow
 
   def self.locate_workflow_file(workflow_name)
     workflow_file = workflow_name
-    workflow_file = Path.setup('workflows')[workflow_name]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
-    workflow_file = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
-    workflow_file = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless Open.exists?(workflow_file) && ! Open.directory?(workflow_file)
+    workflow_file = Path.setup('workflows')[workflow_name]["workflow.rb"] unless (Open.exists?(workflow_file) && ! Open.directory?(workflow_file))
+    workflow_file = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless (Open.exists?(workflow_file) && ! Open.directory?(workflow_file))
+    workflow_file = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless (Open.exists?(workflow_file) && ! Open.directory?(workflow_file))
     workflow_file
   end
 
