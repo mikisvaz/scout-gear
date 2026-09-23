@@ -41,6 +41,7 @@ and design decisions behind the framework.
 - [Architecture](developer/Architecture.md) — Subsystem map and dependency graph.
 - [Design Principles](developer/DesignPrinciples.md) — Coding philosophy and idioms.
 - [Workflow Engine](developer/WorkflowEngine.md) — Task lifecycle, Step execution, dependency resolution.
+- [Writing Scout Documentation](developer/WritingDocumentation.md) — Documentation locations, research notes, and workflow README task format.
 - [TSV Internals](developer/TSVInternals.md) — Parser/Dumper/Transformer pipeline, traverse, indexing.
 - [Entity System](developer/EntitySystem.md) — Property dispatch, format registry, KnowledgeBase traversal.
 - [Persistence Engines](developer/PersistenceEngines.md) — Database engines and the TSVAdapter pattern.
