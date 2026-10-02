@@ -6,14 +6,16 @@ require_relative 'entity/identifiers'
 require_relative 'entity/named_array'
 
 module Entity
+  MODULES = []
   def self.extended(base)
     base.extend Annotation
     base.extend Entity::Property
-    base.instance_variable_set(:@properties, {})
-    base.instance_variable_set(:@persisted_methods, {})
+    base.instance_variable_set(:@properties, {}) unless base.instance_variables.include?(:@properties)
+    base.instance_variable_set(:@persisted_methods, {}) unless base.instance_variables.include?(:@persisted_methods)
     base.include Entity::Object
     base.include AnnotatedArray
     base.format = base.to_s
+    Entity::MODULES << base unless Entity::MODULES.include?(base)
     base
   end
 
