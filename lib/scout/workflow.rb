@@ -10,6 +10,7 @@ require_relative 'workflow/path'
 require_relative 'workflow/entity'
 require_relative 'workflow/export'
 require_relative 'workflow/persist'
+require_relative 'workflow/live'
 
 require 'scout/resource'
 require 'scout/resource/scout'
