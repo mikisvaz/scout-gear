@@ -29,7 +29,11 @@ module LiveWorkflow
   def load_live_files!
     current_workflows = Workflow.workflows.dup
     LiveWorkflow.ordered_share_files(self).each do |file|
-      load file
+      begin
+        load file
+      rescue Exception
+        raise ScoutException, "Error loading #{self.name} LiveWorkflow file #{Log.fingerprint file}: " + $!.message
+      end
     end
     Workflow.workflows.replace(current_workflows)
     self
