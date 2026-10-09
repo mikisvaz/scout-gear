@@ -68,7 +68,7 @@ module Task
         jobname_input = name
       end
 
-      id = provided_inputs[jobname_input] if jobname_input && id.nil?
+      id = provided_inputs[jobname_input].gsub('/', '·') if jobname_input && id.nil?
       id = DEFAULT_NAME if id.nil?
       id = Path.sanitize_filename(id.to_s, 150)
 

@@ -2,6 +2,7 @@ require 'scout/named_array'
 module Task
   def self.format_input(value, type, options = {})
     return nil if value.nil?
+    return nil if value == 'nil'
     return value if IO === value || StringIO === value || Step === value
 
     if String === value && Path.is_filename?(value) && ! [:path, :file, :folder, :binary, :tsv].include?(type) && ! (options &&  (options[:noload] || options[:stream] || options[:nofile] || options[:asfile]))
@@ -75,7 +76,7 @@ module Task
                 value
               end
 
-      final = Path.setup(final.dup) if String === final && ! (Path === final) && (type == :file || type == :path || (options && options[:asfile]))
+      final = Path.setup(final.dup) if String === final && final != '' && ! (Path === final) && (type == :file || type == :path || (options && options[:asfile]))
 
       final = final.find if (Path === final) && (type == :file)
 
