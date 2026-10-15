@@ -132,10 +132,11 @@ module Workflow
     workflow_file = Path.setup('workflows')[workflow_name]["workflow.rb"] unless (Open.exists?(workflow_file) && ! Open.directory?(workflow_file))
     workflow_file = Path.setup('workflows')[Misc.snake_case(workflow_name)]["workflow.rb"] unless (Open.exists?(workflow_file) && ! Open.directory?(workflow_file))
     workflow_file = Path.setup('workflows')[Misc.camel_case(workflow_name)]["workflow.rb"] unless (Open.exists?(workflow_file) && ! Open.directory?(workflow_file))
+    workflow_file = "./workflow.rb" unless (Open.exists?(workflow_file) && ! Open.directory?(workflow_file)) || Misc.humanize(File.basename(Dir.pwd)) != Misc.humanize(workflow_name)
     workflow_file
   end
 
-  def self.require_workflow(workflow_name_orig, update: nil)
+  def self.require_workflow(workflow_name_orig, update: nil, silent: false)
     first = nil
     update = Scout::Config.get(:update, :workflow, workflow_name_orig, env: 'SCOUT_UPDATE_WORKFLOW,UPDATE_WORKFLOW') if update.nil?
     workflow_name_orig.split("+").each do |complete_workflow_name|
@@ -166,6 +167,7 @@ module Workflow
                   self.main || workflows.last
                 end
 
+      Workflow.workflows.delete current if silent
       first ||= current
     end
     first
