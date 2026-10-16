@@ -198,6 +198,24 @@ unless it re-declares the input with `input`). Re-declaring the input
 makes the value reach the block, adds it to `task.inputs` and to
 `.info[:inputs]`, and changes the parent path again.
 
+A blockless `dep :name` forwards **every input of the caller that the
+dependency task declares** — including inputs the parent itself never
+mentions — and this propagates recursively through the whole chain: if
+`top` deps on `mid` and `mid` deps on `base`, a `db` input given to
+`top` reaches `base` unchanged even though `mid` never declares it. The
+parent job id is also inherited as the dependency job id, so
+`wf.job(:mid, "MyName")` gets a dependency named `MyName` — handy for
+keeping parent and dep result directories in sync, and the reason a
+fan-out must set `jobname:` explicitly (see below).
+
+To see exactly which inputs flowed into a chain, inspect
+`job.recursive_inputs` (a hash of every effective input across the whole
+dependency tree, parent inputs winning over dep inputs) or
+`task.recursive_inputs` (the task-level declaration, a list of
+`[name, type, description, default, options]` entries collected from the
+dependency declarations; the input *names* are commonly the useful part,
+e.g. `[:dbs, :db]`).
+
 ### Dependencies from other workflows
 
 ```ruby
@@ -210,31 +228,111 @@ end
 
 ### Dynamic dependencies
 
-Use a block to decide dependencies at runtime:
+Use a block to decide dependencies at runtime. The block receives
+`(jobname, options, dependencies)`: the parent job id to use as the
+dependency id, a hash of all *effective* inputs (the caller's provided
+inputs merged with declared defaults — including inputs declared only by
+the dependency task itself), and the list of dependency Steps declared so
+far (usable to forward a previous dependency's result as an input value).
 
 ```ruby
-dep do |inputname, inputs|
-  if inputs[:use_fast]
-    FastWorkflow.job(:compute, input: inputs[:data])
+dep do |jobname, options, dependencies|
+  prior = dependencies.first          # a Step already declared above
+  if options[:use_fast]
+    FastWorkflow.job(:compute, name: jobname, input: options[:data], prior: prior)
   else
-    AccurateWorkflow.job(:compute, input: inputs[:data])
+    AccurateWorkflow.job(:compute, name: jobname, input: options[:data], prior: prior)
   end
 end
 task :analyze => :tsv do
-  # The dynamically resolved dependency is available
+  # The dynamically resolved dependency is available through step(...)
 end
 ```
+
+A block may instead return:
+
+- a **Step** (as above) — used directly as the dependency;
+- a **Hash** — resolved as options for the declared task, where
+  `jobname:` sets the dependency job id and `inputs:` (or any other
+  keys, as input name → value) sets its inputs:
+
+  ```ruby
+  dep :base do |jobname, options|
+    { jobname: "Pinned", inputs: { db: "CollecTRI" } }
+  end
+  task :report => :string do step(:base).load end
+  ```
+
+  Explicit `inputs:` **win over** inputs forwarded from the caller, so
+  this is also how a parent pins a dependency input to a fixed value
+  while letting the rest flow through.
+
+### Fan-out: one dependency task, many jobs
+
+Returning an **Array of Hashes** makes the same task run once per
+element. This is the fan-out pattern for iterating a task over a
+dimension (databases, samples, parameter grids):
+
+```ruby
+input :db, :string, "Database", "DoRothEA"
+task :base => :string do |db| db end
+
+input :dbs, :array, "Databases to process", ["DoRothEA", "CollecTRI"]
+dep :base do |jobname, options|
+  options[:dbs].collect do |db|
+    { jobname: db, inputs: { db: db } }
+  end
+end
+task :fan => :string do
+  dependencies.map(&:load) * ","
+end
+```
+
+Rules that matter here:
+
+- **Set `jobname:` in every branch hash.** Without it every branch
+  inherits the same parent job id, they all collide on one path, and
+  the fan-out silently degenerates (typically all branches return the
+  last input's value). With `jobname: db`, branches live at
+  `var/jobs/.../base/DoRothEA` and `.../base/CollecTRI`.
+- Branch job names still digest their remaining **non-default** inputs:
+  a branch that pins `db` to its default value keeps the bare name
+  (`A`), while a non-default `db` appends a digest
+  (`CollecTRI_<md5>`). "Default" is judged after merging the branch's
+  own `inputs:` with forwarded caller inputs, so one id per input set
+  is preserved either way.
+- Inside the parent block, read the branches through `dependencies`
+  (all branches share the same `task_name`); `step(:base)` returns
+  only the **first** match.
+- The caller sees the union of all effective inputs:
+  `wf.job(:fan).recursive_inputs` is
+  `{db: "DoRothEA", dbs: ["DoRothEA", "CollecTRI"]}` — note `db` shows
+  the *first* branch's value, so do not read a fan-out dimension
+  through `recursive_inputs`; use `dependencies`.
+
+`jobname: true` on an `input` declaration is the declarative cousin of
+the same idea for a *single* job: the input's value becomes that job's
+id (`input :db, :string, "Database", "DoRothEA", jobname: true` gives
+paths `base/X` and `base/X_<md5>` instead of `Default_<md5>`). Two
+sharp edges: the input **must be provided** (a `nil` jobname raises
+`NoMethodError: undefined method 'gsub' for nil`), and the input must
+be given even when only *other* inputs change — the jobname input is
+looked up in the provided inputs, not in defaults.
 
 ### Dependency options
 
 Control how dependencies are computed with `compute:`:
 
 - `dep :risky, compute: :canfail` — the task continues if the dependency
-  fails (the failure is logged, and the task still runs). The failed
-  dependency stays in the dependency list with `status == :error`;
-  `step(:risky).load` raises the stored exception, and the parent block
-  still receives `nil` for it — the failure is visible through
-  `step(:risky).status` / `.error?`, not through the block argument.
+  fails, **but only when the failure is a ScoutException subclass**.
+  A failed dependency stays in the dependency list with
+  `status == :error`; `step(:risky).load` raises the stored exception
+  and `step(:risky).exception` exposes it, so the parent block must
+  check `step(:risky).error?` before loading. A plain `RuntimeError`
+  (network, permissions, a bug) is **not** rescued by `canfail`: it
+  propagates and fails the parent too. Raise a ScoutException subclass
+  (e.g. `ParameterException`) to signal "expected" failures you want
+  the parent to survive; treat everything else as fatal.
 - `dep :large, compute: :produce` — run the dependency to completion but
   do not load its result into memory.
 - `dep :streaming, compute: :stream` — force streaming (the default
@@ -244,6 +342,11 @@ Control how dependencies are computed with `compute:`:
   still reads it through `step :big`), and leave it silently absent
   otherwise. The dependency stays in the job's dependency list; it is
   never forced or awaited, and the parent still runs.
+
+`canfail: true` (a bare option, not nested under `compute:`) is
+accepted as a synonym and can be combined with the other flags, e.g.
+`dep :risky, canfail: true, compute: :produce`. `produce: true` and
+`stream: true` have the same bare-spelling equivalence.
 
 ## Creating and running jobs
 
@@ -258,6 +361,28 @@ job = MyWorkflow.job(:task_name, "job_id", input_one: "value", input_two: 42)
 - The keyword arguments are the input values.
 - If the first argument is a Hash/Array of inputs instead of an ID, it is
   used as the provided inputs (both orders are accepted).
+
+### Inspecting a job graph without running it
+
+`workflow.job(:name, ...)` **builds the job graph eagerly**: creating a
+job resolves all its dependencies (recursively) and computes their
+paths, without executing anything. This is what makes job-graph
+inspection cheap:
+
+```ruby
+job = MyWorkflow.job(:analyze, input: "value")
+
+job.dependencies      # direct dependency Steps ([] for a task without deps)
+job.rec_dependencies  # full recursive chain, flattened
+job.recursive_inputs  # every effective input across the whole graph
+job.path              # result path this job would write; does not exist yet
+File.exist?(job.path) # => false — nothing ran
+```
+
+Use this to verify a workflow structure (which tasks appear, which job
+ids and digests inputs produce, whether a fan-out branches correctly)
+before paying for any computation. Nothing is written to disk until you
+call `run` / `produce` / `load`.
 
 ### Running a job
 
@@ -475,6 +600,10 @@ end
 
 ## Common mistakes
 
+- **Fan-out without `jobname:`**: every branch of a dep block that
+  returns an Array of Hashes inherits the parent job id; without an
+  explicit `jobname:` per branch all branches collide on one path and
+  the fan-out silently returns the same result. See Fan-out above.
 - **Forgetting `.load`**: `step(:name)` returns a Step object, not the
   result. Call `.load` (or `.path` for the file path).
 - **Using `task` before declaring inputs**: `input`, `desc`, `dep`, and

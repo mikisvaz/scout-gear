@@ -155,6 +155,30 @@ TSV.setup(data, type: :list, key_field: "Gene", fields: ["Expression", "Change"]
 information: `"Key~F1,F2#:type=:list"` sets the key field (`~`),
 the field list (`,`), and the `#:` options, in one argument.
 
+**The DSL string splits key and fields at the first `~`** (tsv.rb
+`str2options`), so the DSL form **cannot name a key field that itself
+contains a `~`**: `"Database~Dataset~Value#:type=:list"` parses as key
+`Database` and fields `["Dataset", "Value"]`. The same happens with
+`A~B~C,Value` (key `A`, fields `["B"]`). When you need a composite key
+field (common when joining two tables on a `~`-concatenated key), use
+the options-hash form:
+
+```ruby
+tsv = TSV.setup({},
+  type: :list,
+  key_field: "Database~Dataset",
+  fields: ["Value"])
+```
+
+`key_field:` from the options hash is taken verbatim, no split. The
+same escape works inside a DSL string via a directive —
+`"F1#:type=:list#:key_field=Database~Dataset"` — but note the
+`#:fields=` directive assigns a **String**, not an Array, so prefer the
+plain options hash when you also need `fields:`. In-memory `~` keys
+dump and reload fine: the dumper writes the header line verbatim
+(`#Database~Dataset\tValue`) and the reader does not re-split a header
+read from disk.
+
 ## Transforming data
 
 ### Traverse
@@ -331,6 +355,42 @@ merged = tsv.attach(other_tsv, fields: ["NewColumn"])
 - `process(field) { |v| ... }` rewrites one field's values **in place**
   (the receiver is returned); the block's return value replaces the
   field value.
+
+## Numeric cells and NaN — `Misc.mean`, `Misc.sum`
+
+TSV cells from a parser are **Strings**, even when the column is
+numeric; `Misc` statistics (`scout-essentials` misc/math.rb) coerce with
+`to_f`, so know exactly what each representation becomes:
+
+```ruby
+Misc.mean([nil, 1, 2])        # => 1.5   (nil dropped by compact)
+Misc.mean(["", "abc", 1])     # => 0.3333… (""/"abc" → 0.0 via to_f)
+Misc.mean([])                 # => NaN  (0.0/0)
+Misc.sum([""])                # => TypeError (String can't be coerced)
+Misc.sum([nil, 1])            # => 1.0  (nil dropped)
+```
+
+- **`nil` is dropped** (both `mean` and `sum` `compact` first), but a
+  non-numeric **String is not**: `"abc".to_f == 0.0` inside `mean`,
+  while `sum` raises `TypeError` (it adds `0.0 + "abc"` directly).
+- **Empty is not zero**: `mean([])` and `mean([nil])` are `NaN`, not
+  `0.0`; guard your report code (`nan?` before writing percentages).
+- `median` **crashes** on `nil` or `[]` (it sorts and indexes without
+  guarding — `NoMethodError`/`nil can't be coerced`), unlike `mean`;
+  `variance`/`sd` return `nil` for lists shorter than two elements, and
+  `variance` of an all-`nil` list is `NaN`.
+- A `Float::NAN` you store in an in-memory TSV survives `to_s` (the
+  dumper writes the literal `NaN`), but **rereading that cell with
+  `cast: :to_f` yields `0.0`**, not a NaN (`"NaN".to_f == 0.0`; Ruby's
+  strict `Float("NaN")` raises). So a NaN written by one process is
+  read as a zero by the next unless you avoid `cast:` and re-derive the
+  value. Cells read **without** `cast:` come back as the String
+  `"NaN"`.
+
+The practical recipe for "pvalue column that may be blank or zero":
+read without `cast:`, `compact` and reject blank/`"NaN"`/`"nan"`
+strings explicitly, `to_f` what remains, and let `nan?`-style guards
+decide what a missing value means downstream.
 
 ## Joining tables — `attach`
 
