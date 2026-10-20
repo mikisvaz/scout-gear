@@ -28,6 +28,7 @@ $ #{$0} [<options>] <workflow> <task>
 -jn--jobname* Name to use as job identifier
 -pf--printpath Print the file path
 -prov--provenance Print the step provenance
+-co--continue Clean the last step but not the .files directory
 -cl--clean Clean the last step
 -rcl--recursive_clean Clean all steps
 -ct--clean_task* Clean a particular task
@@ -37,8 +38,8 @@ EOF
 workflow_name, task_name = ARGV
 
 
-help, workflows, provenance, clean, recursive_clean, clean_task, load_inputs, save_inputs, jobname, printpath, deploy, deploy_rules, override_deps, do_fork, do_exec = IndiferentHash.process_options options,
-  :help, :workflows, :provenance, :clean, :recursive_clean, :clean_task, :load_inputs, :save_inputs, :jobname, :printpath, :deploy, :deploy_rules, :override_deps, :fork, :exec,
+help, workflows, provenance, continue, clean, recursive_clean, clean_task, load_inputs, save_inputs, jobname, printpath, deploy, deploy_rules, override_deps, do_fork, do_exec = IndiferentHash.process_options options,
+  :help, :workflows, :provenance, :continue, :clean, :recursive_clean, :clean_task, :load_inputs, :save_inputs, :jobname, :printpath, :deploy, :deploy_rules, :override_deps, :fork, :exec,
   :deploy => 'serial'
 
 raise MissingParameterException.new :workflow if workflow_name.nil?
@@ -87,7 +88,13 @@ end
 job = workflow.job(task_name, jobname, job_inputs)
 
 job.recursive_clean if recursive_clean
-job.clean if clean
+
+if clean
+  job.clean
+elsif continue
+  ENV['SCOUT_CONTINUE_JOB'] = 'true'
+  job.clean(continue: true)
+end
 
 if clean_task
   ENV["SCOUT_UPDATE"] = 'true'

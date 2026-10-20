@@ -5,38 +5,10 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   test=test{
    kb.rb
   }
-
-  purge
-
-  update_workflow_doc
-
-  job_chains
-
-
-  intro
-  dev
-
-  semaphore
-
-  deploy
-
-
-  debug
-  document.rb
-  pipes
-  test_doc
-  doc=doc{
-   documenter.rb
+  documentation=documentation{
+   from_ags
+   main
   }
-
-  documentation
-
-  README_doc
-
-  documentation_fix
-  doc_learning
-
-  doc_learning_chat_analyst
  }
  bin=bin filter="*"{
   scout
