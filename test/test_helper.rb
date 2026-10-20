@@ -34,7 +34,7 @@ class Test::Unit::TestCase
   end
 
   def self.tmpdir
-    @@tmpdir ||= Path.setup('tmp/test_tmpdir').find
+    @@tmpdir ||= Path.setup('tmp/test_tmpdir_scout_gear').find
   end
 
   def tmpdir
