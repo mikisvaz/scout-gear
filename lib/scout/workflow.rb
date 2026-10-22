@@ -63,6 +63,7 @@ module Workflow
   attr_accessor :libdir, :knowledge_base
 
   def self.extended(base)
+    self.workflows.delete base
     self.workflows << base
     libdir = Path.caller_lib_dir
     return if libdir.nil?
@@ -138,6 +139,7 @@ module Workflow
 
   def self.require_workflow(workflow_name_orig, update: nil, silent: false)
     first = nil
+    current_workflows = Workflow.workflows.dup
     update = Scout::Config.get(:update, :workflow, workflow_name_orig, env: 'SCOUT_UPDATE_WORKFLOW,UPDATE_WORKFLOW') if update.nil?
     workflow_name_orig.split("+").each do |complete_workflow_name|
       self.main = nil
@@ -167,7 +169,7 @@ module Workflow
                   self.main || workflows.last
                 end
 
-      Workflow.workflows.delete current if silent
+      Workflow.workflows = current_workflows if silent
       first ||= current
     end
     first
