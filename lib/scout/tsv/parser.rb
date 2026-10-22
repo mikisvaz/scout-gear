@@ -86,7 +86,7 @@ module TSV
       if data && data.respond_to?(:load_stream) && 
           data.serializer.to_s.include?("String") &&
           same_type && 
-          ! (head || kwargs[:cast] || kwargs[:positions] || (kwargs[:key] && kwargs[:key] != 0) || Proc === fix ) &&
+          ! (head || kwargs[:cast] || kwargs[:positions] || (type.to_s == 'double' && merge) || (kwargs[:key] && kwargs[:key] != 0) || Proc === fix ) &&
           (sep.nil? || sep == "\t")
 
 
