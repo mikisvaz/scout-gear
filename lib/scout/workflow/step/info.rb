@@ -203,7 +203,11 @@ class Step
   end
 
   def self.encode_exception(e)
-    return e.to_json
+    begin
+      return e.to_json
+    rescue JSON::GeneratorError
+      "'Exception not serializable to JSON'"
+    end
   end
 
   def exception
