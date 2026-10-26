@@ -11,7 +11,7 @@ class Workflow::Orchestrator
       begin
         dep.clean if (dep.error? && dep.recoverable_error?) ||
           dep.aborted? || (dep.done? && ! dep.updated?)
-      rescue RbbtException
+      rescue ScoutException
         Log.exception $!
         next
       end
