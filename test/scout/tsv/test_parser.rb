@@ -308,7 +308,7 @@ k4    a|A    b|B
       TmpFile.with_file do |persistence|
         data = ScoutCabinet.open persistence, true
         tsv = Log.with_severity(0) do
-          TSV.parse(content, data: data)
+          TSV.parse(content, data: data, merge: false)
         end
         assert_equal %w(b B), tsv["k"]["ValueB"]
         assert_equal %w(a A), tsv["k4"]["ValueA"]
