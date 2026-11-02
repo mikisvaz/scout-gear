@@ -90,7 +90,7 @@ module Task
       #{{{ Process inputs
       job_inputs, non_default_inputs, input_digest_str = process_inputs provided_inputs, id
       non_default_inputs.uniq!
-      NamedArray.setup(job_inputs, @inputs.collect{|i| i[0] }) if @inputs
+      NamedArray.setup(job_inputs, (@inputs || []).collect{|i| i[0] })
       step_provided_inputs = Hash === provided_inputs ? provided_inputs.slice(*non_default_inputs) : provided_inputs
 
       #{{{ Dependencies
@@ -104,6 +104,7 @@ module Task
       non_default_inputs.delete_if{|input| override_inputs.include? input }
       non_default_provided_inputs = non_default_inputs & provided_input_names
       non_default_provided_inputs.delete jobname_input if provided_inputs[jobname_input] == id
+      non_default_inputs.uniq!
 
       #{{{ Hash and Path
       if overriden || non_default_provided_inputs.any?

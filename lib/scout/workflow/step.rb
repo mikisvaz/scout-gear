@@ -63,7 +63,7 @@ class Step
                     NamedArray.setup(inputs, info[:input_names]) if inputs && info[:input_names]
                     inputs
                   else
-                    []
+                    NamedArray.setup([], [])
                   end
                 end
   end
