@@ -27,7 +27,16 @@ module EntityWorkflow
     end
 
     base.helper :entity do
-      base.setup(clean_name.dup, inputs.to_hash)
+      input_hash = begin
+                     inputs.to_hash
+                   rescue
+                     hash = IndiferentHash.setup({})
+                     info[:input_names].each_with_index do |name,i|
+                       hash[name] = inputs[i]
+                     end if Array === info[:input_names]
+                     hash
+                   end
+      base.setup(clean_name.dup, input_hash)
     end
 
     base.helper :entity_list do
