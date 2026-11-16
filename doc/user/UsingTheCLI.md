@@ -127,9 +127,9 @@ like `scout workflow list`.
 
 ### The command surface
 
-The static tree shipped with scout-gear is 16 top-level commands
+The static tree shipped with scout-gear is 17 top-level commands
 (`alias batch cat doc entity find glob kb log purge rbbt resource system
-template update workflow`), five of which are directories with their own
+template tsv update workflow`), six of which are directories with their own
 subcommands:
 
 | Family | Subcommands |
@@ -139,6 +139,7 @@ subcommands:
 | `system` | `clean status` |
 | `resource` | `produce sync` |
 | `kb` | `config entities list query register show traverse` |
+| `tsv` | `assemble_pdf_table attach change_id collapse get head info json keys query read read_excel select slice sort subset transpose uncollapse unzip values view write_excel zip` |
 
 `scout entity <type> <property> <entity>` runs a single entity property:
 the entity's declared attributes become flags, the property's own
@@ -195,6 +196,43 @@ there is a `NoMethodError` exit 255, not an empty result), and `rbbt`
 re-enters the dispatcher
 (`load Scout.bin.scout`), so it behaves like a second `scout` word
 rather than a command of its own.
+
+### The `tsv` family
+
+`scout tsv <cmd>` operates on TSV files from the shell; every
+subcommand takes `-` for STDIN where the underlying library accepts a
+stream, and several accept tokyocabinet-backed files (`-tch`/`-tcb`;
+that gem is optional — a missing gem is reported with an install hint,
+not a crash). The family is: `head` (first 10 entries by default),
+`info` (metadata, `-fp` fingerprint), `keys`, `values` (`-f` field,
+`-k` keys, `-l` one per line), `get` (one key's entry; a numeric key
+is its position), `query` (`-t` type, `-f` field),
+`read` (reparse with `-k/-f/-t/-m`),
+`slice`/`subset`/`select` (column slice, row subset by key list,
+regex/string row filter), `sort` (`-f` field, `-a` absolute value),
+`transpose`, `collapse`/`uncollapse` (merge duplicate keys /
+expand list values), `zip`/`unzip` (append a field built from list
+values / split a list field into rows), `json` (`-m` melt to
+row-objects, `-s` snake_case keys), `view` (colored pretty dump),
+`attach` (join another TSV's columns, `-i` identifiers for key
+translation, `-c` also add rows for keys new in the other files), `change_id` (translate the
+key or a field through an identifiers file; `-i` is required — no
+default organism namespace here), `assemble_pdf_table` (`-r` row),
+and the excel pair below. `zip` implements the documented intent of
+the legacy command (the `-f` field name and `-m` merge switch are the
+options they claim to be); the legacy executable swapped the two
+arguments silently.
+
+The excel pair reads and writes `.xls`/`.xlsx` workbooks as TSV:
+`read_excel` (flags `-k/-f/-t/-m/-z/-s2/-s/--skip_rows/-o`) and
+`write_excel` (`-k/-f/-t/-m/-um/-n`), which writes an `.xlsx` from a
+TSV file or STDIN (a `.tsv` input path has its target derived unless a
+second positional names the output). Both are backed by optional gems
+(`spreadsheet` for `.xls`, `rubyXL` for `.xlsx`); when a gem is
+missing the command exits 255 with an install hint rather than
+crashing. `write_excel` has no workflow-loading flags (`-W`/`-R` in
+the legacy tool): load any workflow you need in your environment
+beforehand.
 
 ## The SOPT option convention
 

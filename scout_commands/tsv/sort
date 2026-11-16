@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/sort. Adaptations:
+# step-6 uniformity: an absent file now raises
+# MissingParameterException (legacy defaulted nil to STDIN);
+# Misc.sort_stream does not exist in scout (it is
+# Open.sort_stream(stream, header_hash:, cmd_args:) there), and
+# TSV.get_stream is absent — files/IOs are passed directly.
+# The absolute branch uses scout's TSV#sort(field){} with a dumper to emit
+# the sorted TSV (same sorting semantics as legacy's traverse over keys).
+# No organ-specific or workflow dependencies.
+
+options = SOPT.setup <<EOF
+Sort a TSV file, maintaining headers
+
+$ #{$0} [<options>] <filename.tsv|-> [extra sort command arguments]
+
+Sort the file. Works with the external sort command for numeric
+fields, or in-Ruby when sorting by absolute values.
+
+-hh--header_hash* Change the character used to mark the header line (defaults to #)
+-f--field* Field to sort by (name or number)
+-a--absolute Sort as absolute values
+-h--help Help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+if options[:absolute]
+  tsv = TSV.open(file, options.slice(:header_hash).compact)
+  dumper = TSV::Dumper.new tsv.options
+  dumper.init
+  field = options[:field] || 1
+  keys = tsv.sort(field, true) do |pair|
+    v = pair.last
+    v = v.first if Array === v
+    v.to_f.abs
+  end
+  TSV.traverse keys, :type => :array, :into => dumper do |key|
+    values = tsv[key]
+    [key,values]
+  end
+  stream = dumper.stream
+else
+  field = options[:field] || '2'
+
+  if field =~ /^\d+$/
+    field_pos = field.to_i
+  else
+    parser = TSV.parse_header(file, **options.slice(:header_hash, :sep, :fix).compact)
+    field_pos = parser[:all_fields].index(field) + 1
+  end
+
+  rest = ARGV.inject("-t\"\t\" -g -k#{field_pos}"){|acc,e| acc << " '#{e}'" }
+
+  stream = Open.sort_stream(Open.open(file), header_hash: options[:header_hash] || "#", cmd_args: rest)
+end
+
+begin
+  while line = stream.gets
+    puts line
+  end
+rescue Exception
+  exit -1
+end

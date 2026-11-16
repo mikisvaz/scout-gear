@@ -1,0 +1,75 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+# Port of rbbt-util share/rbbt_commands/tsv/subset. Adaptations:
+# (1) TC-branch bug fixed: legacy printed tsv.summary (copy-paste from info);
+#     the port prints the selection, consistent with the file branch.
+# (2) `options[:header_hash] = options["header_hash"]` dropped (scout's SOPT
+#     hash is symbol-keyed; assigning nil disables header parsing).
+# (3) options[:subset] removed before TSV.open — scout's TSV.open/parse takes
+#     strict keywords and :subset is not a parser option. Fixed the legacy
+# TC-branch bug: it printed `tsv.summary` (copy-paste from info); the
+# port prints tsv.select(subset), consistent with the file branch.
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+Subset entries in a tsv
+
+$ #{$0} [<options>] file.tsv --subset key1,key2,key3
+
+Subsets entries from a TSV file from a given list. Works with Tokyocabinet HDB and BDB as well.
+
+-tch--tokyocabinet File is a TC HDB
+-tcb--tokyocabinet_bd File is a TC BDB
+-hh--header_hash* Change the character used to mark the header line (defaults to #)
+-s--subset* Subset of keys (Comma-separated or file)
+-m--merge Merge TSV rows
+-h--help Help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+subset = options[:subset]
+raise ParameterException, "Please specify a subset of keys" if subset.nil?
+
+if File.exist?(subset)
+  subset = Open.read(subset).split("\n")
+else
+  subset = subset.split(',')
+end
+
+options[:fields] = options[:fields].split(/,\|/) if options[:fields]
+options.delete(:subset)
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+else
+  tsv = TSV.open(file, options)
+end
+
+puts tsv.select(subset)

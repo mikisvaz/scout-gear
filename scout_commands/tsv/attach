@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/attach. Adaptations:
+# Organism sources are rbbt-only — the Organism.identifiers(Hsa) default is
+# DROPPED; the -i--identifiers flag (when translation is needed) is now
+# effectively REQUIRED for identifier-mediated attaches. TSV.attach is the
+# engine (scout has no separate per-file attach helper). parse_header's
+# all_fields is read with the [] NamedArray accessor (the .all_fields
+# method on a parse_header result returns the field NAMES of the header
+# array itself in scout, not the TSV fields).
+
+options = SOPT.setup <<EOF
+Attach fields from other TSV files
+
+$ #{$0} [<options>] <file1> <file2> [<file3> ...]
+
+Attach fields of file2... onto file1, matching on the key or a shared
+field. -i is only needed when keys are in different identifier formats
+and must be translated through an identifiers file.
+
+-f--fields* Fields to attach (all if not specified)
+-i--identifiers* Identifier file
+-c--complete Complete TSV with keys new in other files
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file1, *rest = ARGV
+
+raise MissingParameterException.new :file1 if file1.nil?
+raise MissingParameterException.new :file2 if rest.empty?
+
+fields = options[:fields]
+identifiers = options[:identifiers]
+complete = options[:complete]
+
+if identifiers.nil?
+  # Legacy defaulted to Organism.identifiers(Hsa); Organism sources are
+  # rbbt-only, so no default exists here. The identifiers file is only
+  # required when translation is actually needed (TSV.attach raises
+  # otherwise); we warn instead of failing eagerly.
+  Log.warn "No identifiers file given (-i). Identifier translation will fail if key formats differ."
+end
+
+fields = fields ? fields.split(/[,|]/).collect{|f| f.strip} : nil
+
+tsv = TSV.open(file1, :unnamed => true)
+tsv = tsv.to_double if tsv.type == :flat
+
+rest.each do |file2|
+  file_fields = TSV.parse_header(file2)[:all_fields] - tsv.all_fields
+  these_fields = fields ? fields & file_fields : nil
+  tsv = tsv.attach file2, :fields => these_fields, :identifiers => identifiers, :complete => complete
+end
+
+puts tsv.to_s

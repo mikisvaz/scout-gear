@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/keys. Adaptation: the legacy
+# `TSV.get_stream(file)` idiom is rbbt's own shim (absent in scout); a
+# TSV::Parser accepts the filename/STDIN directly. Dead commented-out
+# legacy loop dropped. Behavior otherwise identical.
+
+options = SOPT.setup <<EOF
+Print the keys of a TSV file
+
+$ #{$0} [<options>] <filename.tsv|->
+
+Use - to read from STDIN
+
+-k--key_field* Key field
+-h--help Print this help
+-tch--tokyocabinet File is a tokyocabinet hash database
+-tcb--tokyocabinet_bd File is a tokyocabinet B database
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+  tsv.keys.each do |k|
+    puts k
+  end
+  exit
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+  tsv.keys.each do |k|
+    puts k
+  end
+  exit
+end
+
+parser = TSV::Parser.new file
+
+options[:merge] = false if options[:merge] == "false"
+
+parser.traverse fields: [] do |key,v|
+  puts key
+end

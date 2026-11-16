@@ -1,0 +1,73 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/unzip. Adaptation: scout's
+# TSV.unzip takes keyword arguments (target:, sep:, delete:, type:, merge:,
+# one2one:, bar:) — the legacy positional call raises ArgumentError. Legacy
+# flag mapping: -zs--zip_sep -> sep, -m--merge -> merge, -f--field -> field
+# (positional). Legacy had no delete/type/one2one/bar flags; delete stays
+# at scout's default true (same as legacy's default), type stays at scout's
+# :list default, one2one at true (legacy zip-ordering behavior).
+
+options = SOPT.setup <<EOF
+Unzip a field of a TSV file
+
+$ #{$0} [<options>] file.tsv
+
+Split a field into the key: the key becomes '<key><sep><field-value>'
+and the field is dropped from the value columns. Inverse of zip.
+
+-tch--tokyocabinet File is a TC HDB
+-tcb--tokyocabinet_bd File is a TC BDB
+-hh--header_hash* Change the character used to mark the header line (defaults to #)
+-zs--zip_sep* Separator between zipped fields
+-f--field* Field to unzip
+-m--merge Merge lines
+-h--help Help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+field = options[:field] || 0
+merge = options[:merge] || false
+zs = options[:zip_sep] || ":"
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+else
+  if String === file
+    file = file.dup
+    Path.setup(File.expand_path(file))
+  end
+  tsv = file
+end
+
+transformer = TSV.unzip(tsv, field, target: :stream, sep: zs, delete: true, type: :list, merge: merge, one2one: true)
+
+puts transformer.stream.read

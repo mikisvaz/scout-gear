@@ -1,0 +1,76 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+require 'json'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/json. Misc.snake_case exists in
+# scout, so that path ports as-is. The -m--melt flag keeps its legacy
+# semantics (one JSON object per row, built from tsv.to_hash) — NOT scout's
+# TSV#melt_columns (different operation); noted in mapping_batchB_notes.
+# Legacy SOPT.get style replaced by SOPT.setup + help block per skeleton.
+
+options = SOPT.setup <<EOF
+Dump a TSV file as JSON
+
+$ #{$0} [<options>] <filename.tsv|->
+
+Use - to read from STDIN
+
+-tch--tokyocabinet File is a TC HDB
+-tcb--tokyocabinet_bd File is a TC BDB
+-m--melt One JSON object per row (record array), instead of one object per key
+-s--snake_case Convert field names to snake case
+-h--help Help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+else
+  tsv = TSV.open(Open.open(file))
+end
+
+fields = tsv.fields
+
+if options[:snake_case]
+  tsv.fields = fields = fields.collect{|f| Misc.snake_case f}
+end
+
+raise "No fields specified" if fields.nil?
+if options[:melt]
+  puts tsv.to_hash.collect{|key, values|
+    h = {:key => key}
+    fields.zip(values).each do |field, v|
+      h[field] = v
+    end
+    h
+  }.to_json
+else
+  puts tsv.to_hash.to_json
+end

@@ -1,0 +1,95 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+# Port of rbbt-util share/rbbt_commands/tsv/assemble_pdf_table.
+# Step-6 uniformity: an absent file now raises
+# MissingParameterException (legacy defaulted nil to STDIN).
+# Adaptation: TSV.get_stream is rbbt's own shim (absent in scout) —
+# Open.get_stream replaces it; Misc.zip_fields -> NamedArray.zip_fields
+# (scout defines zip_fields on NamedArray, not Misc). Pure-Ruby
+# column-assembly logic otherwise unchanged.
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+Assemble the TSV from a table extracted from a PDF
+
+$ #{$0} [<options>] file.txt
+
+When extracting tables from PDF they are often laid out one column at a time, divided by pages.
+This command takes a file with the following structure:
+
+1. A few lines containing table headers, one per line
+
+2. A group of lines containing the values for the first column of the first page, ending in an empty line
+
+3. More groups of lines corresponding to other columns
+
+4. Repetitions of 2 and 3 for more pages
+
+This script will take care of matching the columns read with the headers specified
+
+-h--help Help
+-r--row Each block of lines is a row, not a column
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+txt = Misc.fixutf8(Open.get_stream(file).read)
+
+header, _sep, rest = txt.strip.partition("\n\n")
+fields = header.split("\n")
+num_columns = fields.length
+
+columns = {}
+
+num_columns.times do |i|
+  columns[i] = []
+end
+
+lines = rest.split("\n")
+
+while lines and lines.any?
+  first_block = lines[0..lines.index("")-1]
+  block_size = first_block.length
+  lines = lines[block_size+1..-1]
+  columns[0] << first_block
+  (1..num_columns-1).each do |pos|
+    next if lines.nil?
+    block = lines[0..block_size-1]
+    lines = lines[block_size+1..-1]
+    columns[pos] << block
+  end
+end
+
+if options[:row]
+  columns.each do |n,list|
+    list.each do |values|
+      puts values * "\t"
+    end
+  end
+else
+  full_columns = []
+  num_columns.times do |i|
+    column = columns[i]
+    full_columns << column.flatten
+  end
+
+  puts "#" << fields * "\t"
+  NamedArray.zip_fields(full_columns).zip do |values|
+    puts values * "\t"
+  end
+end

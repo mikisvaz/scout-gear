@@ -1,0 +1,72 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/zip. DEVIATION (bug fix): the
+# legacy CLI called tsv.zip(field, merge, zs) but TSV#zip's positional
+# signature is (merge, field, sep), so legacy silently swapped the two
+# (field=0 -> merge=truthy, merge=false -> field name "false"; see the
+# legacy output header '#ID\tAssoc\tfalse'). The port calls
+# zip(merge, field, zs) — the legacy INTENT. The TC branch is guarded the
+# batch-A way.
+
+options = SOPT.setup <<EOF
+Zip fields in a TSV file
+
+$ #{$0} [<options>] file.tsv
+
+The key field must carry values zip-joined with a separator (see unzip);
+zip recomposes one row per original key, moving the second key element
+into a new field.
+
+-tch--tokyocabinet File is a TC HDB
+-tcb--tokyocabinet_bd File is a TC BDB
+-hh--header_hash* Change the character used to mark the header line (defaults to #)
+-zs--zip_sep* Separator between zipped fields
+-f--field* Field to unzip
+-m--merge Merge lines
+-h--help Help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+field = options[:field] || 0
+merge = options[:merge] || false
+zs = options[:zip_sep] || ":"
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+else
+  if String === file
+    file = file.dup
+    Path.setup(File.expand_path(file))
+  end
+  tsv = TSV.open(file, {:type => :double}.merge(options.slice(:header_hash, :sep).compact))
+end
+
+puts tsv.zip(merge, field, zs).to_s

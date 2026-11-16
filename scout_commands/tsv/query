@@ -1,0 +1,77 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+# Port of rbbt-util share/rbbt_commands/tsv/query. Adaptation: the legacy
+# `options[:header_hash] = options["header_hash"]` / `options[:sep] =
+# options["sep"]` idiom is dropped — scout's SOPT hash is already symbol-keyed
+# and explicitly assigning nil would disable header parsing (scout's
+# parse_header treats header_hash: nil as 'no header marker', unlike rbbt's
+# `|| "#"` default). Behavior identical.
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+Query a TSV file
+
+$ #{$0} [<options>] <file.tsv> <key>
+
+Display the values of one TSV entry. Works with Tokyocabinet HDB and BDB.
+
+-tch--tokyocabinet File is a TC HDB
+-tcb--tokyocabinet_bd File is a TC BDB
+-t--type* Type of tsv (single, list, double, flat)
+-hh--header_hash* Change the character used to mark the header line (defaults to #)
+-k--key_field* Change the key field
+-f--field* Change the fields to display
+-s--sep* Change the fields separator (default TAB)
+-h--help Help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file, key = ARGV
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+raise MissingParameterException.new :key if key.nil?
+
+options[:fields] = options[:fields].split(/[,\|]/) if options[:fields]
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+else
+  tsv = TSV.open(file, options)
+end
+
+values = tsv[key]
+
+head = "#{Log.color :magenta, tsv.key_field}: " << Log.color(:yellow, key)
+puts head
+puts (["-"] * Log.uncolor(head).length) * ""
+values.zip(tsv.fields) do |value,field|
+  if Array === value
+    values = value.collect{|v| Log.color(:yellow, v)} * ", "
+    puts "#{Log.color :magenta, field}: " << values
+  else
+    puts "#{Log.color :magenta, field}: " << Log.color(:yellow, value)
+  end
+end

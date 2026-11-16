@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+# Port of rbbt-util share/rbbt_commands/tsv/view. Adaptation: dropped
+# the legacy optional Genomics-workflow name-substitution step entirely
+# (Workflow.require_workflow "Genomics" is rbbt-only; the legacy code
+# rescued its failure anyway). Step-6 uniformity: an absent file now
+# raises MissingParameterException (legacy defaulted nil to STDIN).
+# Field names are taken from tsv.fields
+# because scout's TSV.traverse yields nil as the third block argument (rbbt
+# yielded the field names). The colored pretty-dump behavior is
+# kept verbatim. Legacy help title "View TSV nicer" kept.
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+
+View a TSV file with colors and numeric formatting
+
+$ #{$0} [<options>] <filename.tsv|->
+
+Use - to read from STDIN. Numbers are rounded and colored (red when
+negative), p-values below 0.05 are highlighted.
+
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+else
+  if String === file
+    file = file.dup
+    file = Path.setup(File.expand_path(file))
+  end
+  tsv = file
+end
+
+tsv = TSV.open(tsv) if IO === tsv || Path === tsv
+
+puts [Log.highlight(Log.color(:magenta, tsv.key_field)), Log.color(:yellow, tsv.fields * "\t")] * "\t"
+fields = tsv.fields
+TSV.traverse tsv do |k,values|
+  fvalues = values.zip(fields).collect do |v,field|
+    if String === v
+      v = v.to_f.round(2) if v =~ /^-?\d+\.\d+$/
+      v = v.to_i if v =~ /^-?\d+$/
+    end
+
+    if Numeric === v
+      if field =~ /p.?value/i
+        v = v.round(4)
+        v < 0.05 ? Log.color(:cyan, v.to_s) : v
+      else
+        v = v.round(2)
+        v < 0 ? Log.color(:red, v.to_s) : Log.color(:green, v.to_s)
+      end
+    else
+      v
+    end
+  end
+  puts [Log.color(:magenta, k), fvalues] * "\t"
+end

@@ -1,0 +1,50 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/read_excel. Adaptations:
+# require 'scout' replaces rbbt-util/simpleopt (batch skeleton); the legacy
+# `require 'rbbt/tsv/excel'` is unnecessary — scout-gear loads
+# scout/tsv/excel from lib/scout/tsv.rb; the guarded gem requires moved into
+# the module itself (TSV::XLS.load_gem! / TSV::XLSX.load_gem!, lazy with
+# actionable ParameterException install hints). MissingParameterException
+# guard added (batch B UX hardening): legacy crashed on a nil filename.
+# Legacy SOPT declared both -s2/--sep2 and -s/--sheet (same initial letter);
+# SOPT matches the LONG name, so both keep working (probe-verified).
+
+options = SOPT.setup <<EOF
+Read a Excel file into a TSV and dump it
+
+$ #{$0} [<options>] <filename.xls|filename.xlsx|->
+
+Use - to read from STDIN
+
+-k--key_field* Key field
+-f--fields* Fields
+-t--type* Type
+-m--merge Merge from multiple rows
+-z--zipped Assume data is zipped when merging (default is true)
+-s2--sep2* Second level separator. Default /[,|]\\s?/
+-h--help Print this help
+-s--sheet* Sheet to extract
+-skip--skip_rows* Initial rows to skip
+-o--original Dump the rows without parsing them into TSV
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+excelfile = ARGV.shift
+
+raise MissingParameterException.new :excelfile if excelfile.nil?
+
+options[:zipped] ||= true if options[:merge]
+
+puts TSV.excel(excelfile, options.merge(:text => options[:original]))

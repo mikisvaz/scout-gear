@@ -1,0 +1,83 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/change_id. Adaptations:
+# 1) Organism default DROPPED (rbbt-only source): -i--identifiers is now
+#    REQUIRED (no silent Hsa fallback).
+# 2) Legacy declared -f TWICE (-f--file and -f--field, a latent SOPT
+#    collision); the port renames the file input to a positional argument
+#    (matching every other tsv command) and keeps -f--field.
+# 3) TSV.index needs sep: forwarded for comma-separated identifier files
+#    (legacy did not pass it; comma files indexed wrong there). The port
+#    adds a -s--sep override plus a first-line auto-detection (no tab but
+#    comma -> comma) since TSV.parse_header does not expose a detected sep.
+# 4) tsv.process cannot target the KEY field in scout (values[:key] raises
+#    TypeError) — legacy change_id silently relied on rbbt's process
+#    accepting field positions; changing the key column is DROPPED here
+#    with an actionable error (build a reordered TSV instead if needed).
+# 5) TSV.index is persisted under the user's scout var/cache, not a
+#    project dir (same engine behavior as legacy, noted for awareness).
+
+options = SOPT.setup <<EOF
+Change the ID format of a column in a tsv file
+
+$ #{$0} [<options>] <filename.tsv|->
+
+The `field` is the tsv column to change. The `target` is the target
+format, as appearing in the `identifiers` file.
+
+-f--field* Field to change
+-t--target* Target format
+-i--identifiers* Identifier file to use (REQUIRED: no default organism)
+-s--sep* Separation character of the identifiers file (default: auto-detected)
+-h--help Help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+SOPT.require options, :field, :target, :identifiers
+raise MissingParameterException.new :file if file.nil?
+
+field = options[:field]
+target = options[:target]
+identifiers = options[:identifiers]
+
+sep = options[:sep] || begin
+    first = Open.open(identifiers) { |f| f.gets }
+    first && ! first.include?("\t") && first.include?(",") ? "," : "\t"
+  end
+
+begin
+  index = TSV.index(identifiers, :persist => true, :target => target, :merge => true, :sep => sep)
+rescue
+  raise ParameterException, "Could not build index for '#{target}': #{ identifiers }"
+end
+
+tsv = TSV.open file
+
+raise ParameterException, "Field '#{field}' is the key field; scout's tsv.process cannot change the key column (dropped legacy capability)" if tsv.identify_field(field) == :key
+
+tsv.process field do |value|
+  if Array === value
+    index.values_at *value
+  else
+    index[value]
+  end
+end
+
+tsv.fields = tsv.fields.collect{|f| f == field ? target : f}
+
+puts tsv

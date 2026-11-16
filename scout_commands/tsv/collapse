@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/collapse. Adaptation:
+# TSV.get_stream is rbbt's own shim (absent in scout) — Open.get_stream
+# replaces it; and scout's TSV.collapse_stream returns an IO directly
+# (rbbt returned a stream object), so the output is read with .read.
+# Note: collapsing merges only ADJACENT duplicate keys (Open.collapse_stream
+# semantics, same as legacy). Fixed the stale
+# legacy help (it carried read's text).
+
+options = SOPT.setup <<EOF
+Collapse a TSV: merge the values of duplicate keys
+
+$ #{$0} [<options>] <filename.tsv|->
+
+Use - to read from STDIN. Rows sharing a key are merged so each key
+appears once with all its values.
+
+-k--key_field* Key field
+-f--fields* Fields
+-t--type* Type
+-m--merge* Merge from multiple rows
+-h--help Print this help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+stream = Open.get_stream file
+s = TSV.collapse_stream stream
+puts s.read

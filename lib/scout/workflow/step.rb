@@ -395,7 +395,7 @@ class Step
   end
 
   def produce(with_fork: false)
-    continue = config :continue, :job, :job_error, :recoverable_error, :error
+    continue = config :continue, :job, :job_error, :recoverable_error, :error, default: true
     clean(continue: continue) if error? && recoverable_error?
     if with_fork
       self.fork

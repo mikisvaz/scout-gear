@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/uncollapse. Reimplementation:
+# to_unmerged_expanded_s is absent from scout-gear, scout-essentials AND
+# current rbbt-util (legacy uncollapse is broken upstream today), and
+# Misc.zip_fields does not exist in scout. The ~12-line replacement uses
+# through + NamedArray.zip_fields + TSV::Dumper, reproducing rbbt 6.0.3's
+# dumper_stream(unmerge: :expand) semantics: a merged double TSV is
+# expanded back to one row per list element, length-1 fields replicated
+# across the expansion of longer fields.
+
+options = SOPT.setup <<EOF
+Uncollapse a TSV: expand merged values back to one row per element
+
+$ #{$0} [<options>] <filename.tsv|->
+
+Use - to read from STDIN. The input is read as a merged double TSV;
+each key is expanded to one row per zipped list element.
+
+-h--help Print this help
+-hh--header_hash* Change the character used to mark the header line (defaults to #)
+-s--sep* Separation character
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+tsv = TSV.open file, :merge => true, :type => :double
+
+dumper = TSV::Dumper.new tsv.options.merge(:type => :list)
+dumper.init
+
+tsv.with_unnamed do
+  tsv.through do |key, values|
+    max = values.collect{|v| v.length}.max
+    if max > 1
+      values = values.collect{|vs| vs.length == 1 ? [vs.first] * max : vs }
+    end
+    NamedArray.zip_fields(values).each do |vs|
+      dumper.add key, vs
+    end
+  end
+end
+
+dumper.close
+
+puts dumper.stream.read

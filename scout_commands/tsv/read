@@ -1,0 +1,84 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/read. Adaptation: the legacy
+# manual TSV::Parser + TSV::Dumper thread loop is replaced by
+# TSV.traverse(into: dumper) — scout's Parser takes strict keywords, so only
+# fix/header_hash/sep/type go to TSV::Parser.new and key_field/fields/type
+# are forwarded through the traverse call instead (same output contract:
+# normalized dump, tab sep, sep2 '|'). TSV.get_stream is absent (Open
+# streams are used directly) and scout's TSV.collapse_stream returns an IO
+# directly (no .stream), like batch A's collapse.
+
+options = SOPT.setup <<EOF
+Read a TSV file and dump it
+
+$ #{$0} [<options>] <filename.tsv|->
+
+Use - to read from STDIN
+
+-k--key_field* Key field
+-f--fields* Fields
+-t--type* Type
+-s--sep* Separation character
+-m--merge Merge from multiple rows
+-h--help Print this help
+-tch--tokyocabinet File is a tokyocabinet hash database
+-tcb--tokyocabinet_bd File is a tokyocabinet B database
+
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+  puts tsv.to_s
+  exit
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+  puts tsv.to_s
+  exit
+end
+
+options[:fields] = options[:fields].split(/,\s*/) if options[:fields]
+options[:merge] = false if options[:merge] == "false"
+
+parser = TSV::Parser.new Open.open(file), **options.slice(:fix, :header_hash, :sep, :type).compact
+
+dumper = TSV::Dumper.new parser.options.merge(options.slice(:key_field, :fields, :type).compact).merge(:sep => "\t", :sep2 => '|')
+dumper.init
+
+TSV.traverse parser, into: dumper, unnamed: true, **options.slice(:key_field, :fields, :type, :sep2, :cast).compact do |key, values|
+  [key, values]
+end
+
+stream = dumper.stream
+stream = TSV.collapse_stream(dumper.stream) if options[:merge]
+
+while line = stream.gets
+  puts line
+end

@@ -1,0 +1,73 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/values. Fixed legacy help
+# ("colum" typo). Behavior identical.
+
+options = SOPT.setup <<EOF
+
+Print the values of one TSV column
+
+$ #{$0} [<options>] <filename.tsv|->
+
+Use - to read from STDIN
+
+-tch--tokyocabinet File is a tokyocabinet hash database
+-tcb--tokyocabinet_bd File is a tokyocabinet B database
+-f--field* Limit to a particular field
+-k--keys Print also keys
+-h--help Print this help
+-l--lines Separate in lines
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file = ARGV.shift
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+else
+  if String === file
+    file = file.dup
+    Path.setup(File.expand_path(file))
+  end
+  tsv = file
+end
+
+field = options[:field]
+
+fields = field.nil? ? nil : [field]
+
+TSV.traverse(tsv, :fields => fields) do |k,v|
+  if options[:lines]
+    puts (Array === v ? v.flatten*"\n" : v.to_s )
+  elsif options[:keys]
+    puts(k << "\t" << (Array === v ? v.flatten*"\t" : v.to_s ))
+  else
+    puts (Array === v ? v.flatten*"\t" : v.to_s )
+  end
+end

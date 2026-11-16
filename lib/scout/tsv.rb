@@ -13,6 +13,7 @@ require_relative 'tsv/change_id'
 require_relative 'tsv/stream'
 require_relative 'tsv/annotation'
 require_relative 'tsv/csv'
+require_relative 'tsv/excel'
 
 module TSV
   extend Annotation

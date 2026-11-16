@@ -9,6 +9,7 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
    from_ags
    main
   }
+  tsv_commands
  }
  bin=bin filter="*"{
   scout
@@ -176,6 +177,31 @@ scout-gear=/$PWD filter="*.rb *.yaml" {
   doc
   update
   template
+  tsv=tsv{
+   assemble_pdf_table
+   attach
+   change_id
+   collapse
+   get
+   head
+   info
+   json
+   keys
+   query
+   read
+   read_excel
+   select
+   slice
+   sort
+   subset
+   transpose
+   uncollapse
+   unzip
+   values
+   view
+   write_excel
+   zip
+  }
   kb=kb{
    config
    entities

@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+# Port of rbbt-util share/rbbt_commands/tsv/write_excel. Adaptations:
+# require 'scout' replaces rbbt-util/simpleopt (batch skeleton); the legacy
+# `require 'rbbt/tsv/excel'` is unnecessary — scout-gear loads
+# scout/tsv/excel from lib/scout/tsv.rb; the guarded gem requires moved into
+# the module itself (TSV::XLS.load_gem! / TSV::XLSX.load_gem!, lazy with
+# actionable ParameterException install hints). The legacy -W--workflows /
+# -R--requires flags are DROPPED (no scout equivalent of
+# Workflow.require_workflow ad-hoc loading for a TSV utility command;
+# recorded in mapping_batchExcel_notes.md). Legacy also accepted an .xls(x)
+# first argument and silently swapped it to the target position; that swap
+# is kept. SOPT option keys must be symbolized + type/fields normalized
+# before TSV.open because scout's Parser takes strict keywords (batch A/B
+# lesson: string keys raise ArgumentError).
+
+options = SOPT.setup <<EOF
+Write a Excel file with the contents of a TSV
+
+$ #{$0} [<options>] <filename.tsv|-> [<filename.xls|filename.xlsx>]
+
+If no target file is specified it uses the same input files but replaces extension. Specifying
+the extension of the excel file select the excel format to use.
+
+-k--key_field* Key field
+-f--fields* Fields
+-t--type* Type
+-m--merge Merge from multiple rows
+-um--unmerge Write the results unmerged
+-n--name Transform entities to human readible names
+-h--help Print this help
+
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+tsvfile, excelfile = ARGV
+
+excelfile, tsvfile = tsvfile, nil if excelfile.nil? and tsvfile =~ /\.(xls|xlsx)$/
+
+raise MissingParameterException.new :tsvfile if tsvfile.nil?
+
+excelfile = tsvfile.sub(/\.tsv(\.gz)?$/, '.xlsx') if excelfile.nil?
+
+tsvfile = STDIN if tsvfile == '-'
+
+options[:fields] = options[:fields].split(/,\s*/) if options[:fields]
+
+TSV.open(tsvfile, **IndiferentHash.setup(options.slice(:key_field, :fields, :type, :merge, :zipped, :sep2).compact)).excel(excelfile, options.slice(:unmerge, :name, :sep2))

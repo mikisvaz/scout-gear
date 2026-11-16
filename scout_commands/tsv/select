@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+
+require 'scout'
+
+# Port of rbbt-util share/rbbt_commands/tsv/select. Adaptations:
+# (1) String#to_regexp comes from the 'to_regexp' gem via rbbt-util and
+#     is absent in scout — a local Regexp.new helper replaces it
+#     (identical for /.../ literal criteria).
+# (2) Dropped the legacy dead -s/--subset flag from SOPT (declared but
+#     never used by the body).
+# (3) Fixed the stale help text (it described 'subset', this command
+#     filters by criteria).
+# (4) Fixed the TC-branch bug: legacy printed tsv.summary (copy-paste
+#     from info); the port prints the selection, consistent with the
+#     file branch.
+# (5) Step-6 uniformity: an absent file after the positional swap now
+#     raises MissingParameterException (legacy defaulted it to STDIN).
+
+$0 = "scout #{$previous_commands.any? ? $previous_commands*" " + " " : "" }#{ File.basename(__FILE__) }" if $previous_commands
+
+options = SOPT.setup <<EOF
+Select entries in a tsv based on some criteria
+
+$ #{$0} [<options>] <filename.tsv|-> <key> <criteria>
+
+Keep the entries whose field 'key' matches 'criteria'; a criteria like
+/regexp/ is treated as a regular expression, anything else as an exact
+match. Works with Tokyocabinet HDB and BDB as well.
+
+-tch--tokyocabinet File is a TC HDB
+-tcb--tokyocabinet_bd File is a TC BDB
+-hh--header_hash* Change the character used to mark the header line (defaults to #)
+-m--merge Merge TSV rows
+-h--help Help
+EOF
+if options[:help]
+  if defined? scout_usage
+    scout_usage
+  else
+    puts SOPT.doc
+  end
+  exit 0
+end
+
+file, key, criteria = ARGV
+
+key, criteria, file = [file, key, nil] if criteria.nil?
+
+file = STDIN if file == '-'
+
+raise MissingParameterException.new :file if file.nil?
+
+options[:fields] = options[:fields].split(/,\|/) if options[:fields]
+
+if options[:tokyocabinet] || options[:tokyocabinet_bd]
+  begin
+    require 'tokyocabinet'
+  rescue LoadError
+    raise ParameterException, "The 'tokyocabinet' gem is not available; install it with 'gem install tokyocabinet' to use -tch/-tcb"
+  end
+end
+
+case
+when options[:tokyocabinet]
+  tsv = Persist.open_tokyocabinet(file, false)
+when options[:tokyocabinet_bd]
+  tsv = Persist.open_tokyocabinet(file, false, nil, TokyoCabinet::BDB)
+else
+  tsv = TSV.open(file, options)
+end
+
+criteria = Regexp.new(criteria[1..-2]) if criteria =~ /^\/(.*)\/$/
+
+puts tsv.select(key => criteria)
