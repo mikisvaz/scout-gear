@@ -1,147 +1,60 @@
-# Writing Scout Documentation
+# Writing Scout documentation
 
-This guide is for agents and contributors documenting a Scout repository or
-workflow. Documentation is part of the repository interface: it should help a
-reader choose the right guide, use the public behavior correctly, and find the
-implementation or investigation evidence when needed.
+Write for someone using this checkout for the first time. A person running a workflow and an agent calling its tools need the same public facts. A contributor changing the implementation needs a different guide.
 
-## Documentation locations
+## Where information belongs
 
-Scout repositories use three complementary documentation areas. Keep the
-areas distinct rather than placing every note in a single README.
+| Reader’s question | Where to answer it |
+| --- | --- |
+| What does this repository provide? How do I start? | Root `README.md`. Introduce the repository, show first use, and link to user guides. |
+| Which tool should I call for this job? | `doc/user/README.md`, the preferred introduction for agents and a useful starting point for people. |
+| How do I carry out a particular operation? | A focused guide in `doc/user/`. Include the public API, command or task and a worked example. This includes building workflows with Scout’s public API. |
+| What must I understand to change this repository? | `doc/developer/`. Put contributor setup, architecture, extension procedures, implementation rationale and invariants here. |
+| What has the current team tried, and what remains? | Temporary working artifacts in the repository. Contributors and agents resuming active work consult them directly. |
 
-### `doc/user/`
+Keep phases, rollout status, handoffs, investigation trails and pending work out of durable documentation, including developer guides, task descriptions and input help. A clean checkout must make sense even when every working artifact is absent. Extract any lasting fact and state it in terms the reader can use. For example, “Returns one TSV row per inference” tells a caller what to expect. “Returns the Phase 3 format” requires access to a past conversation.
 
-User documentation is normative, task-oriented guidance for people building
-or running workflows. Explain the problem being solved, when the feature is
-useful, the public API or command, and runnable examples. Prefer concepts and
-stable behavior over internal file names. Put workflow authoring, CLI usage,
-caching, data processing, and similar how-to material here.
+## Agent introduction
 
-A user guide should normally include:
+When `doc/user/README.md` exists, agents receive it in place of the root README’s workflow description. The root description is the fallback. Write the introduction so a reader can:
 
-- a clear title and a short statement of scope;
-- the intended audience and when to use the feature;
-- core concepts and a minimal working example;
-- the normal API or CLI usage, including inputs and outputs;
-- common mistakes, limitations, and links to related guides.
+- Recognize the problems this workflow handles and choose among its main operations. Group tasks by intent and name the usual first call.
+- Follow one short, representative path from a valid starting input to a recognizable result. If one task’s output feeds another, show what to pass.
+- See any prerequisite or limitation that changes the choice of tool. Link directly to a focused user guide for less common cases.
 
-Do not present an unverified implementation detail as user-facing behavior.
-If behavior is uncertain, probe it or label the statement as a limitation or
-open question.
+For example, ScoutCoder’s documentation tools can be introduced in two sentences: “To find a guide, call `help_list_repo_documents` with the repository name. Pick a returned identifier and pass it as `document` to `help_get_repo_document` with the same `repo` to read the text.” Use this level of detail for each major use case. A list of links alone leaves the first decision to the reader. Skills are linked to agents automatically; omit skill inventories from both READMEs.
 
-### `doc/developer/`
+## Repository README and workflow task index
 
-Developer documentation describes implementation, architecture, extension
-points, and invariants needed to change Scout itself. It may name classes,
-methods, source files, persistence formats, and lifecycle states. Explain why
-the code behaves as it does, not only what a method is called.
+For a library or standalone CLI, introduce its purpose, a minimal invocation and the relevant user guides. Add a task index only for a workflow that exposes tasks.
 
-A developer guide should identify its audience and usually include the
-relevant subsystem map, lifecycle or data flow, source locations, extension
-procedure, compatibility concerns, and known issues. Verify source locations
-when writing them because implementation details can change.
+Scout reads `workflow.md` when supplied and otherwise uses `README.md` for parsed workflow documentation. Edit the file the workflow loads. Put a one-line title first, followed by a blank line. The text before `# Tasks` is the workflow description used in help. Make it useful on its own.
 
-### `research/`
+```markdown
+A workflow for inspecting example tables.
 
-Research files are non-normative investigation records. Use them for probes,
-experiments, competing hypotheses, detailed observations, and conclusions that
-are useful but not yet reviewed as stable documentation. Preserve the causal
-trail: record the question, commands or tests, observations, interpretation,
-uncertainty, and conclusion. Include dates, versions, or environment details
-when they affect the result.
+Use this workflow to check a table before importing it.
 
-Research is evidence for documentation, not a substitute for it. Once a
-finding is validated and stable, summarize the supported behavior in the
-appropriate `doc/` guide while retaining a link to the research artifact when
-its provenance matters. Do not silently turn “not found” into “does not
-exist.”
+# Tasks
 
-## Choosing and updating documents
+## list_columns
+List the column names in a TSV file.
 
-Before adding a file, inspect `doc/StartHere.md` and the repository README.
-Add a new guide only when the subject has a coherent audience and purpose;
-otherwise extend the closest existing guide. Update navigation links in
-`doc/StartHere.md` and, when appropriate, the root `README.md`.
+Supply the TSV path as `table`. Returns the column names in header order.
+```
 
-Use stable relative links. Keep examples small and executable. Distinguish
-observations from claims and hypotheses, especially for behavior discovered
-through a probe. If a documentation change depends on an implementation fact,
-validate it against source or a clean execution and record the evidence in
-`research/` when it is likely to be reused.
+Use exactly `# Tasks` on its own line and `## task_name` for each public task, spelled as declared. The next level-one heading ends the index. The last task owns all text up to that heading or the end of the file. Inside entries use paragraphs, lists or indented examples. Keep level-one and level-two headings out of example text at the start of a line, even in fenced code.
 
-## Workflow `README.md` format
+## Task and input descriptions
 
-A workflow README is both human documentation and a task index consumed by
-Scout tooling. It should begin with a one-line description of the workflow,
-followed by one or more paragraphs describing its purpose, capabilities,
-installation or usage, and important concepts. Headings are allowed in this
-introductory section.
+Start a task entry with one sentence giving the operation and its result. Add what a caller needs to select and use it: the accepted input, result type and shape, and any consequential side effect or failure condition. For a TSV, say what a row represents and identify its key when callers use it for lookup or as another task’s input.
 
-The task index must start with a level-one heading on its own line:
+Write each input description in the task declaration so it works in isolation in generated help. Use the declared name and type. Explain what value to supply, including its namespace, units or format when ambiguous. For optional inputs, give the effective default when it changes behavior. For example, describe `document` as “Document identifier returned by `help_list_repo_documents` for the same repository, e.g. `user/Cookbook.md`.” “Document to retrieve” adds nothing to the name. Use the README for relationships and examples that span inputs.
 
-    # Tasks
+## CLI documentation
 
-Each task then has a level-two heading containing exactly the task name,
-followed immediately by a one-line description. Add one or more paragraphs
-with usage, inputs, outputs, dependencies, side effects, examples, or relevant
-implementation details:
+Keep command help and the guide in `doc/user/` consistent. Give the exact invocation, required arguments and one runnable example with its expected output or effect. Explain options and defaults that affect the result. Identify input and output channels (stdin, stdout or files), overwrite behavior and exit status where scripts depend on them. Put argument-parsing internals and contributor instructions in `doc/developer/`.
 
-    ## task_name
-    One-line description of what the task does.
+## Review from a clean checkout
 
-    Explain how to use the task, what it returns, and any important caveats.
-
-    ## another_task
-    One-line description of the next task.
-
-The task heading must be `## task_name`; do not use additional `#` or `##`
-headings inside a task description, because the parser uses headings to find
-task boundaries. Use paragraphs, lists, code indentation, or lower-level
-formatting that does not create another task heading. Keep task names aligned
-with the actual declared tasks and document inputs and return types using the
-workflow's public names.
-
-A minimal workflow README therefore has this shape:
-
-    A workflow for transforming examples.
-
-    This workflow provides reusable tasks for ...
-
-    # Tasks
-
-    ## greet
-    Greet a supplied name.
-
-    The `name` input is optional and the task returns a string.
-
-When changing a workflow task, update its README entry in the same change.
-When adding or removing a task, check the task list against the loaded
-workflow, and test examples where practical. The README is a synthesis of
-verified workflow behavior; detailed implementation discoveries belong in
-`research/` or the developer documentation.
-
-## Review checklist
-
-Before submitting documentation, check:
-
-1. Is the audience clear (`doc/user`, `doc/developer`, or `research`)?
-2. Are claims supported by current source, tests, or a cited investigation?
-3. Are examples consistent with current APIs and task names?
-4. Does `doc/StartHere.md` or the root README need a navigation link?
-5. If this is a workflow README, is there one `# Tasks` section and a `##`
-   entry for every documented task without nested task headings?
-6. Are limitations and uncertainty stated instead of hidden?
-
-For a non-trivial documentation change, preserve the evidence used to resolve
-uncertainty in a research note or test output rather than relying on an
-uncited transcription.
-
-## See also
-
-- [Start Here](../StartHere.md)
-- [Building Workflows](../user/BuildingWorkflows.md)
-- [Workflow Engine](WorkflowEngine.md)
-- [Workflow README examples](../../README.md)
-
-<!-- ScoutCoder: keep this guide general enough for agents working in any Scout repository; workflow-specific tooling may add stricter checks, but should not replace this baseline format. -->
+Read the introduction alone and try the representative operation. Check task names, input help, defaults and output shapes against the loaded workflow, and CLI examples against the executable. Update affected entries and links in the same change as the public behavior. Extend the nearest relevant guide before adding another. Follow links using only files available to the reader.
