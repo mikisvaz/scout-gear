@@ -25,6 +25,74 @@ bioinformatics and data analysis. You need to:
 - Join tables, filter rows, translate identifiers, restructure columns.
 - Persist intermediate results so recomputation is cheap.
 
+## Scout TSV file format
+
+Scout TSV is a keyed table, not just a rectangular array of records. The
+canonical on-disk representation uses actual tab characters between columns:
+
+```tsv
+#: :type=:list
+#Gene	Score	Direction
+TP53	2.4	up
+MYC	-1.8	down
+```
+
+- The first column is the key; the remaining columns are the value fields.
+  The column-name line begins with `#` immediately before the key-field name.
+- An optional `#:` metadata preamble precedes the column-name line. It can
+  describe the value type, namespace, cast, filename and other scalar
+  options. Declare the type when writing new Scout TSVs so that the intended
+  value shape is explicit. Preserve applicable metadata when transforming a
+  table; do not copy stale filename, cast or namespace information blindly.
+- Data lines do not carry a header marker. `#:` metadata and the `#` field
+  header are not interchangeable. Do not write an unmarked column-name line
+  or discard all `#` lines as comments.
+- A key identifies the logical record. Use unique keys for scalar records;
+  repeated keys can collapse or merge on loading. If records are identified
+  by a tuple (e.g. gene, treatment and time), use an unambiguous composite
+  key, or model the multiplicity explicitly.
+
+For a multi-valued table, the default sub-value separator is `|`:
+
+```tsv
+#: :type=:double
+#GO Term	Gene	Score
+GO:0000278	CDK1|CCNB1	2.4|1.8
+```
+
+Here the row for `GO:0000278` has two value fields, represented as
+`[["CDK1", "CCNB1"], ["2.4", "1.8"]]`. Where field values describe associated
+items, preserve their positional correspondence. A `:list` table represents
+one scalar per field; a `:single` table one scalar per key; a `:flat` table
+does not preserve stable named-field boundaries.
+
+Keep identifiers as strings, including leading zeros. Missing values are not
+zeros. A literal tab or newline in a value, or a literal sub-value separator
+in a multi-valued field, needs explicit handling rather than ordinary CSV
+quoting: do not assume Scout decodes CSV quoting in canonical TSVs.
+
+## Writing Scout TSVs
+
+In Ruby workflow code, prefer Scout's own serialization to constructing
+headers and joining cells manually:
+
+```ruby
+tsv = TSV.setup(
+  { "TP53" => ["2.4", "up"], "MYC" => ["-1.8", "down"] },
+  type: :list, key_field: "Gene", fields: ["Score", "Direction"]
+)
+Open.write("scores.tsv", tsv.to_s)
+```
+
+For large or streamed results, use `TSV::Dumper` or the streaming interfaces
+described below. In languages without Scout serialization, write the canonical
+format explicitly (including `#` and, when needed, `#:`). A conventional
+dataframe export is not a Scout TSV unless its key and headers are adapted.
+For outputs consumed by Scout, reopen a representative result using
+`TSV.open(path)` without interpretation overrides and check the key field,
+fields, type, logical key count and representative values. This catches
+format errors that a text preview alone cannot reveal.
+
 ## Core concepts
 
 ### TSV
