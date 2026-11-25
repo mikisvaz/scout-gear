@@ -51,18 +51,24 @@ class Step
   end
 
   def clean(continue: nil)
-    Log.debug "Cleaning job files: #{path}"
     @take_stream = nil
     @result = nil
     @info = nil
     @info_load_time = nil
     @done = nil
+    continue = config :continue, :job, :job_error, :recoverable_error, :error, env: 'SCOUT_CONTINUE_JOB,SCOUT_CONTINUE,SCOUT_CONTINUE_ERROR,CONTINUE', default: false if continue.nil?
+
+    if continue.to_s.downcase == 'true'
+      Log.debug "Continuing job: #{path}"
+    else
+      Log.debug "Cleaning job: #{path}"
+      Open.rm info_file if Open.exist_or_link?(info_file) && Path.can_write?(info_file)
+      Open.rm_rf files_dir if Open.exist_or_link?(files_dir)
+    end
+
     Open.rm path if Open.exist_or_link?(path) && Path.can_write?(path)
     Open.rm tmp_path if Open.exist_or_link?(tmp_path) && Path.can_write?(tmp_path)
-    continue = config :continue, :job, :job_error, :recoverable_error, :error, env: 'SCOUT_CONTINUE_JOB,SCOUT_CONTINUE,SCOUT_CONTINUE_ERROR,CONTINUE', default: false if continue.nil?
-    return self if continue
-    Open.rm info_file if Open.exist_or_link?(info_file) && Path.can_write?(info_file)
-    Open.rm_rf files_dir if Open.exist_or_link?(files_dir)
+
     self
   end
 
